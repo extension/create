@@ -22,7 +22,6 @@ on :load, "deploy:setup_environment"
 #before "deploy", "deploy:web:disable"
 
 # After code is updated, do some house cleaning
-#after "deploy:update_code", "deploy:update_maint_msg"
 after "deploy:update_code", "deploy:link_configs"
 after "deploy:update_code", "deploy:cleanup"
 
