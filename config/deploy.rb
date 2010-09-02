@@ -27,7 +27,7 @@ after "deploy:update_code", "deploy:cleanup"
 
 # don't forget to turn it back on
 #after "deploy", "deploy:web:enable"
-#after "deploy", 'deploy:notification:email'
+after "deploy", 'deploy:notification:email'
 
 # Add tasks to the deploy namespace
 namespace :deploy do
@@ -83,7 +83,7 @@ namespace :deploy do
   namespace :notification do
     desc "Generate an email for the deploy"
     task :email, :roles => [:app] do 
-      run "#{ruby} #{release_path}/scripts/deploynotification.rb -r #{repository} -a #{application} -h #{server_settings['host']} -u #{localuser} -p #{previous_revision} -l #{latest_revision} -b #{branch}"
+      run "#{ruby} #{release_path}/config/deploy_notification.rb -r #{repository} -a #{application} -h #{server_settings['host']} -u #{localuser} -p #{previous_revision} -l #{latest_revision} -b #{branch}"
     end
   end
 end
