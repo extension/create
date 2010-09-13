@@ -1,5 +1,5 @@
 <?php
-// $Id: system.api.php,v 1.190 2010/09/05 02:21:38 dries Exp $
+// $Id: system.api.php,v 1.193 2010/09/11 14:35:13 dries Exp $
 
 /**
  * @file
@@ -87,6 +87,11 @@ function hook_hook_info_alter(&$hooks) {
  *   - uri callback: A function taking an entity as argument and returning the
  *     uri elements of the entity, e.g. 'path' and 'options'. The actual entity
  *     uri can be constructed by passing these elements to url().
+ *   - label callback: (optional) A function taking an entity as argument and
+ *     returning the label of the entity; e.g., $node->title or
+ *     $comment->subject. A callback should be specified when the label is the
+ *     result of complex logic. Otherwise, the 'label' property of the
+ *     'entity keys' the property should be used.
  *   - fieldable: Set to TRUE if you want your entity type to be fieldable.
  *   - translation: An associative array of modules registered as field
  *     translation handlers. Array keys are the module names, array values
@@ -107,6 +112,11 @@ function hook_hook_info_alter(&$hooks) {
  *       omitted if this entity type exposes a single bundle (all entities have
  *       the same collection of fields). The name of this single bundle will be
  *       the same as the entity type.
+ *     - label: The property name of the entity that contains the label. For
+ *       example, if the entity's label is located in $entity->subject, then
+ *       'subect' should be specified here. In case complex logic is required to
+ *       build the label, a 'label callback' should be implemented instead. See
+ *       entity_label() for details.
  *   - bundle keys: An array describing how the Field API can extract the
  *     information it needs from the bundle objects for this type (e.g
  *     $vocabulary objects for terms; not applicable for nodes). This entry can
@@ -1213,9 +1223,10 @@ function hook_menu_local_tasks_alter(&$data, $router_item, $root_path) {
  *   This is a normalized path, which means that an originally passed path of
  *   'node/123' became 'node/%'.
  *
+ * @see hook_contextual_links_view_alter()
  * @see menu_contextual_links()
  * @see hook_menu()
- * @see system_preprocess()
+ * @see contextual_preprocess()
  */
 function hook_menu_contextual_links_alter(&$links, $router_item, $root_path) {
   // Add a link to all contextual links for nodes.
@@ -1336,16 +1347,56 @@ function hook_form_alter(&$form, &$form_state, $form_id) {
  *   Nested array of form elements that comprise the form.
  * @param $form_state
  *   A keyed array containing the current state of the form.
+ * @param $form_id
+ *   String representing the name of the form itself. Typically this is the
+ *   name of the function that generated the form.
  *
  * @see hook_form_alter()
  * @see drupal_prepare_form()
  */
-function hook_form_FORM_ID_alter(&$form, &$form_state) {
+function hook_form_FORM_ID_alter(&$form, &$form_state, $form_id) {
   // Modification for the form with the given form ID goes here. For example, if
   // FORM_ID is "user_register_form" this code would run only on the user
   // registration form.
 
   // Add a checkbox to registration form about agreeing to terms of use.
+  $form['terms_of_use'] = array(
+    '#type' => 'checkbox',
+    '#title' => t("I agree with the website's terms and conditions."),
+    '#required' => TRUE,
+  );
+}
+
+/**
+ * Provide a form-specific alteration for shared forms.
+ *
+ * Modules can implement hook_form_BASE_FORM_ID_alter() to modify a specific
+ * form belonging to multiple form_ids, rather than implementing
+ * hook_form_alter() and checking for conditions that would identify the
+ * shared form constructor.
+ *
+ * Examples for such forms are node_form() or comment_form().
+ *
+ * Note that this hook fires after hook_form_FORM_ID_alter() and before
+ * hook_form_alter().
+ *
+ * @param $form
+ *   Nested array of form elements that comprise the form.
+ * @param $form_state
+ *   A keyed array containing the current state of the form.
+ * @param $form_id
+ *   String representing the name of the form itself. Typically this is the
+ *   name of the function that generated the form.
+ *
+ * @see hook_form_FORM_ID_alter()
+ * @see drupal_prepare_form()
+ */
+function hook_form_BASE_FORM_ID_alter(&$form, &$form_state, $form_id) {
+  // Modification for the form with the given BASE_FORM_ID goes here. For
+  // example, if BASE_FORM_ID is "node_form", this code would run on every
+  // node form, regardless of node type.
+
+  // Add a checkbox to the node form about agreeing to terms of use.
   $form['terms_of_use'] = array(
     '#type' => 'checkbox',
     '#title' => t("I agree with the website's terms and conditions."),

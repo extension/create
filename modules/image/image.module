@@ -1,5 +1,5 @@
 <?php
-// $Id: image.module,v 1.48 2010/09/01 20:08:17 dries Exp $
+// $Id: image.module,v 1.50 2010/09/11 05:07:22 webchick Exp $
 
 /**
  * @file
@@ -288,6 +288,9 @@ function image_file_download($uri) {
     array_shift($args);
     // Get the style name from the second part.
     $style_name = array_shift($args);
+    // Remove the scheme from the path.
+    array_shift($args);
+
     // Then the remaining parts are the path to the image.
     $original_uri = file_uri_scheme($uri) . '://' . implode('/', $args);
 
@@ -912,6 +915,7 @@ function image_effect_definitions() {
         }
       }
       uasort($effects, '_image_effect_definitions_sort');
+      drupal_alter('image_effect_info', $effects);
       cache_set("image_effects:$langcode", $effects);
     }
   }

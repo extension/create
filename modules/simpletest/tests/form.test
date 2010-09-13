@@ -1,5 +1,5 @@
 <?php
-// $Id: form.test,v 1.62 2010/08/27 11:54:32 webchick Exp $
+// $Id: form.test,v 1.64 2010/09/13 06:41:23 webchick Exp $
 
 /**
  * @file
@@ -50,7 +50,7 @@ class FormsTestCase extends DrupalWebTestCase {
     $elements['textarea']['element'] = array('#title' => $this->randomName(), '#type' => 'textarea');
     $elements['textarea']['empty_values'] = $empty_strings;
 
-    $elements['radios']['element'] = array('#title' => $this->randomName(), '#type' => 'radios', '#options' => array($this->randomName(), $this->randomName(), $this->randomName()));
+    $elements['radios']['element'] = array('#title' => $this->randomName(), '#type' => 'radios', '#options' => array('' => t('None'), $this->randomName(), $this->randomName(), $this->randomName()));
     $elements['radios']['empty_values'] = $empty_arrays;
 
     $elements['checkbox']['element'] = array('#title' => $this->randomName(), '#type' => 'checkbox', '#required' => TRUE, '#title' => $this->randomName());
@@ -59,7 +59,7 @@ class FormsTestCase extends DrupalWebTestCase {
     $elements['checkboxes']['element'] = array('#title' => $this->randomName(), '#type' => 'checkboxes', '#options' => array($this->randomName(), $this->randomName(), $this->randomName()));
     $elements['checkboxes']['empty_values'] = $empty_arrays;
 
-    $elements['select']['element'] = array('#title' => $this->randomName(), '#type' => 'select', '#options' => array($this->randomName(), $this->randomName(), $this->randomName()));
+    $elements['select']['element'] = array('#title' => $this->randomName(), '#type' => 'select', '#options' => array('' => t('None'), $this->randomName(), $this->randomName(), $this->randomName()));
     $elements['select']['empty_values'] = $empty_strings;
 
     $elements['file']['element'] = array('#title' => $this->randomName(), '#type' => 'file');
@@ -1010,6 +1010,10 @@ class FormsRebuildTestCase extends DrupalWebTestCase {
     // a validation error.
     $this->drupalPost(NULL, array(), t('Save'));
     $this->assertText('Title field is required.', t('Non-AJAX submission correctly triggered a validation error.'));
+
+    // Ensure that the form contains two items in the multi-valued field, so we
+    // know we're testing a form that was correctly retrieved from cache.
+    $this->assert(count($this->xpath('//form[contains(@id, "page-node-form")]//div[contains(@class, "form-item-field-ajax-test")]//input[@type="text"]')) == 2, t('Form retained its state from cache.'));
 
     // Ensure that the form's action is correct.
     $forms = $this->xpath('//form[contains(@class, "node-page-form")]');

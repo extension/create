@@ -1,5 +1,5 @@
 <?php
-// $Id: file.module,v 1.37 2010/08/27 11:54:32 webchick Exp $
+// $Id: file.module,v 1.40 2010/09/13 01:09:25 dries Exp $
 
 /**
  * @file
@@ -138,8 +138,14 @@ function file_file_download($uri, $field_type = 'file') {
     return;
   }
 
-  // Find out which (if any) file fields contain this file.
+  // Find out which (if any) fields of this type contain the file.
   $references = file_get_file_references($file, NULL, FIELD_LOAD_REVISION, $field_type);
+
+  // If there are no references, stop processing, to avoid returning headers
+  // for files controlled by other modules.
+  if (empty($references)) {
+    return;
+  }
 
   // Default to allow access.
   $denied = FALSE;
@@ -248,7 +254,7 @@ function file_ajax_upload() {
     return array('#type' => 'ajax', '#commands' => $commands, '#header' => FALSE);
   }
 
-  list($form, $form_state, $form_id, $form_build_id) = ajax_get_form();
+  list($form, $form_state) = ajax_get_form();
 
   if (!$form) {
     // Invalid form_build_id.
@@ -265,12 +271,8 @@ function file_ajax_upload() {
   }
   $current_file_count = isset($current_element['#file_upload_delta']) ? $current_element['#file_upload_delta'] : 0;
 
-  // Build, validate and if possible, submit the form.
-  drupal_process_form($form_id, $form, $form_state);
-
-  // This call recreates the form relying solely on the form_state that the
-  // drupal_process_form() set up.
-  $form = drupal_rebuild_form($form_id, $form_state, $form);
+  // Process user input. $form and $form_state are modified in the process.
+  drupal_process_form($form['#form_id'], $form, $form_state);
 
   // Retrieve the element to be rendered.
   foreach ($form_parents as $parent) {
@@ -572,7 +574,7 @@ function file_managed_file_submit($form, &$form_state) {
   // and set $element to the managed_file element that contains that button.
   $parents = $form_state['triggering_element']['#array_parents'];
   $button_key = array_pop($parents);
-  list($element) = drupal_array_get_nested_value($form, $parents);
+  $element = drupal_array_get_nested_value($form, $parents);
 
   // No action is needed here for the upload button, because all file uploads on
   // the form are processed by file_managed_file_value() regardless of which

@@ -1,5 +1,5 @@
 <?php
-// $Id: system.admin.inc,v 1.301 2010/09/05 15:38:16 webchick Exp $
+// $Id: system.admin.inc,v 1.303 2010/09/11 03:00:26 dries Exp $
 
 /**
  * @file
@@ -2105,7 +2105,8 @@ function theme_system_date_time_settings($variables) {
     $delete_key = $key . '_delete';
     $row = array();
     $row[] = $form['format'][$key]['#title'];
-    unset($form['format'][$key]['#title']);
+    $form['format'][$key]['#title_display'] = 'invisible';
+    $row[] = $form['format'][$key]['#title_display'];
     $row[] = array('data' => drupal_render($form['format'][$key]));
     $row[] = array('data' => drupal_render($form['delete'][$delete_key]));
     $rows[] = $row;
@@ -2875,6 +2876,7 @@ function system_configure_date_formats_form($form, &$form_state, $dfid = 0) {
   $form['date_format'] = array(
     '#type' => 'textfield',
     '#title' => t('Format string'),
+    '#maxlength' => 100,
     '#description' => t('A user-defined date format. See the <a href="@url">PHP manual</a> for available options.', array('@url' => 'http://php.net/manual/function.date.php')),
     '#default_value' => ($dfid ? $format->format : ''),
     '#field_suffix' => ' <small id="edit-date-format-suffix">' . $now . '</small>',
