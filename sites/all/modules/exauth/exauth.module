@@ -1,0 +1,43 @@
+<?php
+
+//make sure the openid function that i'm trying to use is included
+module_load_include('inc', 'openid', 'openid');
+
+function exauth_help($path, $arg) {
+  $output = '';
+  switch($path) {
+    case "admin/help#exauth":
+      $output = '<p>'. t(" require extensionid authentication for all visitors").'</p>';
+    break;
+  }
+  return $output;
+}
+
+//check to see if the user is accessing a page which does not need to trigger the openid login process to start
+//logout by default seems to be redirecting back to /, so something will need to be figured out for a custom redirect for logout
+
+
+function accessing_unprotected_page()
+{
+ if ( strpos($_SERVER['REQUEST_URI'], "openid")=== FALSE && strpos($_SERVER['REQUEST_URI'], "logout")=== FALSE && strpos($_SERVER['REQUEST_URI'], "atomfeed") === FALSE && strpos($_SERVER['REQUEST_URI'], "cron.php") === FALSE && strpos($_SERVER['REQUEST_URI'], "loggedout") === FALSE )
+  {
+    return FALSE;
+  }
+  return TRUE;
+}
+
+
+// if the user is not logged in and is not trying to access an unprotected url, then start the openid login process
+function exauth_init()
+{
+  global $base_url;
+  $default_openidreturn = $base_url . '/openid/authenticate?destination=' . ltrim(request_uri(), "/");
+
+  $myopenid_return = variable_get('extension_openid_return',$default_openidreturn);
+  if(!user_is_logged_in() && !accessing_unprotected_page()) 
+  {
+    //syslog(LOG_WARNING, "openid login start");
+    openid_begin("https://people.extension.org/", $myopenid_return);
+  }
+
+}
