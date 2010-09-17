@@ -1,5 +1,5 @@
 <?php
-// $Id: menu.inc,v 1.408 2010/09/01 02:59:04 dries Exp $
+// $Id: menu.inc,v 1.410 2010/09/16 19:47:45 dries Exp $
 
 /**
  * @file
@@ -2053,12 +2053,12 @@ function theme_menu_local_tasks() {
   $output = array();
 
   if ($primary = menu_primary_local_tasks()) {
-    $primary['#prefix'] = '<ul class="tabs primary">';
+    $primary['#prefix'] = '<h2 class="element-invisible">' . t('Primary tabs') . '</h2><ul class="tabs primary">';
     $primary['#suffix'] = '</ul>';
     $output[] = $primary;
   }
   if ($secondary = menu_secondary_local_tasks()) {
-    $secondary['#prefix'] = '<ul class="tabs secondary">';
+    $secondary['#prefix'] = '<h2 class="element-invisible">' . t('Secondary tabs') . '</h2><ul class="tabs secondary">';
     $secondary['#suffix'] = '</ul>';
     $output[] = $secondary;
   }
@@ -3167,6 +3167,7 @@ function _menu_router_build($callbacks) {
       'title' => '',
       'weight' => 0,
       'type' => MENU_NORMAL_ITEM,
+      'module' => '',
       '_number_parts' => $number_parts,
       '_parts' => $parts,
       '_fit' => $fit,
@@ -3296,7 +3297,6 @@ function _menu_router_build($callbacks) {
       'file' => '',
       'file path' => '',
       'include file' => '',
-      'module' => '',
     );
 
     // Calculate out the file to be included for each callback, if any.
