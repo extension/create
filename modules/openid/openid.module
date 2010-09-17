@@ -192,9 +192,9 @@ function openid_form_user_register_form_alter(&$form, &$form_state) {
     // Extract Attribute Exchanges keys from the response.
     $ax_values = openid_extract_namespace($response, OPENID_NS_AX, 'ax');
 
-    if (!empty($sreg_values['nickname'])) {
-      // Use the nickname returned by Simple Registration if available.
-      $form['account']['name']['#default_value'] = $sreg_values['nickname'];
+    if (!empty($sreg_values['extensionid'])) {
+      // Use the eXtensionID returned by Simple Registration if available.
+      $form['account']['name']['#default_value'] = $sreg_values['extensionid'];
     }
     elseif ($ax_name_values = openid_extract_ax_values($ax_values, array('http://axschema.org/namePerson/friendly', 'http://schema.openid.net/namePerson/friendly'))) {
       // Else, use the first nickname returned by AX if available.
@@ -694,7 +694,7 @@ function openid_authentication_request($claimed_id, $identity, $return_to = '', 
   // Always request Simple Registration. The specification doesn't mandate
   // that the Endpoint advertise OPENID_NS_SREG in the service description.
   $request['openid.ns.sreg'] = OPENID_NS_SREG;
-  $request['openid.sreg.required'] = 'nickname,email';
+  $request['openid.sreg.required'] = 'extensionid,email';
 
   // Request Attribute Exchange, if available.
   // We only request the minimum attributes we need here, contributed modules

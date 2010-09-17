@@ -1,5 +1,5 @@
 <?php
-// $Id: theme.inc,v 1.609 2010/09/05 02:21:37 dries Exp $
+// $Id: theme.inc,v 1.611 2010/09/14 21:42:05 dries Exp $
 
 /**
  * @file
@@ -768,7 +768,11 @@ function theme($hook, $variables = array()) {
       }
     }
     if (!isset($hooks[$hook])) {
-      watchdog('theme', 'Theme key "@key" not found.', array('@key' => $hook), WATCHDOG_WARNING);
+      // Only log a message when not trying theme suggestions ($hook being an
+      // array).
+      if (!isset($candidate)) {
+        watchdog('theme', 'Theme key "@key" not found.', array('@key' => $hook), WATCHDOG_WARNING);
+      }
       return '';
     }
   }
@@ -1560,6 +1564,8 @@ function theme_breadcrumb($variables) {
  *     associative array with the following keys:
  *     - "data": an array of cells
  *     - Any HTML attributes, such as "class", to apply to the table row.
+ *     - "no_striping": a boolean indicating that the row should receive no
+ *       'even / odd' styling. Defaults to FALSE.
  *     Each cell can be either a string or an associative array with the
  *     following keys:
  *     - "data": The string to display in the table cell.
@@ -1728,8 +1734,10 @@ function theme_table($variables) {
       }
       if (count($cells)) {
         // Add odd/even class
-        $class = $flip[$class];
-        $attributes['class'][] = $class;
+        if (empty($row['no_striping'])) {
+          $class = $flip[$class];
+          $attributes['class'][] = $class;
+        }
 
         // Build row
         $output .= ' <tr' . drupal_attributes($attributes) . '>';
@@ -1999,7 +2007,7 @@ function theme_indentation($variables) {
 
 /**
  * Returns HTML output for a single table cell for theme_table().
- * 
+ *
  * @param $cell
  *   Array of cell information, or string to display in cell.
  * @param bool $header

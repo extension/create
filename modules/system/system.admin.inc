@@ -1,5 +1,5 @@
 <?php
-// $Id: system.admin.inc,v 1.301 2010/09/05 15:38:16 webchick Exp $
+// $Id: system.admin.inc,v 1.304 2010/09/15 04:31:02 webchick Exp $
 
 /**
  * @file
@@ -1250,12 +1250,16 @@ function system_modules_submit($form, &$form_state) {
     drupal_set_message(t('The configuration options have been saved.'));
   }
 
-  // Clear all caches. We need to invoke drupal_flush_all_caches() to ensure
-  // that also dependent caches are flushed, e.g. the filter cache and field
-  // cache, and also registered themes are rebuilt, since modules can also
-  // register themes.
-  drupal_flush_all_caches();
+  // Clear all caches.
+  registry_rebuild();
+  system_rebuild_theme_data();
+  drupal_theme_rebuild();
+  node_types_rebuild();
+  menu_rebuild();
+  cache_clear_all('schema', 'cache');
   entity_info_cache_clear();
+  drupal_clear_css_cache();
+  drupal_clear_js_cache();
 
   $form_state['redirect'] = 'admin/modules';
 
@@ -2105,7 +2109,8 @@ function theme_system_date_time_settings($variables) {
     $delete_key = $key . '_delete';
     $row = array();
     $row[] = $form['format'][$key]['#title'];
-    unset($form['format'][$key]['#title']);
+    $form['format'][$key]['#title_display'] = 'invisible';
+    $row[] = $form['format'][$key]['#title_display'];
     $row[] = array('data' => drupal_render($form['format'][$key]));
     $row[] = array('data' => drupal_render($form['delete'][$delete_key]));
     $rows[] = $row;
@@ -2875,6 +2880,7 @@ function system_configure_date_formats_form($form, &$form_state, $dfid = 0) {
   $form['date_format'] = array(
     '#type' => 'textfield',
     '#title' => t('Format string'),
+    '#maxlength' => 100,
     '#description' => t('A user-defined date format. See the <a href="@url">PHP manual</a> for available options.', array('@url' => 'http://php.net/manual/function.date.php')),
     '#default_value' => ($dfid ? $format->format : ''),
     '#field_suffix' => ' <small id="edit-date-format-suffix">' . $now . '</small>',
