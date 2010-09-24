@@ -7,6 +7,8 @@ engine = phptemplate
 
 base theme = bartik
 
+stylesheets[all][] = css/drupex.css
+
 regions[header] = Header
 regions[help] = Help
 regions[page_top] = Page top
