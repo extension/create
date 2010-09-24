@@ -1,5 +1,5 @@
 <?php
-// $Id: install.core.inc,v 1.30 2010/09/14 21:42:05 dries Exp $
+// $Id: install.core.inc,v 1.32 2010/09/22 07:05:22 webchick Exp $
 
 /**
  * @file
@@ -1198,21 +1198,28 @@ function install_select_locale(&$install_state) {
   }
 
   if (empty($install_state['parameters']['locale'])) {
-    // If only the built-in (English) language is available, and we are using
-    // the default profile and performing an interactive installation, inform
-    // the user that the installer can be localized. Otherwise we assume the
-    // user knows what he is doing.
+    // If only the built-in (English) language is available, and we are
+    // performing an interactive installation, inform the user that the
+    // installer can be localized. Otherwise we assume the user knows what he
+    // is doing.
     if (count($locales) == 1) {
-      if ($profilename == 'standard' && $install_state['interactive']) {
+      if ($install_state['interactive']) {
         drupal_set_title(st('Choose language'));
         if (!empty($install_state['parameters']['localize'])) {
-          $output = '<p>' . st('With the addition of an appropriate translation package, this installer is capable of proceeding in another language of your choice. To install and use Drupal in a language other than English:') . '</p>';
-          $output .= '<ul><li>' . st('Determine if <a href="@translations" target="_blank">a translation of this Drupal version</a> is available in your language of choice. A translation is provided via a translation package; each translation package enables the display of a specific version of Drupal in a specific language. Not all languages are available for every version of Drupal.', array('@translations' => 'http://drupal.org/project/translations')) . '</li>';
-          $output .= '<li>' . st('If an alternative translation package of your choice is available, download and extract its contents to your Drupal root directory.') . '</li>';
-          $output .= '<li>' . st('Return to choose language using the second link below and select your desired language from the displayed list. Reloading the page allows the list to automatically adjust to the presence of new translation packages.') . '</li>';
-          $output .= '</ul><p>' . st('Alternatively, to install and use Drupal in English, or to defer the selection of an alternative language until after installation, select the first link below.') . '</p>';
-          $output .= '<p>' . st('How should the installation continue?') . '</p>';
-          $output .= '<ul><li><a href="install.php?profile=' . $profilename . '&amp;locale=en">' . st('Continue installation in English') . '</a></li><li><a href="install.php?profile=' . $profilename . '">' . st('Return to choose a language') . '</a></li></ul>';
+          $output = '<p>Follow these steps to translate Drupal into your language:</p>';
+          $output .= '<ol>';
+          $output .= '<li>Download a translation from the <a href="http://localize.drupal.org/download" target="_blank">translation server</a>.</li>';
+          $output .= '<li>Rename the downloaded file to your language\'s <a href="http://www.gnu.org/software/gettext/manual/html_chapter/gettext_16.html#Language-Codes" target="_blank">ISO code</a> (e.g., <code>de.po</code> or <code>fr.po</code>) and place it into the following directory:
+<pre>
+/profiles/' . $profilename . '/translations/
+</pre></li>';
+          $output .= '</ol>';
+          $output .= '<p>For more information on installing Drupal in different languages, visit the <a href="http://drupal.org/localize" target="_blank">drupal.org handbook page</a>.</p>';
+          $output .= '<p>How should the installation continue?</p>';
+          $output .= '<ul>';
+          $output .= '<li><a href="install.php?profile=' . $profilename . '">Reload the language selection page after adding translations</a></li>';
+          $output .= '<li><a href="install.php?profile=' . $profilename . '&amp;locale=en">Continue installation in English</a></li>';
+          $output .= '</ul>';
         }
         else {
           include_once DRUPAL_ROOT . '/includes/form.inc';
@@ -1221,8 +1228,8 @@ function install_select_locale(&$install_state) {
         }
         return $output;
       }
-      // One language, but not the default profile or not an interactive
-      // installation. Assume the user knows what he is doing.
+      // One language, but not an interactive installation. Assume the user
+      // knows what he is doing.
       $locale = current($locales);
       $install_state['parameters']['locale'] = $locale->name;
       return;
@@ -1263,7 +1270,7 @@ function install_select_locale(&$install_state) {
 /**
  * Form API array definition for language selection.
  */
-function install_select_locale_form($form, &$form_state, $locales, $profilename = 'standard') {
+function install_select_locale_form($form, &$form_state, $locales, $profilename) {
   include_once DRUPAL_ROOT . '/includes/iso.inc';
   $languages = _locale_get_predefined_list();
   foreach ($locales as $locale) {
@@ -1280,7 +1287,7 @@ function install_select_locale_form($form, &$form_state, $locales, $profilename 
       '#parents' => array('locale')
     );
   }
-  if ($profilename == 'standard') {
+  if (count($locales) == 1) {
     $form['help'] = array(
       '#markup' => '<p><a href="install.php?profile=' . $profilename . '&amp;localize=true">' . st('Learn how to install Drupal in other languages') . '</a></p>',
     );
@@ -1615,7 +1622,18 @@ function install_check_requirements($install_state) {
         // therefore must delete the file we just created and force the
         // administrator to log on to the server and create it manually.
         else {
-          drupal_unlink($settings_file);
+          $deleted = @drupal_unlink($settings_file);
+          // We expect deleting the file to be successful (since we just
+          // created it ourselves above), but if it fails somehow, we set a
+          // variable so we can display a one-time error message to the
+          // administrator at the bottom of the requirements list. We also try
+          // to make the file writable, to eliminate any conflicting error
+          // messages in the requirements list.
+          $exists = !$deleted;
+          if ($exists) {
+            $settings_file_ownership_error = TRUE;
+            $writable = drupal_verify_install_file($settings_file, FILE_READABLE|FILE_WRITABLE);
+          }
         }
       }
     }
@@ -1646,7 +1664,15 @@ function install_check_requirements($install_state) {
       else {
         $requirements['settings file'] = array(
           'title'       => st('Settings file'),
-          'value'       => st('Settings file is writable.'),
+          'value'       => st('The settings file is writable.'),
+        );
+      }
+      if (!empty($settings_file_ownership_error)) {
+        $requirements['settings file ownership'] = array(
+          'title'       => st('Settings file'),
+          'value'       => st('The settings file is owned by the web server.'),
+          'severity'    => REQUIREMENT_ERROR,
+          'description' => st('The @drupal installer failed to create a settings file with proper file ownership. Log on to your web server, remove the existing %file file, and create a new one by copying the %default_file file to %file. More details about installing Drupal are available in <a href="@install_txt">INSTALL.txt</a>. If you have problems with the file permissions on your server, consult the <a href="@handbook_url">online handbook</a>.', array('@drupal' => drupal_install_profile_distribution_name(), '%file' => $file, '%default_file' => $default_settings_file, '@install_txt' => base_path() . 'INSTALL.txt', '@handbook_url' => 'http://drupal.org/server-permissions')),
         );
       }
     }

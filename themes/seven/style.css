@@ -1,4 +1,4 @@
-/* $Id: style.css,v 1.69 2010/09/13 00:59:47 dries Exp $ */
+/* $Id: style.css,v 1.73 2010/09/23 02:11:19 dries Exp $ */
 
 /**
  * Generic elements.
@@ -6,7 +6,7 @@
 body {
   color: #000;
   background: #fff;
-  font: 81.3%/1.538em normal Lucida Grande, Lucida Sans Unicode, sans-serif;
+  font: normal 81.3%/1.538em "Lucida Grande", "Lucida Sans Unicode", sans-serif;
 }
 a {
   color: #0074BD;
@@ -138,6 +138,10 @@ code,
 pre,
 kbd {
   font-size: 1.231em;
+}
+pre {
+  margin: 0.5em 0;
+  white-space: pre-wrap;
 }
 
 /**
@@ -425,6 +429,9 @@ ul.admin-list li div.description a {
   margin-left: 0px;
   padding: 0px;
   min-height: inherit;
+}
+div.submitted {
+  color: #898989;
 }
 
 /**
@@ -1004,15 +1011,4 @@ table tbody tr.update-unsupported {
   color: #840;
   background: #fffce5;
   border-bottom: 1px solid #ed5;
-}
-
-/* Vertical Tabs */
-div.vertical-tabs .vertical-tabs-list {
-  font-size: 1em;
-}
-div.vertical-tabs ul li.vertical-tab-button strong {
-  font-size: 0.923em;
-}
-div.vertical-tabs ul li.vertical-tab-button .summary {
-  font-size: 0.846em;
 }

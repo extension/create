@@ -1,5 +1,5 @@
 <?php
-// $Id: common.inc,v 1.1221 2010/09/16 20:14:49 dries Exp $
+// $Id: common.inc,v 1.1223 2010/09/22 03:24:09 dries Exp $
 
 /**
  * @file
@@ -5842,7 +5842,7 @@ function drupal_common_theme() {
       // - http://dev.w3.org/html5/spec/Overview.html#alt
       // The title attribute is optional in all cases, so it is omitted by
       // default.
-      'variables' => array('path' => NULL, 'alt' => '', 'title' => NULL, 'attributes' => array(), 'getsize' => TRUE),
+      'variables' => array('path' => NULL, 'width' => NULL, 'height' => NULL, 'alt' => '', 'title' => NULL, 'attributes' => array()),
     ),
     'breadcrumb' => array(
       'variables' => array('breadcrumb' => NULL),
@@ -5957,6 +5957,9 @@ function drupal_common_theme() {
     ),
     'date' => array(
       'render element' => 'element',
+    ),
+    'exposed_filters' => array(
+      'render element' => 'form',
     ),
     'checkbox' => array(
       'render element' => 'element',
