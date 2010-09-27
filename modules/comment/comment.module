@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.module,v 1.898 2010/09/13 05:52:18 webchick Exp $
+// $Id: comment.module,v 1.900 2010/09/24 00:37:42 dries Exp $
 
 /**
  * @file
@@ -241,7 +241,6 @@ function comment_menu() {
     'page callback' => 'comment_permalink',
     'page arguments' => array(1),
     'access arguments' => array('access comments'),
-    'type' => MENU_CALLBACK,
   );
   $items['comment/%/view'] = array(
     'title' => 'View comment',
@@ -264,7 +263,6 @@ function comment_menu() {
     'page callback' => 'comment_approve',
     'page arguments' => array(1),
     'access arguments' => array('administer comments'),
-    'type' => MENU_CALLBACK,
     'file' => 'comment.pages.inc',
     'weight' => 1,
   );
@@ -283,7 +281,6 @@ function comment_menu() {
     'page arguments' => array(2),
     'access callback' => 'node_access',
     'access arguments' => array('view', 2),
-    'type' => MENU_CALLBACK,
     'file' => 'comment.pages.inc',
   );
 
@@ -2204,8 +2201,10 @@ function template_preprocess_comment(&$variables) {
   $variables['signature'] = $comment->signature;
 
   $uri = entity_uri('comment', $comment);
+  $uri['options'] += array('attributes' => array('class' => 'permalink', 'rel' => 'bookmark'));
+
   $variables['title']     = l($comment->subject, $uri['path'], $uri['options']);
-  $variables['permalink'] = l('#', $uri['path'], $uri['options']);
+  $variables['permalink'] = l(t('Permalink'), $uri['path'], $uri['options']);
 
   // Preprocess fields.
   field_attach_preprocess('comment', $comment, $variables['elements'], $variables);

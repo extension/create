@@ -1,5 +1,5 @@
 <?php
-// $Id: taxonomy.admin.inc,v 1.107 2010/07/31 13:01:50 webchick Exp $
+// $Id: taxonomy.admin.inc,v 1.109 2010/09/27 00:53:56 dries Exp $
 
 /**
  * @file
@@ -627,7 +627,7 @@ function theme_taxonomy_overview_terms($variables) {
   }
 
   if (empty($rows)) {
-    $rows[] = array(array('data' => $form['#empty_text'], 'colspan' => '2'));
+    $rows[] = array(array('data' => $form['#empty_text'], 'colspan' => '3'));
   }
 
   $header = array(t('Name'), t('Weight'), t('Operations'));
@@ -868,8 +868,6 @@ function taxonomy_form_term_submit($form, &$form_state) {
 
   $form_state['values']['tid'] = $term->tid;
   $form_state['tid'] = $term->tid;
-  // Do not rebuild here. The term is saved by now and the form should clear.
-  $form_state['rebuild'] = FALSE;
 }
 
 /**

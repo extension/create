@@ -1,5 +1,5 @@
 <?php
-// $Id: system.admin.inc,v 1.306 2010/09/16 18:00:43 dries Exp $
+// $Id: system.admin.inc,v 1.309 2010/09/24 21:36:22 dries Exp $
 
 /**
  * @file
@@ -639,7 +639,7 @@ function system_theme_settings($form, &$form_state, $key = '') {
     }
 
     // Restore the original current theme.
-    if (!is_null($default_theme)) {
+    if (isset($default_theme)) {
       $GLOBALS['theme_key'] = $default_theme;
     }
     else {
@@ -1745,7 +1745,7 @@ function system_performance_settings() {
   $is_writable = is_dir($directory) && is_writable($directory);
   $disabled = !$is_writable;
   $disabled_message = '';
-  if(!$is_writable) {
+  if (!$is_writable) {
     $disabled_message = ' ' . t('<strong class="error">Set up the <a href="!file-system">public files directory</a> to make these optimizations available.</strong>', array('!file-system' => url('admin/config/media/file-system')));
   }
 
@@ -2941,7 +2941,7 @@ function system_actions_manage() {
   actions_synchronize();
   $actions = actions_list();
   $actions_map = actions_actions_map($actions);
-  $options = array(t('Choose an advanced action'));
+  $options = array();
   $unconfigurable = array();
 
   foreach ($actions_map as $key => $array) {
@@ -3013,9 +3013,7 @@ function system_actions_manage_form($form, &$form_state, $options = array()) {
   );
   $form['parent']['action'] = array(
     '#type' => 'select',
-    '#default_value' => '',
     '#options' => $options,
-    '#description' => '',
   );
   $form['parent']['actions'] = array('#type' => 'actions');
   $form['parent']['actions']['submit'] = array(

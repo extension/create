@@ -1,5 +1,5 @@
 <?php
-// $Id: common.inc,v 1.1223 2010/09/22 03:24:09 dries Exp $
+// $Id: common.inc,v 1.1228 2010/09/26 23:31:35 dries Exp $
 
 /**
  * @file
@@ -162,7 +162,7 @@ define('DRUPAL_CACHE_GLOBAL', 0x0008);
 function drupal_add_region_content($region = NULL, $data = NULL) {
   static $content = array();
 
-  if (!is_null($region) && !is_null($data)) {
+  if (isset($region) && isset($data)) {
     $content[$region][] = $data;
   }
   return $content;
@@ -230,7 +230,7 @@ function drupal_get_profile() {
 function drupal_set_breadcrumb($breadcrumb = NULL) {
   $stored_breadcrumb = &drupal_static(__FUNCTION__);
 
-  if (!is_null($breadcrumb)) {
+  if (isset($breadcrumb)) {
     $stored_breadcrumb = $breadcrumb;
   }
   return $stored_breadcrumb;
@@ -242,7 +242,7 @@ function drupal_set_breadcrumb($breadcrumb = NULL) {
 function drupal_get_breadcrumb() {
   $breadcrumb = drupal_set_breadcrumb();
 
-  if (is_null($breadcrumb)) {
+  if (!isset($breadcrumb)) {
     $breadcrumb = menu_get_active_breadcrumb();
   }
 
@@ -1616,7 +1616,7 @@ function format_rss_item($title, $link, $description, $args = array()) {
  * Format XML elements.
  *
  * @param $array
- *   An array where each item represent an element and is either a:
+ *   An array where each item represents an element and is either a:
  *   - (key => value) pair (<key>value</key>)
  *   - Associative array with fields:
  *     - 'key': element name
@@ -2267,9 +2267,9 @@ function l($text, $path, array $options = array()) {
 
   // Merge in defaults.
   $options += array(
-      'attributes' => array(),
-      'html' => FALSE,
-    );
+    'attributes' => array(),
+    'html' => FALSE,
+  );
 
   // Append active class.
   if (($path == $_GET['q'] || ($path == '<front>' && drupal_is_front_page())) &&
@@ -5619,7 +5619,8 @@ function element_set_attributes(array &$element, array $map) {
     if (is_int($property)) {
       $property = '#' . $attribute;
     }
-    if (isset($element[$property])) {
+    // Do not overwrite already existing attributes.
+    if (isset($element[$property]) && !isset($element['#attributes'][$attribute])) {
       $element['#attributes'][$attribute] = $element[$property];
     }
   }
@@ -6029,7 +6030,7 @@ function drupal_common_theme() {
  */
 function drupal_install_schema($module) {
   $schema = drupal_get_schema_unprocessed($module);
-  _drupal_schema_initialize($module, $schema);
+  _drupal_schema_initialize($schema, $module, FALSE);
 
   foreach ($schema as $name => $table) {
     db_create_table($name, $table);
@@ -6052,7 +6053,7 @@ function drupal_install_schema($module) {
  */
 function drupal_uninstall_schema($module) {
   $schema = drupal_get_schema_unprocessed($module);
-  _drupal_schema_initialize($module, $schema);
+  _drupal_schema_initialize($schema, $module, FALSE);
 
   foreach ($schema as $table) {
     if (db_table_exists($table['name'])) {
@@ -6090,7 +6091,7 @@ function drupal_get_schema_unprocessed($module, $table = NULL) {
   module_load_install($module);
   $schema = module_invoke($module, 'schema');
 
-  if (!is_null($table) && isset($schema[$table])) {
+  if (isset($table) && isset($schema[$table])) {
     return $schema[$table];
   }
   elseif (!empty($schema)) {
@@ -6102,20 +6103,30 @@ function drupal_get_schema_unprocessed($module, $table = NULL) {
 /**
  * Fill in required default values for table definitions returned by hook_schema().
  *
- * @param $module
- *   The module for which hook_schema() was invoked.
  * @param $schema
  *   The schema definition array as it was returned by the module's
  *   hook_schema().
+ * @param $module
+ *   The module for which hook_schema() was invoked.
+ * @param $remove_descriptions
+ *   (optional) Whether to additionally remove 'description' keys of all tables
+ *   and fields to improve performance of serialize() and unserialize().
+ *   Defaults to TRUE.
  */
-function _drupal_schema_initialize($module, &$schema) {
+function _drupal_schema_initialize(&$schema, $module, $remove_descriptions = TRUE) {
   // Set the name and module key for all tables.
-  foreach ($schema as $name => $table) {
+  foreach ($schema as $name => &$table) {
     if (empty($table['module'])) {
-      $schema[$name]['module'] = $module;
+      $table['module'] = $module;
     }
     if (!isset($table['name'])) {
-      $schema[$name]['name'] = $name;
+      $table['name'] = $name;
+    }
+    if ($remove_descriptions) {
+      unset($table['description']);
+      foreach ($table['fields'] as &$field) {
+        unset($field['description']);
+      }
     }
   }
 }
@@ -6204,7 +6215,7 @@ function drupal_write_record($table, &$record, $primary_keys = array()) {
     }
 
     if (!property_exists($object, $field)) {
-      // Skip fields that are not provided, default values are already known 
+      // Skip fields that are not provided, default values are already known
       // by the database.
       continue;
     }
@@ -6223,7 +6234,7 @@ function drupal_write_record($table, &$record, $primary_keys = array()) {
     // MySQL PDO silently casts e.g. FALSE and '' to 0 when inserting the value
     // into an integer column, but PostgreSQL PDO does not. Also type cast NULL
     // when the column does not allow this.
-    if (!is_null($object->$field) || !empty($info['not null'])) {
+    if (isset($object->$field) || !empty($info['not null'])) {
       if ($info['type'] == 'int' || $info['type'] == 'serial') {
         $fields[$field] = (int) $fields[$field];
       }
@@ -6793,10 +6804,10 @@ function entity_create_stub_entity($entity_type, $ids) {
   $entity = new stdClass();
   $info = entity_get_info($entity_type);
   $entity->{$info['entity keys']['id']} = $ids[0];
-  if (!empty($info['entity keys']['revision']) && !is_null($ids[1])) {
+  if (!empty($info['entity keys']['revision']) && isset($ids[1])) {
     $entity->{$info['entity keys']['revision']} = $ids[1];
   }
-  if (!empty($info['entity keys']['bundle']) && !is_null($ids[2])) {
+  if (!empty($info['entity keys']['bundle']) && isset($ids[2])) {
     $entity->{$info['entity keys']['bundle']} = $ids[2];
   }
   return $entity;

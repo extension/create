@@ -1,5 +1,5 @@
 <?php
-// $Id: form.inc,v 1.494 2010/09/22 03:34:57 dries Exp $
+// $Id: form.inc,v 1.497 2010/09/27 00:53:55 dries Exp $
 
 /**
  * @defgroup forms Form builder functions
@@ -219,11 +219,13 @@ function drupal_get_form($form_id) {
  *     request (so a browser refresh does not re-submit the form). However, if
  *     'rebuild' has been set to TRUE, then a new copy of the form is
  *     immediately built and sent to the browser; instead of a redirect. This is
- *     used for multi-step forms, such as wizards and confirmation forms. Also,
- *     if a form validation handler has set 'rebuild' to TRUE and a validation
- *     error occurred, then the form is rebuilt prior to being returned,
- *     enabling form elements to be altered, as appropriate to the particular
- *     validation error.
+ *     used for multi-step forms, such as wizards and confirmation forms.
+ *     Normally, $form_state['rebuild'] is set by a submit handler, since it is
+ *     usually logic within a submit handler that determines whether a form is
+ *     done or requires another step. However, a validation handler may already
+ *     set $form_state['rebuild'] to cause the form processing to bypass submit
+ *     handlers and rebuild the form instead, even if there are no validation
+ *     errors.
  *   - input: An array of input that corresponds to $_POST or $_GET, depending
  *     on the 'method' chosen (see below).
  *   - method: The HTTP form method to use for finding the input for this form.
@@ -362,6 +364,7 @@ function form_state_defaults() {
     'build_info' => array('args' => array()),
     'temporary' => array(),
     'submitted' => FALSE,
+    'executed' => FALSE,
     'programmed' => FALSE,
     'cache'=> FALSE,
     'method' => 'post',
@@ -526,6 +529,7 @@ function form_state_keys_no_cache() {
     'method',
     'submit_handlers',
     'submitted',
+    'executed',
     'validate_handlers',
     'values',
   );
@@ -804,23 +808,39 @@ function drupal_process_form($form_id, &$form, &$form_state) {
     if (!empty($form_state['programmed'])) {
       return;
     }
+
+    // If $form_state['rebuild'] has been set and input has been processed
+    // without validation errors, we are in a multi-step workflow that is not
+    // yet complete. A new $form needs to be constructed based on the changes
+    // made to $form_state during this request. Normally, a submit handler sets
+    // $form_state['rebuild'] if a fully executed form requires another step.
+    // However, for forms that have not been fully executed (e.g., AJAX
+    // submissions triggered by non-buttons), there is no submit handler to set
+    // $form_state['rebuild']. It would not make sense to redisplay the
+    // identical form without an error for the user to correct, so we also
+    // rebuild error-free non-executed forms, regardless of
+    // $form_state['rebuild'].
+    // @todo D8: Simplify this logic; considering AJAX and non-HTML front-ends,
+    //   along with element-level #submit properties, it makes no sense to have
+    //   divergent form execution based on whether the triggering element has
+    //   #executes_submit_callback set to TRUE.
+    if (($form_state['rebuild'] || !$form_state['executed']) && !form_get_errors()) {
+      // Form building functions (e.g., _form_builder_handle_input_element())
+      // may use $form_state['rebuild'] to determine if they are running in the
+      // context of a rebuild, so ensure it is set.
+      $form_state['rebuild'] = TRUE;
+      $form = drupal_rebuild_form($form_id, $form_state, $form);
+    }
   }
 
-  // If $form_state['rebuild'] has been set and input has been processed without
-  // validation errors, we're in a multi-step workflow that is not yet complete.
-  // We need to construct a new $form based on the changes made to $form_state
-  // during this request.
-  if ($form_state['rebuild'] && $form_state['process_input'] && !form_get_errors()) {
-    $form = drupal_rebuild_form($form_id, $form_state, $form);
-  }
   // After processing the form, the form builder or a #process callback may
   // have set $form_state['cache'] to indicate that the form and form state
   // shall be cached. But the form may only be cached if the 'no_cache' property
   // is not set to TRUE. Only cache $form as it was prior to form_builder(),
   // because form_builder() must run for each request to accomodate new user
-  // input. We do not cache here for forms that have been rebuilt, because
-  // drupal_rebuild_form() takes care of that.
-  elseif ($form_state['cache'] && empty($form_state['no_cache'])) {
+  // input. Rebuilt forms are not cached here, because drupal_rebuild_form()
+  // already takes care of that.
+  if (!$form_state['rebuild'] && $form_state['cache'] && empty($form_state['no_cache'])) {
     form_set_cache($form['#build_id'], $unprocessed_form, $form_state);
   }
 }
@@ -1142,6 +1162,26 @@ function _form_validate(&$elements, &$form_state, $form_id = NULL) {
             }
           }
         }
+        // Non-multiple select fields always have a value in HTML. If the user
+        // does not change the form, it will be the value of the first option.
+        // Because of this, form validation for the field will almost always
+        // pass, even if the user did not select anything. To work around this
+        // browser behavior, select fields without a #default_value get an
+        // additional, first empty option by default. In case the submitted
+        // value is identical to the empty option's value, we reset the
+        // element's value to NULL to trigger the regular #required handling
+        // below.
+        // @see form_process_select()
+        elseif ($elements['#type'] == 'select' && !$elements['#multiple'] && !isset($elements['#default_value']) && $elements['#value'] === (string) $elements['#empty_value']) {
+          if ($elements['#required']) {
+            $elements['#value'] = NULL;
+            form_set_value($elements, NULL, $form_state);
+          }
+          else {
+            $elements['#value'] = $elements['#empty_value'];
+            form_set_value($elements, $elements['#empty_value'], $form_state);
+          }
+        }
         elseif (!isset($options[$elements['#value']])) {
           form_error($elements, $t('An illegal choice has been detected. Please contact the site administrator.'));
           watchdog('form', 'Illegal choice %choice in %name element.', array('%choice' => $elements['#value'], '%name' => empty($elements['#title']) ? $elements['#parents'][0] : $elements['#title']), WATCHDOG_ERROR);
@@ -1183,13 +1223,27 @@ function _form_validate(&$elements, &$form_state, $form_id = NULL) {
     }
 
     // Make sure a value is passed when the field is required.
-    // A simple call to empty() will not cut it here as some fields, like
-    // checkboxes, can return a valid value of '0'. Instead, check the
-    // length if it's a string, and the item count if it's an array.
-    // An unchecked checkbox has a #value of integer 0, different than string
-    // '0', which could be a valid value.
-    if (isset($elements['#needs_validation']) && $elements['#required'] && (!count($elements['#value']) || (is_string($elements['#value']) && strlen(trim($elements['#value'])) == 0) || $elements['#value'] === 0)) {
-      form_error($elements, $t('!name field is required.', array('!name' => $elements['#title'])));
+    if (isset($elements['#needs_validation']) && $elements['#required']) {
+      // A simple call to empty() will not cut it here as some fields, like
+      // checkboxes, can return a valid value of '0'. Instead, check the
+      // length if it's a string, and the item count if it's an array.
+      // An unchecked checkbox has a #value of integer 0, different than string
+      // '0', which could be a valid value.
+      $is_empty_multiple = (!count($elements['#value']));
+      $is_empty_string = (is_string($elements['#value']) && drupal_strlen(trim($elements['#value'])) == 0);
+      $is_empty_value = ($elements['#value'] === 0);
+      if ($is_empty_multiple || $is_empty_string || $is_empty_value) {
+        // Although discouraged, a #title is not mandatory for form elements. In
+        // case there is no #title, we cannot set a form error message.
+        // Instead of setting no #title, form constructors are encouraged to set
+        // #title_display to 'invisible' to improve accessibility.
+        if (isset($elements['#title'])) {
+          form_error($elements, $t('!name field is required.', array('!name' => $elements['#title'])));
+        }
+        else {
+          form_error($elements);
+        }
+      }
     }
 
     // Call user-defined form level validators.
@@ -2062,7 +2116,7 @@ function form_type_checkboxes_value($element, $input = FALSE) {
     // checkboxes to the server at all). This will not affect non-programmatic
     // form submissions, since a checkbox can never legitimately be NULL.
     foreach ($input as $key => $value) {
-      if (is_null($value)) {
+      if (!isset($value)) {
         unset($input[$key]);
       }
     }
@@ -2238,6 +2292,99 @@ function _form_options_flatten($array) {
 }
 
 /**
+ * Processes a select list form element.
+ *
+ * This process callback is mandatory for select fields, since all user agents
+ * automatically preselect the first available option of single (non-multiple)
+ * select lists.
+ *
+ * @param $element
+ *   The form element to process. Properties used:
+ *   - #multiple: (optional) Indicates whether one or more options can be
+ *     selected. Defaults to FALSE.
+ *   - #default_value: Must be NULL or not set in case there is no value for the
+ *     element yet, in which case a first default option is inserted by default.
+ *     Whether this first option is a valid option depends on whether the field
+ *     is #required or not.
+ *   - #required: (optional) Whether the user needs to select an option (TRUE)
+ *     or not (FALSE). Defaults to TRUE.
+ *   - #empty_option: (optional) The label to show for the first default option.
+ *     By default, the label is automatically set to "- Please select -" for a
+ *     required field and "- None -" for an optional field.
+ *   - #empty_value: (optional) The value for the first default option, which is
+ *     used to determine whether the user submitted a value or not. Defaults to
+ *     '' (an empty string). To be used in case the field is optional and the
+ *     empty default value should have a special value (e.g., a constant).
+ *
+ * @see _form_validate()
+ */
+function form_process_select($element) {
+  // #multiple select fields need a special #name.
+  if ($element['#multiple']) {
+    $element['#attributes']['multiple'] = 'multiple';
+    $element['#attributes']['name'] = $element['#name'] . '[]';
+    // If not explicitly set, #required has to default to FALSE (see below).
+    if (!isset($element['#required'])) {
+      $element['#required'] = FALSE;
+    }
+  }
+  // A non-#multiple select needs special handling to prevent user agents from
+  // preselecting the first option without intention. #multiple select lists do
+  // not get an empty option, as it would not make sense, user interface-wise.
+  else {
+    $add_empty_option = FALSE;
+    // Select elements always have a value in HTML, so the expectation is that
+    // the user has to choose an option. Therefore, a select element is set to
+    // #required TRUE, unless it has been explicitly set to FALSE. This differs
+    // from every other element which gets a default of #required FALSE via
+    // form_builder(). To avoid this default, system_element_info() sets
+    // #required to NULL.
+    // If #required has been explicitly set to FALSE, the user may optionally
+    // choose an option, which can be "None".
+    if (isset($element['#required']) && !$element['#required']) {
+      $element['#required'] = FALSE;
+      $element += array(
+        '#empty_value' => '',
+        '#empty_option' => t('- None -'),
+      );
+      $add_empty_option = TRUE;
+    }
+    // Otherwise, if #required is TRUE (or not set) and there is no
+    // #default_value, then the user has to choose an option, which makes this
+    // element #required.
+    elseif (!isset($element['#default_value'])) {
+      // By only conditionally setting #required to TRUE, we additionally ensure
+      // that the select element does not get a required marker if it already
+      // has a value.
+      $element['#required'] = TRUE;
+      $element += array(
+        '#empty_value' => '',
+        '#empty_option' => t('- Select -'),
+      );
+      $add_empty_option = TRUE;
+    }
+    // If there is a #default_value and #required is not explicitly FALSE, then
+    // there is no point in adding an empty option which is never valid, and we
+    // just retain API compatibility.
+    if (!isset($element['#required'])) {
+      $element['#required'] = FALSE;
+    }
+    // If one of the above conditions is met, add a first empty default option,
+    // which is always invalid for #required select lists that do not specify a
+    // #default_value.
+    // @see _form_validate()
+    if ($add_empty_option) {
+      // The empty option is prepended to #options and purposively not merged
+      // to prevent another option in #options mistakenly using the same value
+      // as #empty_value.
+      $empty_option = array($element['#empty_value'] => $element['#empty_option']);
+      $element['#options'] = $empty_option + $element['#options'];
+    }
+  }
+  return $element;
+}
+
+/**
  * Returns HTML for a select form element.
  *
  * It is possible to group options together; to do this, change the format of
@@ -2256,11 +2403,6 @@ function theme_select($variables) {
   $element = $variables['element'];
   element_set_attributes($element, array('id', 'name', 'size'));
   _form_set_class($element, array('form-select'));
-
-  if (!empty($element['#multiple'])) {
-    $element['#attributes']['multiple'] = 'multiple';
-    $element['#attributes']['name'] .= '[]';
-  }
 
   return '<select' . drupal_attributes($element['#attributes']) . '>' . form_select_options($element) . '</select>';
 }
@@ -3887,7 +4029,7 @@ function _batch_queue($batch_set) {
 
   // The class autoloader is not available when running update.php, so make
   // sure the files are manually included.
-  if (is_null($queues)) {
+  if (!isset($queues)) {
     $queues = array();
     require_once DRUPAL_ROOT . '/modules/system/system.queue.inc';
     require_once DRUPAL_ROOT . '/includes/batch.queue.inc';

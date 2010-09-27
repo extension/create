@@ -1,5 +1,5 @@
 <?php
-// $Id: system.module,v 1.962 2010/09/19 18:10:42 dries Exp $
+// $Id: system.module,v 1.965 2010/09/27 01:11:17 dries Exp $
 
 /**
  * @file
@@ -399,9 +399,13 @@ function system_element_info() {
   );
   $types['select'] = array(
     '#input' => TRUE,
-    '#size' => 0,
+    // In order to be able to determine whether a select list needs an empty
+    // default option, #required has to be NULL by default, as form_builder()
+    // preemptively sets #required to FALSE for all elements.
+    // @see form_process_select()
+    '#required' => NULL,
     '#multiple' => FALSE,
-    '#process' => array('ajax_process_form'),
+    '#process' => array('form_process_select', 'ajax_process_form'),
     '#theme' => 'select',
     '#theme_wrappers' => array('form_element'),
   );
@@ -648,7 +652,6 @@ function system_menu() {
   $items['admin/modules/list/confirm'] = array(
     'title' => 'List',
     'access arguments' => array('administer modules'),
-    'type' => MENU_CALLBACK,
   );
   $items['admin/modules/uninstall'] = array(
     'title' => 'Uninstall',
@@ -661,7 +664,6 @@ function system_menu() {
   $items['admin/modules/uninstall/confirm'] = array(
     'title' => 'Uninstall',
     'access arguments' => array('administer modules'),
-    'type' => MENU_CALLBACK,
     'file' => 'system.admin.inc',
   );
 
@@ -688,7 +690,6 @@ function system_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('system_ip_blocking_delete', 5),
     'access arguments' => array('block IP addresses'),
-    'type' => MENU_CALLBACK,
     'file' => 'system.admin.inc',
   );
 
@@ -829,7 +830,6 @@ function system_menu() {
   $items['admin/config/regional/date-time/types/%/delete'] = array(
     'title' => 'Delete date type',
     'description' => 'Allow users to delete a configured date type.',
-    'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('system_delete_date_format_type_form', 5),
     'access arguments' => array('administer site configuration'),
@@ -857,7 +857,6 @@ function system_menu() {
   $items['admin/config/regional/date-time/formats/%/edit'] = array(
     'title' => 'Edit date format',
     'description' => 'Allow users to edit a configured date format.',
-    'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('system_configure_date_formats_form', 5),
     'access arguments' => array('administer site configuration'),
@@ -866,7 +865,6 @@ function system_menu() {
   $items['admin/config/regional/date-time/formats/%/delete'] = array(
     'title' => 'Delete date format',
     'description' => 'Allow users to delete a configured date format.',
-    'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('system_date_delete_format_form', 5),
     'access arguments' => array('administer site configuration'),
@@ -874,7 +872,6 @@ function system_menu() {
   );
   $items['admin/config/regional/date-time/formats/lookup'] = array(
     'title' => 'Date and time lookup',
-    'type' => MENU_CALLBACK,
     'page callback' => 'system_date_time_lookup',
     'access arguments' => array('administer site configuration'),
     'file' => 'system.admin.inc',
@@ -938,7 +935,6 @@ function system_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('system_actions_configure'),
     'access arguments' => array('administer actions'),
-    'type' => MENU_CALLBACK,
     'file' => 'system.admin.inc',
   );
   $items['admin/config/system/actions/delete/%actions'] = array(
@@ -947,7 +943,6 @@ function system_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('system_actions_delete_form', 5),
     'access arguments' => array('administer actions'),
-    'type' => MENU_CALLBACK,
     'file' => 'system.admin.inc',
   );
   $items['admin/config/system/actions/orphan'] = array(
@@ -2782,7 +2777,6 @@ function confirm_form($form, $question, $path, $description = NULL, $yes = NULL,
   else {
     $options = array('path' => $path);
   }
-  $cancel = l($no ? $no : t('Cancel'), $options['path'], $options);
 
   drupal_set_title($question, PASS_THROUGH);
 
@@ -2790,12 +2784,17 @@ function confirm_form($form, $question, $path, $description = NULL, $yes = NULL,
   $form['description'] = array('#markup' => $description);
   $form[$name] = array('#type' => 'hidden', '#value' => 1);
 
-  $form['actions'] = array(
-    '#type' => 'actions',
-    '#attributes' => array('class' => array('container-inline')),
+  $form['actions'] = array('#type' => 'actions');
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => $yes ? $yes : t('Confirm'),
   );
-  $form['actions']['submit'] = array('#type' => 'submit', '#value' => $yes ? $yes : t('Confirm'));
-  $form['actions']['cancel'] = array('#markup' => $cancel);
+  $form['actions']['cancel'] = array(
+    '#type' => 'link',
+    '#title' => $no ? $no : t('Cancel'),
+    '#href' => $options['path'],
+    '#options' => $options,
+  );
   // By default, render the form using theme_confirm_form().
   if (!isset($form['#theme'])) {
     $form['#theme'] = 'confirm_form';

@@ -1,5 +1,5 @@
 <?php
-// $Id: search.module,v 1.359 2010/09/05 02:21:38 dries Exp $
+// $Id: search.module,v 1.361 2010/09/26 23:31:36 dries Exp $
 
 /**
  * @file
@@ -182,7 +182,6 @@ function search_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('search_reindex_confirm'),
     'access arguments' => array('administer search'),
-    'type' => MENU_CALLBACK,
     'file' => 'search.admin.inc',
   );
 
@@ -960,7 +959,7 @@ function search_form($form, &$form_state, $action = '', $keys = '', $type = NULL
   if (!$action) {
     $action = 'search/' . $module_info['path'];
   }
-  if (is_null($prompt)) {
+  if (!isset($prompt)) {
     $prompt = t('Enter your keywords');
   }
 
