@@ -1,5 +1,5 @@
 <?php
-// $Id: template.php,v 1.20 2010/08/14 00:43:24 dries Exp $
+// $Id: template.php,v 1.23 2010/10/03 02:46:12 dries Exp $
 
 /**
  * Override or insert variables into the maintenance page template.
@@ -38,7 +38,7 @@ function seven_node_add_list($variables) {
   $content = $variables['content'];
   $output = '';
   if ($content) {
-    $output = '<ul class="node-type-list">';
+    $output = '<ul class="admin-list">';
     foreach ($content as $item) {
       $output .= '<li class="clearfix">';
       $output .= '<span class="label">' . l($item['title'], $item['href'], $item['localized_options']) . '</span>';
@@ -47,11 +47,14 @@ function seven_node_add_list($variables) {
     }
     $output .= '</ul>';
   }
+  else {
+    $output = '<p>' . t('You have not created any content types yet. Go to the <a href="@create-content">content type creation page</a> to add a new content type.', array('@create-content' => url('admin/structure/types/add'))) . '</p>';
+  }
   return $output;
 }
 
 /**
- * Override of theme_admin_block_content().
+ * Overrides theme_admin_block_content().
  *
  * Use unordered list markup in both compact and extended mode.
  */
@@ -63,7 +66,7 @@ function seven_admin_block_content($variables) {
     foreach ($content as $item) {
       $output .= '<li class="leaf">';
       $output .= l($item['title'], $item['href'], $item['localized_options']);
-      if (!system_admin_compact_mode()) {
+      if (isset($item['description']) && !system_admin_compact_mode()) {
         $output .= '<div class="description">' . filter_xss_admin($item['description']) . '</div>';
       }
       $output .= '</li>';

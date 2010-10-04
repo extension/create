@@ -1,5 +1,5 @@
 <?php
-// $Id: form.inc,v 1.497 2010/09/27 00:53:55 dries Exp $
+// $Id: form.inc,v 1.499 2010/10/03 01:04:51 dries Exp $
 
 /**
  * @defgroup forms Form builder functions
@@ -2977,12 +2977,13 @@ function theme_tableselect($variables) {
     // Add an empty header or a "Select all" checkbox to provide room for the
     // checkboxes/radios in the first table column.
     if ($element['#js_select']) {
-      // Add a "Select all" checkbox when checkboxes are displayed.
+      // Add a "Select all" checkbox.
       drupal_add_js('misc/tableselect.js');
       array_unshift($header, array('class' => array('select-all')));
     }
     else {
-      // Add an empty header when radio buttons are displayed.
+      // Add an empty header when radio buttons are displayed or a "Select all"
+      // checkbox is not desired.
       array_unshift($header, '');
     }
   }
@@ -3533,11 +3534,11 @@ function theme_form_element($variables) {
 
   switch ($element['#title_display']) {
     case 'before':
+    case 'invisible':
       $output .= ' ' . theme('form_element_label', $variables);
       $output .= ' ' . $prefix . $element['#children'] . $suffix . "\n";
       break;
 
-    case 'invisible':
     case 'after':
       $output .= ' ' . $prefix . $element['#children'] . $suffix;
       $output .= ' ' . theme('form_element_label', $variables) . "\n";
