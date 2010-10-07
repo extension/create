@@ -1,5 +1,5 @@
 <?php
-// $Id: update.inc,v 1.74 2010/10/03 23:33:15 webchick Exp $
+// $Id: update.inc,v 1.76 2010/10/06 21:51:10 webchick Exp $
 
 /**
  * @file
@@ -360,6 +360,7 @@ function update_fix_d7_block_deltas(&$sandbox, $renamed_deltas, $moved_deltas) {
   $result = db_select('users', 'u')
     ->fields('u', array('uid', 'data'))
     ->condition('uid', $sandbox['last_user_processed'], '>')
+    ->orderBy('uid', 'ASC')
     ->where('data IS NOT NULL')
     ->range(0, $limit)
     ->execute();
@@ -740,7 +741,6 @@ function update_fix_d7_install_profile() {
     // Merge in defaults.
     $info = $info + array(
       'dependencies' => array(),
-      'dependents' => array(),
       'description' => '',
       'package' => 'Other',
       'version' => NULL,

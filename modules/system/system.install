@@ -1,5 +1,5 @@
 <?php
-// $Id: system.install,v 1.511 2010/10/03 23:19:52 webchick Exp $
+// $Id: system.install,v 1.515 2010/10/06 13:38:40 dries Exp $
 
 /**
  * @file
@@ -128,10 +128,7 @@ function system_requirements($phase) {
       '@system_requirements' => 'http://drupal.org/requirements',
     ));
 
-    $description .= theme('item_list',  array(
-      'type' => 'ul',
-      'items' => $missing_extensions,
-    ));
+    $description .= theme('item_list', array('items' => $missing_extensions));
 
     $requirements['php_extensions']['value'] = $t('Disabled');
     $requirements['php_extensions']['severity'] = REQUIREMENT_ERROR;
@@ -1566,7 +1563,7 @@ function system_schema() {
         'default' => 0,
       ),
       'info' => array(
-        'description' => "A serialized array containing information from the module's .info file; keys can include name, description, package, version, core, dependencies, dependents, and php.",
+        'description' => "A serialized array containing information from the module's .info file; keys can include name, description, package, version, core, dependencies, and php.",
         'type' => 'blob',
         'not null' => FALSE,
       ),
@@ -1813,7 +1810,7 @@ function system_update_7004(&$sandbox) {
       '0' => 'active',
       '1' => 'new',
     ),
-    'locale' => array('0' => 'language-switcher'),
+    'locale' => array('0' => LANGUAGE_TYPE_INTERFACE),
     'node' => array('0' => 'syndicate'),
     'poll' => array('0' => 'recent'),
     'profile' => array('0' => 'author-information'),
@@ -2505,7 +2502,7 @@ function system_update_7055() {
   db_change_field('sessions', 'session', 'session', $spec);
 
   $spec = array(
-    'description' => "A serialized array containing information from the module's .info file; keys can include name, description, package, version, core, dependencies, dependents, and php.",
+    'description' => "A serialized array containing information from the module's .info file; keys can include name, description, package, version, core, dependencies, and php.",
     'type' => 'blob',
     'not null' => FALSE,
   );
@@ -2590,6 +2587,16 @@ function system_update_7059() {
  */
 function system_update_7060() {
   if (!db_table_exists('upload')) {
+    return;
+  }
+
+  if (!db_query_range('SELECT 1 FROM {upload}', 0, 1)->fetchField()) {
+    // There is nothing to migrate. Delete variables and the empty table. There
+    // is no need to create fields that are not going to be used.
+    foreach (_update_7000_node_get_types() as $node_type) {
+      variable_del('upload_' . $node_type->type);
+    }
+    db_drop_table('upload');
     return;
   }
 

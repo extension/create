@@ -1,5 +1,5 @@
 <?php
-// $Id: system.admin.inc,v 1.313 2010/10/03 00:47:51 dries Exp $
+// $Id: system.admin.inc,v 1.317 2010/10/07 03:26:41 webchick Exp $
 
 /**
  * @file
@@ -857,8 +857,6 @@ function system_modules($form, $form_state = array()) {
       }
     }
 
-    // Mark dependents disabled so the user cannot remove required modules.
-    $dependents = array();
     // If this module is required by other modules, list those, and then make it
     // impossible to disable this one.
     foreach ($module->required_by as $required_by => $v) {
@@ -1186,7 +1184,7 @@ function system_modules_submit($form, &$form_state) {
   unset($form_state['storage']);
 
   // Reverse the 'enable' list, to order dependencies before dependents.
-  rsort($actions['enable']);
+  krsort($actions['enable']);
 
   // Installs, enables, and disables modules.
   module_enable($actions['enable'], FALSE);
@@ -1872,8 +1870,6 @@ function system_rss_feeds_settings() {
 function system_regional_settings() {
   include_once DRUPAL_ROOT . '/includes/locale.inc';
   $countries = country_get_list();
-  // Add a 'No default country' option to the start of the list.
-  $countries = array_merge(array('' => t('No default country')), $countries);
 
   // Date settings:
   $zones = system_time_zones();
@@ -1886,6 +1882,7 @@ function system_regional_settings() {
   $form['locale']['site_default_country'] = array(
     '#type' => 'select',
     '#title' => t('Default country'),
+    '#empty_value' => '',
     '#default_value' => variable_get('site_default_country', ''),
     '#options' => $countries,
     '#attributes' => array('class' => array('country-detect')),
@@ -2904,7 +2901,7 @@ function system_actions_manage() {
   }
 
   if ($row) {
-    $pager = theme('pager', array('tags' => NULL));
+    $pager = theme('pager');
     if (!empty($pager)) {
       $row[] = array(array('data' => $pager, 'colspan' => '3'));
     }

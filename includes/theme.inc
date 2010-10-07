@@ -1,5 +1,5 @@
 <?php
-// $Id: theme.inc,v 1.616 2010/10/02 02:50:02 dries Exp $
+// $Id: theme.inc,v 1.618 2010/10/05 19:59:10 dries Exp $
 
 /**
  * @file
@@ -102,6 +102,15 @@ function drupal_theme_initialize() {
 
   // Themes can have alter functions, so reset the drupal_alter() cache.
   drupal_static_reset('drupal_alter');
+
+  // Provide the page with information about the theme that's used, so that a
+  // later AJAX request can be rendered using the same theme.
+  // @see ajax_base_page_theme()
+  $setting['ajaxPageState'] = array(
+    'theme' => $theme_key,
+    'themeToken' => drupal_get_token($theme_key),
+  );
+  drupal_add_js($setting, 'setting');
 }
 
 /**
@@ -164,7 +173,7 @@ function _drupal_theme_initialize($theme, $base_theme = array(), $registry_callb
   // And now add the stylesheets properly
   foreach ($final_stylesheets as $media => $stylesheets) {
     foreach ($stylesheets as $stylesheet) {
-      drupal_add_css($stylesheet, array('weight' => CSS_THEME, 'media' => $media, 'preprocess' => TRUE));
+      drupal_add_css($stylesheet, array('group' => CSS_THEME, 'every_page' => TRUE, 'media' => $media));
     }
   }
 
@@ -189,7 +198,7 @@ function _drupal_theme_initialize($theme, $base_theme = array(), $registry_callb
 
   // Add scripts used by this theme.
   foreach ($final_scripts as $script) {
-    drupal_add_js($script, array('weight' => JS_THEME, 'preprocess' => TRUE));
+    drupal_add_js($script, array('group' => JS_THEME, 'every_page' => TRUE));
   }
 
   $theme_engine = NULL;
