@@ -1,0 +1,299 @@
+<?php
+/**
+ * eximport - content seed from feed.
+ *
+ * @package eximport 
+ * @version 0.1
+ * @author James E. Robinson, III <james.robinson@extension.org>
+ * @copyright North Carolina State University 2010
+ */
+
+// Bootstrap Drupal - if including in standalone script
+// require 'includes/bootstrap.inc';
+// drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
+
+// TODO document process plan
+// TODO handle publishing flag
+// TODO metadata?
+// TODO old article URLs
+
+// confirm access to node methods
+module_load_include('inc', 'node', 'node.pages'); 
+
+/**
+ * hook_help entry-point function.
+ * Let folks know what this is if they are clueless.
+ *
+ * @param string $path request.uri path.
+ * @param array $arg pieces of uri split by '/'.
+ * @return string HTML for module help.
+ * @see hook_help
+ */
+function eximport_help($path, $arg) {
+  $output = '';
+  switch($path) {
+    case "admin/help#eximport":
+      $output = '<p>'
+              . t("To assist in the import of MediaWiki content.")
+              .'</p>';
+    break;
+  }
+  return $output;
+}
+
+/**
+ * hook_permission entry-point function.
+ * Add an eximport specific permission, for giggles.
+ *
+ * @return n/a.
+ * @see hook_permission
+ */
+function eximport_permission() {
+  return array(
+    'administer import' =>  array(
+      'title' => t('Administer eX Import'),
+      'description' => t('Use caution.'),
+    ),
+  );
+}
+
+/**
+ * hook_menu entry-point function.
+ * Add an eximport specific routes.
+ *
+ * @return array $items Array of routes for this module.
+ * @see hook_menu
+ */
+function eximport_menu() {
+  $items = array();
+  
+  $items['admin/config/extension/import'] = array(
+    'title' => 'Import Content',
+    'description' => 'Tools for importing wiki data.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('eximport_admin_form'),
+    'access arguments' => array('administer import')
+    );
+    
+  return $items;
+}
+
+/**
+ * Define the admin form.
+ *
+ * @param array $form form array.
+ * @param array &$form_state Reference to array with the current form state.
+ * @return array Form array.
+ * @see forms_api_reference
+ */
+function eximport_admin_form($form, &$form_state) {
+
+  $form['filename'] = array(
+    '#type' => 'textfield',
+    '#title' => t('File to import'),
+    '#default_value' => 'import.xml',
+    '#size' => 40,
+    '#maxlength' => 80,
+    '#description' => t("Filename of default import file."),
+    '#required' => TRUE,
+  );
+  
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Import'));
+  
+  return $form;
+}
+
+/**
+ * Validate admin form input.
+ *
+ * @param array $form form array.
+ * @param array &$form_state Reference to array with the current form state.
+ * @return n/a
+ * @see _form_validate
+ */
+function eximport_admin_form_validate($form, &$form_state) {
+  $fname = $form_state['values']['filename'];
+  if ( ! preg_match('/\.(xml|atom)$/i', $fname)) {
+    form_set_error('', t('A valid filename is required.'));
+  } elseif ( ! eximport_verify_filename($fname) ) {
+    form_set_error('', t('File must exist in import directory.'));
+  }
+}
+
+/**
+ * Given filename, return location of file.
+ *
+ * @param string $fname Input filename.
+ * @param array &$form_state Reference to array with the current form state.
+ * @return string Full path to file.
+ */
+function eximport_get_fullpath($fname) {
+  return implode(DIRECTORY_SEPARATOR, array(DRUPAL_ROOT, 'import', $fname));
+}
+
+/**
+ * Given filename, verify exists in file system.
+ *
+ * @param string $fname Input filename.
+ * @return boolean True if file exists, false otherwise.
+ * @see _form_validate
+ */
+function eximport_verify_filename($fname) {
+  $target = eximport_get_fullpath($fname);
+  return file_exists($target);
+}
+
+/**
+ * Process form after submission.
+ *
+ * @param array $form form array.
+ * @param array &$form_state Reference to array with the current form state.
+ * @return n/a
+ * @see form_execute_handlers
+ */
+function eximport_admin_form_submit($form, &$form_state) {
+  $fname = $form_state['values']['filename'];
+  $rc = false;
+  
+  ($total, $added, $errors) = eximport_import_from_file($fname);
+  
+  if ($errors == 0) {
+    drupal_set_message(t('Import successful. ' 
+                         . $added . ' out of ' 
+                         . $total . ' revisions imported.'));
+  } else {
+    drupal_set_message(t('Import failed: ' 
+                         . $errors . ' errors out of ' 
+                         . $total . ' revisions.'), 'error');
+  }
+  
+  $form_state['redirect'] = 'admin/modules';
+  return;
+}
+
+/**
+ * Create a Drupal node and revision from input.
+ *
+ * @param object $entry Object with data for new node.
+ * @return boolean true if successful, false otherwise
+ * @see node_save
+ */
+function eximport_node_create($entry) {
+  $rc = false;
+  
+  // Construct the new node object.
+  $node = new stdClass();
+  $node->type = $entry->type;
+  node_object_prepare($node);
+  $node->uid = $entry->uid;
+  $node->title = $entry->title;
+  $node->body = $entry->body;
+  $node->teaser = $entry->teaser;
+  $node->filter = variable_get('filter_default_format', 1);
+  $node->format = FILTER_FORMAT_DEFAULT;
+  $node->language = '';
+  $node->revision = 1;
+  $node->promote = 0;
+  $node->created = $entry->created;
+  $node->comment= 0;
+
+  $node->taxonomy = array('tags' => array('11' => ($data->categories)));
+  $rc = node_save($node);
+  // $nid = $node->nid;
+  
+  unset($node);
+  unset($entry);
+  
+  return $rc;
+}
+
+/**
+ * Create a new content entry object from XML input.
+ *
+ * @param object $atom_entry SimpleXML Atom entry object.
+ * @return object Generic content entry object
+ */
+function eximport_entry_create($atom_entry) {
+  $entry = new StdClass();
+  
+  if (in_array('news', $atom_entry->categories) {
+    $entry->type = 'news';
+  } else {
+    $entry->type = 'article';
+  }
+  
+  $entry->uid = eximport_find_author($atom_entry->author);
+  $entry->title = $atom_entry->title;
+  $entry->body = $atom_entry->content;
+  
+  if ($entry->type == 'news') {
+    $entry->teaser = eximport_get_teaser($atom_entry->content);
+  }
+  
+  return $entry;
+}
+
+/**
+ * Existing eXtension 'news' articles have a teaser embeded.
+ * Pull out teaser from HTML to enable us to put in teaser news node.
+ *
+ * @param string $content HTML content for a 'news' article.
+ * @return string HTML for teaser content only
+ */
+function eximport_get_teaser($content) {
+  $html = $content; // @JER need logic from darmok
+  return $html;
+}
+
+/**
+ * Find Drupal uid given eXtensionID.
+ *
+ * @param string $exid eXtension ID string.
+ * @return integer Drupal uid if exists, 0 otherwise
+ * @see user_load_multiple
+ */
+function eximport_find_author($exid) {
+  $account = false;
+  $id = 0;
+  
+  $accounts = user_load_by_name($exid);
+  if (empty($accounts)) {
+    $account = array_pop($accounts);
+  }
+  
+  if ($account) {
+    $id = $account->uid;
+  }
+  
+  return $id;
+}
+
+/**
+ * Load content from Atom formatted XML file.
+ *
+ * @param string $filename Input filename with full path.
+ * @return array Total number, number added, number errors.
+ * @see SimpleXML
+ */
+function eximport_import_from_file($filename) {
+  $added = 0;
+  $errors = 0;
+  
+  $xml = simplexml_load_file($filename);
+  
+  $total = count($xml->entry);
+  
+  for ($i=0; $i < $total; $i++) {
+    $atom_entry = $xml->entry[$i];
+    // use an intermediate object to reduce complexity and aid debugging
+    $entry = eximport_entry_create($atom_entry);
+    $nid = eximport_node_create($entry);
+    if ($nid) {
+      $added++;
+    } else {
+      $errors++;
+    }
+  }
+  
+  return array($total, $added, $errors);
+}

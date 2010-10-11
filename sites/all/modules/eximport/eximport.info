@@ -1,0 +1,11 @@
+; eximport - content seed from feed
+;
+; Will import from Atom feed; however, is looking for some very
+; eXtension specific data within the standard feed elements.
+name = eximport
+description = "Import us some wiki pages."
+version = VERSION
+package = eXtension
+core = 7.x
+files[] = eximport.module
+configure = admin/config/extension/import
