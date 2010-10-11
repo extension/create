@@ -1,0 +1,12 @@
+/* app banner
+-----------------------------------------------------------------------------*/
+#extensionNav {text-align: center; background: #194a86; padding: 6px 0 3px; margin: 0;}
+#extensionNav .group {display:inline; padding:0 1em; border-right:1px solid #c8d3eb;}
+#extensionNav .last {border:0;}
+#extensionNav .group span {display:none;}
+#extensionNav .group li {display:inline;}
+#extensionNav ul {padding:0;margin:0;}
+#extensionNav li li {font-size:1em; font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;}
+#extensionNav a {padding: 0 .4em; color: #c8d3eb; text-decoration: none;}
+#extensionNav ul {display:inline; font-size:inherit;}
+#extensionNav a:hover { text-decoration: underline;}

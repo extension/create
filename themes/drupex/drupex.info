@@ -5,10 +5,9 @@ version = VERSION
 core = 7.x
 engine = phptemplate
 
-stylesheets[all][] = css/layout.css
-stylesheets[all][] = css/style.css
-stylesheets[all][] = css/colors.css
-stylesheets[print][] = css/print.css
+base theme = bartik
+
+stylesheets[all][] = css/drupex.css
 
 regions[header] = Header
 regions[help] = Help
@@ -31,5 +30,5 @@ regions[footer_thirdcolumn] = Footer third column
 regions[footer_fourthcolumn] = Footer fourth column
 regions[footer] = Footer
 
-settings[shortcut_module_link] = 0
+regions[global_nav_bar] = Global Nav Bar
 

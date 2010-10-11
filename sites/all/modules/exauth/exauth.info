@@ -1,0 +1,7 @@
+; $Id: exauth.info,v 1.8 2010/09/16 08:39:54 dries Exp $
+name = exauth
+description = "Allows users to log into your site using OpenID."
+version = VERSION
+package = eXtension
+core = 7.x
+files[] = exauth.module
