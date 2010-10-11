@@ -155,7 +155,7 @@ function eximport_admin_form_submit($form, &$form_state) {
   $fname = $form_state['values']['filename'];
   $rc = false;
   
-  ($total, $added, $errors) = eximport_import_from_file($fname);
+  list($total, $added, $errors) = eximport_import_from_file($fname);
   
   if ($errors == 0) {
     drupal_set_message(t('Import successful. ' 
@@ -216,7 +216,7 @@ function eximport_node_create($entry) {
 function eximport_entry_create($atom_entry) {
   $entry = new StdClass();
   
-  if (in_array('news', $atom_entry->categories) {
+  if ( in_array('news', $atom_entry->categories) ) {
     $entry->type = 'news';
   } else {
     $entry->type = 'article';
