@@ -15,10 +15,9 @@
 // TODO document process plan
 // TODO handle publishing flag
 // TODO metadata?
-// TODO test teaser grabber
 
 // confirm access to node methods
-module_load_include('inc', 'node', 'node.pages'); 
+module_load_include('inc', 'node', 'node.pages', 'path', 'filter'); 
 
 /**
  * hook_help entry-point function.
@@ -167,7 +166,7 @@ function eximport_admin_form_submit($form, &$form_state) {
                          . $total . ' revisions imported.'));
   }
   
-  $form_state['redirect'] = 'admin/modules';
+  // $form_state['redirect'] = 'admin/modules';
   return;
 }
 
@@ -185,29 +184,37 @@ function eximport_node_create($entry) {
   $node = new stdClass();
   $node->type = $entry->type;
   node_object_prepare($node);
+  dvm($node);
   $node->uid = $entry->uid;
   $node->title = $entry->title;
   $node->body = $entry->body;
   $node->teaser = $entry->teaser;
   $node->filter = variable_get('filter_default_format', 1);
-  $node->format = FILTER_FORMAT_DEFAULT;
+  $node->format = filter_default_format();
   $node->language = '';
-  $node->revision = 1;
+  $node->is_new = TRUE;
   $node->promote = 0;
   $node->created = $entry->created;
   $node->changed = $entry->created;
-  $node->comment= 0;
+  $node->comment = 0;
+  $node->language = LANGUAGE_NONE;
 
-  $node->taxonomy = array('tags' => array('11' => ($data->categories)));
-  $rc = node_save($node);
+  $node->taxonomy = array('tags' => array('1' => ($entry->categories)));
+  node_save($node);
   
   $nid = $node->nid;
   
-  // Save the new alias based on old URL
+  // alias old URL to new one
   if ($nid) {
-    path_set_alias('node/' . $nid, $entry->old_path, NULL, 'en');
+    // be sure we only do it once
+    path_delete($entry->old_path);
+    $alias = array('alias' => 'node/' . $nid,
+                   'source' => $entry->old_path);
+    path_save($alias);
+    $rc = TRUE;
   }
   
+  dvm($node);
   unset($node);
   unset($entry);
   
@@ -223,20 +230,21 @@ function eximport_node_create($entry) {
 function eximport_entry_create($atom_entry) {
   $entry = new stdClass();
   
-  dvp($atom_entry);
-  
   $entry->type = 'article';
+  
+  $categories = array();
   
   foreach ($atom_entry->category as $cat) {
     if ($cat['term'] == 'news') {
       $entry->type = 'news';
-      break;
     }
+    $categories[] = $cat['term'];
   }
   
-  $entry->uid = eximport_find_author($atom_entry->author->name);
-  $entry->title = $atom_entry->title;
-  $entry->body = $atom_entry->content;
+  $entry->categories = implode(',', $categories);
+  $entry->uid = eximport_find_author((string)$atom_entry->author->name[0]);
+  $entry->title = (string)$atom_entry->title;
+  $entry->body = (string)$atom_entry->content;
   
   if ($entry->type == 'news') {
     $entry->teaser = eximport_get_teaser($atom_entry->content);
@@ -244,8 +252,9 @@ function eximport_entry_create($atom_entry) {
   
   $entry->created = strtotime($atom_entry->updated);
   
-  // assume link is relative - not true for valid Atom feeds
-  $entry->old_path = $atom_entry->link;
+  $link = parse_url($atom_entry->link['href']);
+  $entry->old_path = $link['path'];
+  
   return $entry;
 }
 
@@ -280,12 +289,9 @@ function eximport_get_teaser($content) {
 function eximport_find_author($exid) {
   $account = FALSE;
   $id = 0;
-  
-  $accounts = user_load_by_name($exid);
-  if (empty($accounts)) {
-    $account = array_pop($accounts);
-  }
-  
+
+  $account = user_load_by_name($exid);
+
   if ($account) {
     $id = $account->uid;
   }
@@ -304,7 +310,9 @@ function eximport_import_from_file($filename) {
   $added = 0;
   $errors = 0;
   
-  $xml = simplexml_load_file($filename);
+  $target = eximport_get_fullpath($filename);
+  
+  $xml = simplexml_load_file($target);
   
   $total = count($xml->entry);
   
