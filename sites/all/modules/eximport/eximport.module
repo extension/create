@@ -201,7 +201,13 @@ function eximport_node_create($entry) {
 
   $node->taxonomy = array('tags' => array('11' => ($data->categories)));
   $rc = node_save($node);
-  // $nid = $node->nid;
+  
+  $nid = $node->nid;
+  
+  // Save the new alias based on old URL
+  if ($nid) {
+    path_set_alias('node/' . $nid, $entry->old_path, NULL, 'en');
+  }
   
   unset($node);
   unset($entry);
@@ -220,11 +226,13 @@ function eximport_entry_create($atom_entry) {
   
   dvp($atom_entry);
   
-  // @JER figure out valid logic here
-  if ( in_array('news', $atom_entry->categories) ) {
-    $entry->type = 'news';
-  } else {
-    $entry->type = 'article';
+  $entry->type = 'article';
+  
+  foreach ($atom_entry->category as $cat) {
+    if ($cat['term'] == 'news') {
+      $entry->type = 'news';
+      break;
+    }
   }
   
   $entry->uid = eximport_find_author($atom_entry->author->name);
@@ -237,6 +245,8 @@ function eximport_entry_create($atom_entry) {
   
   $entry->created = strtotime($atom_entry->updated);
   
+  // assume link is relative - not true for valid Atom feeds
+  $entry->old_path = $atom_entry->link;
   return $entry;
 }
 
