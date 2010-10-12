@@ -16,6 +16,7 @@
 // TODO handle publishing flag
 // TODO metadata?
 // TODO old article URLs
+// TODO test teaser grabber
 
 // confirm access to node methods
 module_load_include('inc', 'node', 'node.pages'); 
@@ -157,14 +158,14 @@ function eximport_admin_form_submit($form, &$form_state) {
   
   list($total, $added, $errors) = eximport_import_from_file($fname);
   
-  if ($errors == 0) {
-    drupal_set_message(t('Import successful. ' 
-                         . $added . ' out of ' 
-                         . $total . ' revisions imported.'));
-  } else {
+  if ($errors) {
     drupal_set_message(t('Import failed: ' 
                          . $errors . ' errors out of ' 
                          . $total . ' revisions.'), 'error');
+  } else {
+    drupal_set_message(t('Import successful. ' 
+                         . $added . ' out of ' 
+                         . $total . ' revisions imported.'));
   }
   
   $form_state['redirect'] = 'admin/modules';
@@ -216,19 +217,24 @@ function eximport_node_create($entry) {
 function eximport_entry_create($atom_entry) {
   $entry = new StdClass();
   
+  dvp($atom_entry);
+  
+  // @JER figure out valid logic here
   if ( in_array('news', $atom_entry->categories) ) {
     $entry->type = 'news';
   } else {
     $entry->type = 'article';
   }
   
-  $entry->uid = eximport_find_author($atom_entry->author);
+  $entry->uid = eximport_find_author($atom_entry->author->name);
   $entry->title = $atom_entry->title;
   $entry->body = $atom_entry->content;
   
   if ($entry->type == 'news') {
     $entry->teaser = eximport_get_teaser($atom_entry->content);
   }
+  
+  $entry->created = $atom_entry->updated;
   
   return $entry;
 }
@@ -241,8 +247,17 @@ function eximport_entry_create($atom_entry) {
  * @return string HTML for teaser content only
  */
 function eximport_get_teaser($content) {
-  $html = $content; // @JER need logic from darmok
-  return $html;
+  $summary = "";
+  $find_sum = '#<div\ id="summary"\ class="printme\ toc">(.*?)</div>#m';
+  
+  $matches = array();
+  $found = preg_match($find_sum, $content, $matches);
+  
+  if ($found) {
+    $summary = $summary_match[1]
+  }
+  
+  return $summary;
 }
 
 /**
