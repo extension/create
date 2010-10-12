@@ -15,7 +15,6 @@
 // TODO document process plan
 // TODO handle publishing flag
 // TODO metadata?
-// TODO old article URLs
 // TODO test teaser grabber
 
 // confirm access to node methods
@@ -32,11 +31,11 @@ module_load_include('inc', 'node', 'node.pages');
  */
 function eximport_help($path, $arg) {
   $output = '';
-  switch($path) {
+  switch ($path) {
     case "admin/help#eximport":
       $output = '<p>'
               . t("To assist in the import of MediaWiki content.")
-              .'</p>';
+              . '</p>';
     break;
   }
   return $output;
@@ -136,7 +135,7 @@ function eximport_get_fullpath($fname) {
  * Given filename, verify exists in file system.
  *
  * @param string $fname Input filename.
- * @return boolean True if file exists, false otherwise.
+ * @return boolean True if file exists, FALSE otherwise.
  * @see _form_validate
  */
 function eximport_verify_filename($fname) {
@@ -154,7 +153,7 @@ function eximport_verify_filename($fname) {
  */
 function eximport_admin_form_submit($form, &$form_state) {
   $fname = $form_state['values']['filename'];
-  $rc = false;
+  $rc = FALSE;
   
   list($total, $added, $errors) = eximport_import_from_file($fname);
   
@@ -176,11 +175,11 @@ function eximport_admin_form_submit($form, &$form_state) {
  * Create a Drupal node and revision from input.
  *
  * @param object $entry Object with data for new node.
- * @return boolean true if successful, false otherwise
+ * @return boolean TRUE if successful, FALSE otherwise
  * @see node_save
  */
 function eximport_node_create($entry) {
-  $rc = false;
+  $rc = FALSE;
   
   // Construct the new node object.
   $node = new stdClass();
@@ -222,7 +221,7 @@ function eximport_node_create($entry) {
  * @return object Generic content entry object
  */
 function eximport_entry_create($atom_entry) {
-  $entry = new StdClass();
+  $entry = new stdClass();
   
   dvp($atom_entry);
   
@@ -279,7 +278,7 @@ function eximport_get_teaser($content) {
  * @see user_load_multiple
  */
 function eximport_find_author($exid) {
-  $account = false;
+  $account = FALSE;
   $id = 0;
   
   $accounts = user_load_by_name($exid);
