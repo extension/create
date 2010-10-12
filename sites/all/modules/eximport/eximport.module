@@ -255,7 +255,7 @@ function eximport_get_teaser($content) {
   $found = preg_match($find_sum, $content, $matches);
   
   if ($found) {
-    $summary = $matches[1]
+    $summary = $matches[1];
   }
   
   return $summary;
