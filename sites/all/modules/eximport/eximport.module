@@ -196,6 +196,7 @@ function eximport_node_create($entry) {
   $node->revision = 1;
   $node->promote = 0;
   $node->created = $entry->created;
+  $node->changed = $entry->created;
   $node->comment= 0;
 
   $node->taxonomy = array('tags' => array('11' => ($data->categories)));
@@ -234,7 +235,7 @@ function eximport_entry_create($atom_entry) {
     $entry->teaser = eximport_get_teaser($atom_entry->content);
   }
   
-  $entry->created = $atom_entry->updated;
+  $entry->created = strtotime($atom_entry->updated);
   
   return $entry;
 }
@@ -254,7 +255,7 @@ function eximport_get_teaser($content) {
   $found = preg_match($find_sum, $content, $matches);
   
   if ($found) {
-    $summary = $summary_match[1]
+    $summary = $matches[1]
   }
   
   return $summary;
