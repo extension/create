@@ -127,7 +127,7 @@ function eximport_admin_form_validate($form, &$form_state) {
  */
 function eximport_get_fullpath($filename) {
   $path_parts = array(DRUPAL_ROOT, 'import', $filename);
-  return implode(DIRECTORY_SEPARATOR, $path_parts;
+  return implode(DIRECTORY_SEPARATOR, $path_parts);
 }
 
 /**
