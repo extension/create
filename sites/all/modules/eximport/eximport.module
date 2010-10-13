@@ -184,31 +184,26 @@ function eximport_node_create($entry) {
   node_object_prepare($node);
   dvm($node);
   $node->uid = $entry->uid;
-  $node->title = $entry->title;
-  $node->body = $entry->body;
-  $node->teaser = $entry->teaser;
-  $node->filter = variable_get('filter_default_format', 1);
-  $node->format = filter_default_format();
-  $node->is_new = TRUE;
-  $node->promote = 0;
-  $node->created = $entry->created;
-  $node->changed = $entry->created;
-  $node->comment = 0;
-  $node->publish = 1;
+  
   $node->language = LANGUAGE_NONE;
-
-  $node->taxonomy = array('tags' => array('1' => ($entry->categories)));
+  $node->title = $entry->title;
+  
+  $node->created = $entry->created;
+  // $node->revision = 0;
+  
+  $node->body = $entry->body;
+  // $node->changed = $entry->created;
+  
+  // alias old URL to new one
+  $node->field_301 = array(LANGUAGE_NONE => 
+                       array(
+                         array('value' => $entry->old_path)));
+  $node->field_tags = $entry->field_tags;
   node_save($node);
   
   $nid = $node->nid;
   
-  // alias old URL to new one
   if ($nid) {
-    // be sure we only do it once
-    path_delete($entry->old_path);
-    $alias = array('alias' => 'node/' . $nid,
-                   'source' => $entry->old_path);
-    path_save($alias);
     $rc = TRUE;
   }
   
@@ -236,20 +231,29 @@ function eximport_entry_create($atom_entry) {
     if ($cat['term'] == 'news') {
       $entry->type = 'news';
     }
-    $categories[] = $cat['term'];
+    $cat_entry = array('vid' => '1',
+                       'tid' => 'autocreate',
+                       'name' => (string)$cat['term']);
+    $categories[] = $cat_entry;
   }
   
-  $entry->categories = implode(',', $categories);
+  $entry->field_tags = array(LANGUAGE_NONE => $categories);
+  
   $entry->uid = eximport_find_author((string)$atom_entry->author->name[0]);
   $entry->title = (string)$atom_entry->title;
-  $entry->body = (string)$atom_entry->content;
-  
-  $entry->teaser = eximport_get_teaser($atom_entry->content);
+  $teaser = eximport_get_teaser($atom_entry->content);
+  $body = (string)$atom_entry->content;
+  $entry->body = array(LANGUAGE_NONE =>
+                  array(0 =>
+                    array('summary' => $teaser,
+                          'value' => $body,
+                          'format' => filter_default_format()
+                          )));
   
   $entry->created = strtotime($atom_entry->updated);
   
   $link = parse_url($atom_entry->link['href']);
-  $entry->old_path = $link['path'];
+  $entry->old_path = ltrim($link['path'], '/');
   
   return $entry;
 }
