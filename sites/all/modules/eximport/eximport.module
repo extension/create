@@ -111,10 +111,10 @@ function eximport_admin_form($form, &$form_state) {
  * @see _form_validate
  */
 function eximport_admin_form_validate($form, &$form_state) {
-  $fname = $form_state['values']['filename'];
-  if ( ! preg_match('/\.(xml|atom)$/i', $fname)) {
+  $filename = $form_state['values']['filename'];
+  if ( ! preg_match('/\.(xml|atom)$/i', $filename)) {
     form_set_error('', t('A valid filename is required.'));
-  } elseif ( ! eximport_verify_filename($fname) ) {
+  } elseif ( ! eximport_verify_filename($filename) ) {
     form_set_error('', t('File must exist in import directory.'));
   }
 }
@@ -122,23 +122,23 @@ function eximport_admin_form_validate($form, &$form_state) {
 /**
  * Given filename, return location of file.
  *
- * @param string $fname Input filename.
- * @param array &$form_state Reference to array with the current form state.
+ * @param string $filename Input filename.
  * @return string Full path to file.
  */
-function eximport_get_fullpath($fname) {
-  return implode(DIRECTORY_SEPARATOR, array(DRUPAL_ROOT, 'import', $fname));
+function eximport_get_fullpath($filename) {
+  $path_parts = array(DRUPAL_ROOT, 'import', $filename);
+  return implode(DIRECTORY_SEPARATOR, $path_parts;
 }
 
 /**
  * Given filename, verify exists in file system.
  *
- * @param string $fname Input filename.
+ * @param string $filename Input filename.
  * @return boolean True if file exists, FALSE otherwise.
  * @see _form_validate
  */
-function eximport_verify_filename($fname) {
-  $target = eximport_get_fullpath($fname);
+function eximport_verify_filename($filename) {
+  $target = eximport_get_fullpath($filename);
   return file_exists($target);
 }
 
@@ -151,10 +151,9 @@ function eximport_verify_filename($fname) {
  * @see form_execute_handlers
  */
 function eximport_admin_form_submit($form, &$form_state) {
-  $fname = $form_state['values']['filename'];
-  $rc = FALSE;
+  $filename = $form_state['values']['filename'];
   
-  list($total, $added, $errors) = eximport_import_from_file($fname);
+  list($total, $added, $errors) = eximport_import_from_file($filename);
   
   if ($errors) {
     drupal_set_message(t('Import failed: ' 
@@ -165,8 +164,7 @@ function eximport_admin_form_submit($form, &$form_state) {
                          . $added . ' out of ' 
                          . $total . ' revisions imported.'));
   }
-  
-  // $form_state['redirect'] = 'admin/modules';
+
   return;
 }
 
@@ -191,12 +189,12 @@ function eximport_node_create($entry) {
   $node->teaser = $entry->teaser;
   $node->filter = variable_get('filter_default_format', 1);
   $node->format = filter_default_format();
-  $node->language = '';
   $node->is_new = TRUE;
   $node->promote = 0;
   $node->created = $entry->created;
   $node->changed = $entry->created;
   $node->comment = 0;
+  $node->publish = 1;
   $node->language = LANGUAGE_NONE;
 
   $node->taxonomy = array('tags' => array('1' => ($entry->categories)));
@@ -246,9 +244,7 @@ function eximport_entry_create($atom_entry) {
   $entry->title = (string)$atom_entry->title;
   $entry->body = (string)$atom_entry->content;
   
-  if ($entry->type == 'news') {
-    $entry->teaser = eximport_get_teaser($atom_entry->content);
-  }
+  $entry->teaser = eximport_get_teaser($atom_entry->content);
   
   $entry->created = strtotime($atom_entry->updated);
   
@@ -259,21 +255,23 @@ function eximport_entry_create($atom_entry) {
 }
 
 /**
- * Existing eXtension 'news' articles have a teaser embeded.
- * Pull out teaser from HTML to enable us to put in teaser news node.
+ * Some existing eXtension articles have a teaser/summary embeded.
+ * Pull out teaser from HTML to enable us to put in new node.
  *
  * @param string $content HTML content for a 'news' article.
  * @return string HTML for teaser content only
  */
 function eximport_get_teaser($content) {
   $summary = "";
-  $find_sum = '#<div\ id="summary"\ class="printme\ toc">(.*?)</div>#m';
+  if ( ! empty($content)) {
+    $find_sum = '#<div\ id="summary"\ class="printme\ toc">(.*?)</div>#m';
   
-  $matches = array();
-  $found = preg_match($find_sum, $content, $matches);
+    $matches = array();
+    $found = preg_match($find_sum, $content, $matches);
   
-  if ($found) {
-    $summary = $matches[1];
+    if ($found) {
+      $summary = $matches[1];
+    }
   }
   
   return $summary;
@@ -287,9 +285,7 @@ function eximport_get_teaser($content) {
  * @see user_load_multiple
  */
 function eximport_find_author($exid) {
-  $account = FALSE;
   $id = 0;
-
   $account = user_load_by_name($exid);
 
   if ($account) {
