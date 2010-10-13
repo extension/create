@@ -15,15 +15,24 @@ function exauth_help($path, $arg) {
 
 //check to see if the user is accessing a page which does not need to trigger the openid login process to start
 //logout by default seems to be redirecting back to /, so something will need to be figured out for a custom redirect for logout
-
-
 function accessing_unprotected_page()
 {
- if ( strpos($_SERVER['REQUEST_URI'], "openid")=== FALSE && strpos($_SERVER['REQUEST_URI'], "logout")=== FALSE && strpos($_SERVER['REQUEST_URI'], "atomfeed") === FALSE && strpos($_SERVER['REQUEST_URI'], "cron.php") === FALSE && strpos($_SERVER['REQUEST_URI'], "loggedout") === FALSE )
+ if ( $_SERVER['REMOTE_ADDR']!='127.0.0.1' && strpos($_SERVER['REQUEST_URI'], "openid")=== FALSE && strpos($_SERVER['REQUEST_URI'], "logout")=== FALSE && strpos($_SERVER['REQUEST_URI'], "atomfeed") === FALSE && strpos($_SERVER['REQUEST_URI'], "cron.php") === FALSE && strpos($_SERVER['REQUEST_URI'], "loggedout") === FALSE )
   {
     return FALSE;
   }
   return TRUE;
+}
+
+//maintenance mode check
+function maintenance_mode()
+{
+	if (variable_get('maintenance_mode', 0)){
+		return FALSE;
+	}
+	else{
+		return TRUE;
+	}
 }
 
 
@@ -34,7 +43,7 @@ function exauth_init()
   $default_openidreturn = $base_url . '/openid/authenticate?destination=' . ltrim(request_uri(), "/");
 
   $myopenid_return = variable_get('extension_openid_return',$default_openidreturn);
-  if(!user_is_logged_in() && !accessing_unprotected_page()) 
+  if(!user_is_logged_in() && !accessing_unprotected_page() && !maintenance_mode()) 
   {
     //syslog(LOG_WARNING, "openid login start");
     openid_begin("https://people.extension.org/", $myopenid_return);
