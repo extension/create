@@ -1,0 +1,31 @@
+<?php
+// $Id: messaging.module,v 1.7.2.8.2.27.2.11.2.44 2010/07/17 18:02:24 jareyero Exp $
+/**
+ * Drupal Messaging Framework - Destinations management
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function messaging_destination_menu() {
+  // Manage destinations
+  $items['messaging/destination/%messaging_destination/edit'] = array(
+    'type' => MENU_CALLBACK,
+    'title' => 'Edit destination',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('messaging_edit_destination_form', 2),
+    'access callback' => 'messaging_destination_access',
+    'access arguments' => array('edit', 2),
+    'file' => 'messaging_destination.pages.inc',
+  );
+  $items['messaging/destination/%messaging_destination/manage'] = array(
+    'type' => MENU_CALLBACK,
+    'title' => 'Manage destination',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('messaging_manage_destination_form', 2),
+    'access callback' => 'messaging_destination_access',
+    'access arguments' => array('manage', 2),
+    'file' => 'messaging_destination.pages.inc',
+  );
+  return $items;
+}
