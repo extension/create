@@ -1,0 +1,8 @@
+; $Id: notifications_ui.info,v 1.1.4.1 2008/04/13 18:02:39 jareyero Exp $
+name = Notifications UI
+description = Provides a generic UI to create and manage subscriptions
+package = Notifications
+version = VERSION
+core = 7.x
+dependencies[] = notifications
+files[] = notifications_ui.pages.inc

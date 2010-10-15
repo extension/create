@@ -1,0 +1,99 @@
+<?php
+// $Id: notifications.module,v 1.6.2.9.2.50.2.18.2.67 2010/07/22 11:57:49 jareyero Exp $
+
+/**
+ * @file
+ * Notifications - Advanced queue
+ */
+
+/**
+ * Implementation of hook_menu()
+ * 
+ * @var unknown_type
+ */
+function notifications_queue_menu() {
+  $items['admin/config/notifications/settings/intervals'] = array(
+    'title' => 'Intervals',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('notifications_send_intervals_form'),
+    'type' => MENU_LOCAL_TASK,
+    'access arguments' => array('administer site configuration'),
+    'file' => 'notifications_queue.admin.inc',
+  );
+  return $items;
+}
+/**
+ * Entry point for the storage and queueing API
+ * 
+ * Default methods are implemented by Notifications_Queue class
+ * 
+ * This API can be replaced by setting a new class name in the 'notifications_queue' variable.
+ */
+function notifications_queue() {
+  static $queue;
+  if (!isset($queue)) {
+    $class = variable_get('notifications_queue', 'Notifications_Queue');
+    $queue = new $class();
+  }
+  //return call_user_func_array(array($class, $method), $args);
+  return $queue;
+}
+
+/**
+ * List of send intervals, translated.
+ */
+function notifications_queue_send_intervals($account = NULL) {
+  $list = &drupal_static(__FUNCTION__);
+  if ($account && !$account->uid && function_exists('notifications_anonymous_send_intervals')) {
+    return notifications_anonymous_send_intervals();
+  }
+  if (!isset($intervals)) {
+    if ($intervals = variable_get('notifications_send_intervals', FALSE)) {
+      foreach ($intervals as $key => $name) {
+        $list[$key] = notifications_translate("send_interval:$key:name", $name);
+      }
+    }
+    else {
+      $list = _notifications_queue_send_intervals();
+    }
+  }
+  return $list;
+}
+
+/**
+ * List of send intervals. These may be overriden in a variable.
+ */
+function _notifications_queue_send_intervals() {
+  return variable_get('notifications_send_intervals', array(
+      // -1 => t('Never'),
+      0 => t('Immediately'),
+      3600 => t('Every hour'),
+      43200 => t('Twice a day'),
+      86400 => t('Daily'),
+      604800 => t('Weekly'),  
+    )
+  );
+}
+
+/**
+ * Implementation of hook_cron()
+ */
+function notifications_queue_cron() {
+  if (variable_get('notifications_process_on_cron', TRUE)) {
+    $results = notifications_queue()
+      ->default_process()
+      ->cron()
+      ->get_results();
+    if ($results) {
+      watchdog('notifications', 'Processed notifications in queue: @rows rows, @messages messages sent, @time milliseconds.', $results);
+    }
+  }
+}
+/*
+  $form['general']['notifications_event_immediate'] = array(
+    '#title' => t('Immediate sending'),
+    '#type' => 'checkbox',
+    '#default_value' => variable_get('notifications_send_immediate', 0),
+    '#description' => t('Notifications are usually queued to be sent on cron process later. Checking this option will cause immediate notifications to be sent right away, instead of being queued. This will produce more timely notifications for sites with a small number of users. Not recommended for sites with a large number of users. This may not work for AJAX forms and notifications will be queued anyway.'),
+  );
+*/

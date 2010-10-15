@@ -1,0 +1,58 @@
+<?php
+// $Id: messaging_queue.module,v 1.1.2.1 2010/05/15 15:55:19 jareyero Exp $
+/**
+ * @
+ * Drupal Messaging Framework: Queue system
+ *
+*/
+
+/**
+ * Implementation of hook_enable()
+ */
+function messaging_store_enable() {
+  variable_set('messaging_store_queue', 'Messaging_Store');
+}
+
+/**
+ * Implementation of hook_disable()
+ */
+function messaging_store_disable() {
+  variable_del('messaging_store_queue');
+}
+
+/**
+ * Implementation of hook_cron_queue_info()
+ */
+function messaging_store_cron_queue_info() {
+  return array(
+    'messaging' => array(
+      'worker callback' => 'messaging_store_worker',
+  ));
+}
+
+/**
+ * Implementation of hook_messaging_method
+ */
+function messaging_store_messaging_method($op, $method, $param = NULL) {
+  switch ($op) {
+    case 'disable':
+      db_delete('messaging_store')->condition('method', $method)->execute();
+      break;
+  }
+}
+
+/**
+ * Worker callback. Check whether the message has expired before sending out.
+ */
+function messaging_store_worker($message) {
+  static $expire;
+
+  if (!isset($expire)) {
+    $queue_expire = variable_get('messaging_store_expire', 0);
+    $expire = $queue_expire ? time() - $queue_expire : 0;
+  }
+
+  if ($message->created > $expire) {
+    messaging_store()->queue_process_message($message);
+  }
+}

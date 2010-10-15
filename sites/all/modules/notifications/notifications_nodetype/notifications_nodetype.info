@@ -1,0 +1,6 @@
+; $Id: notifications_nodetype.info,v 1.1.2.1 2010/04/09 18:48:34 jareyero Exp $
+name = Content Type extension
+description = Provides different events and templates for each content type
+package = "Notifications"
+dependencies[] = notifications_content
+core = 6.x

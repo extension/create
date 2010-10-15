@@ -1,0 +1,367 @@
+<?php
+// $Id: notifications_tags.module,v 1.1.2.5.2.12.2.5.2.8 2010/05/11 10:38:20 jareyero Exp $
+/**
+ * @file
+ * Subscriptions to taxonomy terms
+ */
+
+/**
+ * Implementation of hook_menu_()
+ */
+function notifications_tags_menu() {
+  $items['admin/config/notifications/subscriptions/tags'] = array(
+    'title' => 'Tags',
+    'description' => 'Options for taxonomy subscriptions',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('notifications_tags_admin_settings'),
+    'access arguments' => array('administer notifications'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'notifications_tags.admin.inc',
+  );
+  $items['notifications_tags/autocomplete'] = array(
+    'title' => 'Autocomplete taxonomy',
+    'page callback' => 'notifications_tags_autocomplete',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+  // Hidden user account tab, unless notifications_user enabled
+  $items['user/%user/notifications/taxonomy'] = array(
+    'type' => MENU_LOCAL_TASK,
+    'title' => 'Tags',     
+    'access callback' => 'notifications_tags_user_access',
+    'access arguments' => array(1, 'taxonomy_term'),
+    'page callback' => 'notifications_user_subscription_list_page',
+    'page arguments' => array('taxonomy_term', 1),
+    'weight' => 10,
+  );
+  return $items;
+}
+
+/**
+ * Check access to user account tab
+ */
+function notifications_tags_user_access($account, $type) {
+  return module_exists('notifications_user') && user_access('subscribe to taxonomy terms', $account) && notifications_user_tab_access($account, $type);
+}
+/**
+ * Implementation of hook_permission()
+ */
+function notifications_tags_permission() {
+  return array(
+    'subscribe to taxonomy terms' =>  array(
+      'title' => t('Subscribe to taxonomy terms'),
+      'description' => t('Subscribe to content tagged with a given taxonomy term.'),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_notifications().
+ */
+function notifications_tags_notifications($op) {
+  switch ($op) {
+
+    case 'subscription types':
+      $types['taxonomy_term'] = array(
+        'title' => t('Tags'),
+        'description' => t('Subscribe to content tagged with a given taxonomy term.'),
+        'class' => 'Notifications_Taxonomy_Term_Subscription',
+        'field_types' => array('term:tid'),
+        'access' => array('subscribe to taxonomy terms'),
+      );
+      return $types;
+
+    case 'field types':
+      // Information about available fields for subscriptions
+      $fields['term:tid'] = array(
+        'title' => t('Taxonomy term'),
+        'class' => 'Notifications_Taxonomy_Term_Field',
+      );
+      return $fields;
+    
+    case 'object types':
+      // Define object types used by subscriptions and events
+      $types['taxonomy_term'] = array(
+        'title' => t('Taxonomy term'),
+        'class' => 'Notifications_Taxonomy_Term'
+      );
+      return $types;
+ 
+  }
+}
+
+/**
+ * Implementation of hook notifications_subscription()
+ */
+function notifications_tags_notifications_subscription($op, $subscription = NULL, $account = NULL) {
+  switch ($op) {
+    case 'page objects':
+      // Return objects on current page to which we can subscribe
+      $objects = array();
+      if (arg(0) == 'taxonomy') {
+        if (arg(1) == 'term' && is_numeric(arg(2)) && ($term = taxonomy_term_load(arg(2)))) {
+          $objects[] = notifications_object('taxonomy_term', $term);
+        }
+      }
+      return $objects;
+      break;
+  }  
+}
+
+
+/**
+ * Implementation of hook_notifications_object_node()
+ */
+function notifications_tags_notifications_object_node($op, $node, $account = NULL) {
+  switch ($op) {
+
+    case 'conditions':
+      // For a queue query, when not account, we must use our own function to retrieve terms
+      $tids = notifications_tags_node_get_terms($node);
+      if (!empty($tids)) {
+        return array('tid' => $tids);
+      }
+      break;
+
+    case 'subscriptions':
+      // Get all available subscriptions to current node
+      $options = array();
+      if (!$account || user_access('subscribe to taxonomy terms', $account)) {
+        $vocabs = notifications_tags_vocabulary_list();
+        if (notifications_content_type_enabled($node->type, 'taxonomy') && !empty($node->taxonomy)) {
+          foreach ($node->taxonomy as $tid => $term) {
+            if (array_key_exists($term->vid, $vocabs)) {
+              $options[] = array(
+                'name' => t('Posts tagged with @name', array('@name' => $term->name)),
+                'type' => 'taxonomy',
+                'fields' => array('tid' => $term->tid),
+                'module' => 'notifications', // The module that will handle these subscriptions
+              );
+            }
+          }
+        }
+      }
+      return $options;
+  }
+}
+
+/**
+ * Implementation of hook_notifications_object_taxonomy_term()
+ */
+function notifications_tags_notifications_object_taxonomy_term($op, $term, $account = NULL) {
+  switch ($op) {
+    case 'conditions':
+      return array('term:tid' => $term->tid);
+      break;
+    case 'subscriptions':
+      // Get all available subscriptions to current node
+      $options = array();
+      if (notifications_tags_vocabulary_enabled($term->vid) && (!$account || user_access('subscribe to taxonomy terms', $account))) {
+        $options[] = notifications_subscription('taxonomy_term')
+          ->add_field('term:tid', $term->tid);
+      }
+      return $options;
+  }
+}
+
+/**
+* Implementation of hook_taxonomy().
+*/
+function notifications_tags_taxonomy($op, $type, $array = NULL) {
+  switch ($op) {
+    case 'delete':
+      switch ($type) {
+        case 'term':
+          // takes care of individual term deletion and vocab deletion because taxonomy iterates through all term delete hooks on the latter
+          Notifications_Subscription::delete_multiple(array(), array('term:tid' => $array['tid']), FALSE);
+          break;
+      }
+      break;
+  }
+}
+
+/**
+ * Fields information, translate term tid to name
+ */
+function notifications_tags_term_name($tid, $html = FALSE) {
+  if ($term = taxonomy_get_term($tid)) {
+    return $html ? l($term->name, "taxonomy/term/$tid") : check_plain($term->name);
+  }
+}
+
+/**
+ * Fields information, translate term name to tid
+ */
+function notifications_tags_term_tid($name, $field = NULL) {
+  if ($vocabs = notifications_tags_vocabulary_list()) {
+    // Add vids and name to args
+    $args = array_keys($vocabs);
+    $args[] = $name;
+    $tid = db_result(db_query_range(db_rewrite_sql("SELECT t.tid FROM {term_data} t WHERE t.vid IN (" . db_placeholders($vocabs) . ") AND LOWER(t.name) = LOWER('%s')", 't', 'tid'), $args, 0, 1));
+    if ($tid) {
+      return $tid;
+    }
+    elseif ($field) {
+      form_set_error($field, t('Term name not found.'));
+    }
+  }
+}
+
+/**
+ * Get list of allowed vocabularies
+ * 
+ * @param $field
+ *   Optional field to retrieve as array value.
+ *   If empty the whole vocalubary object will be returned.
+ */
+function notifications_tags_vocabulary_list($field = NULL) {
+  $vocabularies = &drupal_static(__FUNCTION__);
+  if (!isset($vocabularies)) {
+    $vocabularies = array();
+    foreach (taxonomy_get_vocabularies() as $vid => $vocabulary) {
+      if (notifications_tags_vocabulary_enabled($vid)) {
+        $vocabularies[$vid] = $vocabulary;
+      }
+    }
+  }
+  if ($field) {
+    $list = array();
+    foreach ($vocabularies as $vid => $vocab) {
+      $list[$vid] = $vocab->$field;
+    }
+    return $list;
+  }
+  else {
+    return $vocabularies;
+  }
+}
+
+/**
+ * Check whether subscriptions are allowed to this vocabulary or get list of enabled vids
+ */
+function notifications_tags_vocabulary_enabled($vid = NULL) {
+  $enabled_vids = variable_get('notifications_tags_vocabularies', array());
+  if (isset($vid)) {
+    $vid = is_object($vid) ? $vid->vid : $vid;
+    return in_array($vid, $enabled_vids);
+  }
+  else {
+    return $enabled_vids;
+  }
+}
+
+/**
+ * Helper function to get latest node terms that belong to our vocabularies for subscriptions
+ * 
+ * We cannot use the one from taxonomy module because it has static caching and we'll be sending
+ * notifications right after the node has been updated
+ */
+function notifications_tags_node_get_terms($node) {
+  static $terms;
+
+  if (!isset($terms[$node->nid])) {
+    $terms[$node->nid] = array();
+    if ($vocabularies = notifications_tags_vocabulary_list()) {
+      // We just get terms for allowed vocabularies
+      $vids = array_keys($vocabularies);
+      $args = array_merge(array($node->nid), $vids);
+      $result = db_query('SELECT t.tid FROM {term_node} t INNER JOIN {term_data} d ON t.tid = d.tid WHERE t.nid = %d AND d.vid IN(' . db_placeholders($vids) . ')', $args);      
+      while ($term = db_fetch_object($result)) {
+        $terms[$node->nid][] = $term->tid;
+      }
+    }
+  }
+  return $terms[$node->nid];
+}
+
+/**
+ * Helper function for autocompletion
+ * 
+ * It is similar to taxonomy_autocomplete but:
+ * - Just searches terms in allowed vocabularies
+ * - Has single/multiple switch in the path
+ * 
+ * @param $type
+ *   'simple' or 'multiple'
+ */
+function notifications_tags_autocomplete($type, $tags_typed = '') {
+  $field = field_info_field($field_name);
+
+  // The user enters a comma-separated list of tags. We only autocomplete the last tag.
+  $tags_typed = drupal_explode_tags($tags_typed);
+  $tag_last = drupal_strtolower(array_pop($tags_typed));
+
+  $term_matches = array();
+  if ($tag_last != '' && $vids = notifications_tags_vocabulary_enabled()) {
+    $query = db_select('taxonomy_term_data', 't');
+    $query->addTag('translatable');
+    $query->addTag('term_access');
+
+    // Do not select already entered terms.
+    if (!empty($tags_typed)) {
+      $query->condition('t.name', $tags_typed, 'NOT IN');
+    }
+    // Select rows that match by term name.
+    $tags_return = $query
+      ->fields('t', array('tid', 'name'))
+      ->condition('t.vid', $vids)
+      ->condition('t.name', '%' . db_like($tag_last) . '%', 'LIKE')
+      ->range(0, 10)
+      ->execute()
+      ->fetchAllKeyed();
+
+    $prefix = count($tags_typed) ? implode(', ', $tags_typed) . ', ' : '';
+
+    $term_matches = array();
+    foreach ($tags_return as $tid => $name) {
+      $n = $name;
+      // Term names containing commas or quotes must be wrapped in quotes.
+      if (strpos($name, ',') !== FALSE || strpos($name, '"') !== FALSE) {
+        $n = '"' . str_replace('"', '""', $name) . '"';
+      }
+      else {
+        $term_matches[$prefix . $n] = check_plain($name);
+      }
+    }
+  }
+
+  drupal_json_output($term_matches);
+}
+
+/**
+ * Form element validate handler for taxonomy term autocomplete element.
+ */
+function notifications_tags_autocomplete_validate($element, &$form_state) {
+  // Autocomplete widgets do not send their tids in the form, so we must detect
+  // them here and process them independently.
+  $value = array();
+  if ($tags = $element['#value']) {
+    $simple = $element['#autocomplete_path'] == 'notifications_tags/autocomplete/simple';
+    // Translate term names into actual terms.
+    $typed_terms = drupal_explode_tags($tags);
+    // If a simple autocomplete, check we have just one tag
+    if ($simple && count($typed_terms) > 1) {
+      form_set_error(implode('][', $element['#parents']), t('This field admits only a single term'));
+      return;
+    }
+    // Collect candidate vocabularies.
+    $vids = notifications_tags_vocabulary_enabled();
+    if (!$vids) {
+      form_set_error(implode('][', $element['#parents']), t('You must have at least one vocabulary enabled for tag subscriptions.'));
+      return;      
+    }
+    foreach ($typed_terms as $typed_term) {
+      // See if the term exists in the chosen vocabulary and return the tid;
+      // otherwise, create a new 'autocreate' term for insert/update.
+      if ($possibilities = taxonomy_term_load_multiple(array(), array('name' => trim($typed_term), 'vid' => $vids))) {
+        $term = array_pop($possibilities);
+        $value[] = $term->tid;
+      }
+    }
+    if ($simple) {
+      $value = reset($value);
+    }
+  }
+
+  form_set_value($element, $value, $form_state);
+}
