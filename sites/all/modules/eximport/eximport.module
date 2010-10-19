@@ -177,33 +177,46 @@ function eximport_admin_form_submit($form, &$form_state) {
  */
 function eximport_node_create($entry) {
   $rc = FALSE;
+  $nid = 0;
+  $new = FALSE;
+  
+  // First, try to see if we've imported a node with the same link
+  $path = path_load(array('alias' => $entry->old_link));
+  if ($path) {
+    $nid = $path['source'];
+  }
+  unset($path);
   
   // Construct the new node object.
-  $node = new stdClass();
-  $node->type = $entry->type;
-  node_object_prepare($node);
-  dvm($node);
-  $node->uid = $entry->uid;
   
-  $node->language = LANGUAGE_NONE;
+  if ($nid) {
+    $node = node_load($nid);
+    $node->revision = '1';
+  } else {
+    $new = TRUE;
+    $node = new stdClass();
+    $node->type = $entry->type;
+    node_object_prepare($node);
+    $node->language = LANGUAGE_NONE;
+    $node->created = $entry->created;
+  }
+  
+  $node->uid = $entry->uid;
   $node->title = $entry->title;
   
-  $node->created = $entry->created;
-  // $node->revision = 0;
+  $node->changed = $entry->created;
   
   $node->body = $entry->body;
-  // $node->changed = $entry->created;
   
-  // alias old URL to new one
-  $node->field_301 = array(LANGUAGE_NONE => 
-                       array(
-                         array('value' => $entry->old_path)));
   $node->field_tags = $entry->field_tags;
   node_save($node);
   
   $nid = $node->nid;
   
-  if ($nid) {
+  if ($nid and $new) {
+    eximport_save_old_link($nid, $entry->old_link);
+    $rc = TRUE;
+  } elseif ($nid) {
     $rc = TRUE;
   }
   
@@ -215,6 +228,25 @@ function eximport_node_create($entry) {
 }
 
 /**
+ * Create a Drupal node and revision from input.
+ *
+ * @param integer $nid Node ID.
+ * @param string $old_link URL for old article location.
+ * @see path_inc
+ */
+function eximport_save_old_link($nid, $old_link) {
+  $path = array('alias' => $old_link, 'source' => "$nid");
+  
+  $exists = path_load("$nid");
+  if ($exists) {
+    $path['pid'] = $exists['pid'];
+  }
+  
+  path_save($path);
+  return;
+}
+
+/**
  * Create a new content entry object from XML input.
  *
  * @param object $atom_entry SimpleXML Atom entry object.
@@ -223,12 +255,14 @@ function eximport_node_create($entry) {
 function eximport_entry_create($atom_entry) {
   $entry = new stdClass();
   
+  // default to article content-type
   $entry->type = 'article';
-  
+    
+  // create our tag array
   $categories = array();
-  
   foreach ($atom_entry->category as $cat) {
     if ($cat['term'] == 'news') {
+      // if it is news, change content-type
       $entry->type = 'news';
     }
     $cat_entry = array('vid' => '1',
@@ -239,8 +273,13 @@ function eximport_entry_create($atom_entry) {
   
   $entry->field_tags = array(LANGUAGE_NONE => $categories);
   
+  // author
   $entry->uid = eximport_find_author((string)$atom_entry->author->name[0]);
+  
+  // duh
   $entry->title = (string)$atom_entry->title;
+  
+  // create our body array
   $teaser = eximport_get_teaser($atom_entry->content);
   $body = (string)$atom_entry->content;
   $entry->body = array(LANGUAGE_NONE =>
@@ -252,8 +291,7 @@ function eximport_entry_create($atom_entry) {
   
   $entry->created = strtotime($atom_entry->updated);
   
-  $link = parse_url($atom_entry->link['href']);
-  $entry->old_path = ltrim($link['path'], '/');
+  $entry->old_link = (string)$atom_entry->link['href'];
   
   return $entry;
 }
