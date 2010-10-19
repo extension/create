@@ -94,7 +94,7 @@ end
 
 release_path = File.expand_path(File.dirname(__FILE__) + "/../")
 command = "cd #{@release_path} && #{@gitcommand} log --shortstat --summary #{@previous_release}..#{@latest_release}"
-@scmoutput = runcommand(command)
+@scm_output = runcommand(command)
 
 if !@dryrun
   msgTime = Time.now
