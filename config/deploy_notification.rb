@@ -15,7 +15,7 @@ progopts = GetoptLong.new(
   [ "--application","-a", GetoptLong::REQUIRED_ARGUMENT ],
   [ "--user","-u", GetoptLong::REQUIRED_ARGUMENT ],
   [ "--host","-h", GetoptLong::REQUIRED_ARGUMENT ],
-  [ "--repository","-r", GetoptLong::REQUIRED_ARGUMENT ]
+  [ "--release_path","-r", GetoptLong::REQUIRED_ARGUMENT ]
 )
 
 @gitcommand = '/usr/bin/git'
@@ -29,8 +29,8 @@ progopts.each do |option, arg|
       @previous_release = arg
     when '--latest'
       @latest_release = arg
-    when '--repository'
-      @repository = arg
+    when '--release_path'
+      @release_path = arg
     when '--branch'
       @branch = arg
     when '--application'
@@ -93,7 +93,7 @@ end
 ############ MAIN ##############
 
 release_path = File.expand_path(File.dirname(__FILE__) + "/../")
-command = "cd #{release_path} && #{@gitcommand} log --shortstat --summary #{@previous_release}..#{@latest_release}"
+command = "cd #{@release_path} && #{@gitcommand} log --shortstat --summary #{@previous_release}..#{@latest_release}"
 @scmoutput = runcommand(command)
 
 if !@dryrun
