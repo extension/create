@@ -49,8 +49,10 @@ class Notifications_Event extends Notifications_Entity {
   public $text;
   // Pre-built template to use for this event
   protected $template;
-  // Keep track of notifications sent for this event, indexed by method, uid
+  // Keep track of notifications sent for this event, indexed by destination
   protected $notifications_sent;
+  // Last (biggest) sid, this message has been sent to
+  protected $last_sid = 0;
   /**
    * Constructor
    */
@@ -463,30 +465,39 @@ class Notifications_Event extends Notifications_Entity {
    * Send message to all subscriptions
    */
   public function send_all() {
-    if ($sids = $this->get_subscriptions()) {
+    $limit = variable_get('notifications_batch_size', 100);
+    $total_count = 0;
+    while ($sids = $this->get_subscriptions($limit)) {
       $results = $this->send_list($sids);
       $count = count($sids);
       $sent = count($results['sent']);
       $skip = count($results['skip']);
-      $success = count(array_filter($results['sent']));
+      $success = count(array_filter($results['success']));
       watchdog('notifications', 'Sent event @event to @count subscriptions: @success success, @errors errors, @skip skipped.', array('@event' => $this->get_title(), '@count' => $count, '@success' => $success, '@errors' => $sent - $success, '@skip' => $skip));       
-      return count($sids);
+      $total_count += $count;
     }
-    else{
-      return 0;
-    }
+    return $total_count;
   }
   /**
    * Get subscriptions
    * 
+   * @param $limit
+   *   Whether to limit the number of subscriptions. If so we'll use last_sid and 'notifications_batch_size'
    * @return array
    *   Array of subscription ids
    */
-  public function get_subscriptions() {
-    return $this->query_subscriptions()
-    ->fields('s', array('sid'))
-    ->execute()
-    ->fetchCol();
+  public function get_subscriptions($limit = 0) {
+    $query = $this->query_subscriptions()
+      ->fields('s', array('sid'));
+    if ($limit) {
+      $query
+        ->condition('s.sid', $this->last_sid, '>')
+        ->orderBy('s.sid')
+        ->range(0, $limit);
+    }
+    return $query
+      ->execute()
+      ->fetchCol();
   }
   /**
    * Send to subscriptors
@@ -498,28 +509,32 @@ class Notifications_Event extends Notifications_Entity {
     $subscriptions = entity_load('notifications_subscription', $sids);
     // Template to be rendered for each user
     $template = $this->get_template();
+    $message = $template->build_message();
     // Keep track of users sent so we don't repeat
-    $results = array('skip' => array(), 'sent' => array());
+    $results = array('skip' => array(), 'sent' => array(), 'success' => array(), 'error' => array());
     foreach ($subscriptions as $subscription) {
-      $user = $subscription->get_user();
-      if (!$user->uid || !isset($this->notifications_sent[$subscription->send_method][$user->uid])) {
-        $result = FALSE;
-        if ($this->user_access($user)) {
-          $template->add_object('user', $user);     
-          $result = $template
-            ->build_message()
-            ->set_method($subscription->send_method)
-            ->set_user($user)
-            ->send();
-        }
-        // If user doesn't have access, mark as sent so we don't try again
-        $this->notifications_sent[$subscription->send_method][$user->uid] = $result;
-        $results['sent'][$subscription->sid] = $result;
+      $this->last_sid = $subscription->sid;
+      $destination = $subscription->get_destination();
+      // If already sent for this destination (user, method, address), move on
+      if (isset($this->notifications_sent[$destination->index()])) {
+        $results['skip'][] = $subscription->sid;
+        continue;
+      }
+      // Mark the event as already sent for this destination
+      $this->notifications_sent[$destination->index()] = TRUE;
+      // Check access to all objects related with this event
+      if (($user = $subscription->get_user()) && $this->user_access($user)) {
+        $message->add_destination($destination, $subscription->send_method);
+        $results['sent'][] = $subscription->sid;
       }
       else {
-        // This was a duplicated destination, skip sending
-        $results['skip'][] = $subscription->sid;
-      }      
+        $results['error'][] = $subscription->sid;
+      }    
+    }
+    // This will send out all messages. It will be a bulk sending or not depending on send method
+    if (!empty($results['sent'])) {
+      $message->send_all();
+      $results['success'] = $message->get_results();
     }
     return $results;
   }

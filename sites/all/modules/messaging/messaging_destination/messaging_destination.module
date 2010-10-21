@@ -29,3 +29,10 @@ function messaging_destination_menu() {
   );
   return $items;
 }
+
+/**
+ * Load destination from key. Menu autoloading.
+ */
+function messaging_destination_load($mdid) {
+  return Messaging_Destination::load($mdid);  
+}

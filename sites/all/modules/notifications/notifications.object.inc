@@ -32,7 +32,9 @@ abstract class Notifications_Entity {
   /**
    * Build from db object or template
    */
-  public static abstract function build_object($object);
+  public static function build_object($object) {
+    return new Notifications_Entity($object);
+  }
   /**
    * User access function
    */
@@ -40,7 +42,9 @@ abstract class Notifications_Entity {
   /**
    * Get information from notifications hooks
    */
-  public static abstract function type_info($type = NULL, $property = NULL, $default = NULL);
+  public static function type_info($type = NULL, $property = NULL, $default = NULL) {
+    // Creating static abstract functions produces warnings.
+  }
   /**
    * Get information for specific instance.
    * 

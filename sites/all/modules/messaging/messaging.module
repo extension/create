@@ -44,7 +44,9 @@ abstract class Messaging_Object {
   /**
    * They need a build function
    */
-  public static abstract function build_object($object);
+  public static function build_object($object) {
+    return new Messaging_Object($object);
+  }
 }
 
 /**
@@ -167,7 +169,6 @@ function messaging_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('messaging_admin_method_settings'),
     'access arguments' => array('administer messaging'),
-    'weight' => -10,
     'file' => 'messaging.admin.inc',
   );
   $items['admin/config/messaging/method/overview'] = array(
@@ -176,6 +177,7 @@ function messaging_menu() {
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => -10,
   );
+  /*
   $items['admin/config/messaging/method/filters'] = array(
     'title' => 'Filters',
     'description' => 'Filters and formatting',
@@ -185,7 +187,7 @@ function messaging_menu() {
     'file' => 'messaging.admin.inc',
     'type' => MENU_LOCAL_TASK,
   );
-
+  */
 
   return $items;
 }
@@ -692,13 +694,6 @@ function messaging_static_cache_get($cache_name, $key) {
 }
 
 /**
- * Load destination from key. Menu autoloading.
- */
-function messaging_destination_load($mdid) {
-  return Messaging_Destination::load($mdid);  
-}
-
-/**
  * Include module files as necessary.
  * 
  * The files must be in an 'includes' subfolder inside the module folder. 
@@ -708,6 +703,19 @@ function messaging_include($file, $module = 'messaging') {
   if (!isset($included[$module][$file])) {
     require_once './' . drupal_get_path('module', $module) . '/includes/' . $file;
     $included[$module][$file] = TRUE;
+  }
+}
+
+/**
+ * Get language object from language code or from language
+ */
+function messaging_language($language) {
+  if (is_object($language)) {
+    return $language;
+  }
+  else {
+    $list = language_list();
+    return $language && isset($list[$language]) ? $list[$language] : language_default();
   }
 }
 

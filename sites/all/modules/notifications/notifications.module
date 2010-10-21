@@ -86,7 +86,7 @@ function notifications_format_items($items, $format = NOTIFICATIONS_FORMAT_LIST)
  */
 function notifications_menu() {
   $items['admin/config/notifications'] = array(
-    'title' => 'Notififications',
+    'title' => 'Notifications',
     'description' => 'Administer and configure notifications',
     'page callback' => 'system_admin_menu_block_page',
     'access arguments' => array('access administration pages'),

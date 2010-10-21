@@ -56,10 +56,12 @@ class Messaging_Message {
   public $status = 0;
   // Sending method key: 'mail', 'sms', etc...
   public $method;
-  // Destination, to be decoded
+  // Destinations, indexed by send method and destination key
   public $destination = array();
   // User destination, if the message is intended for a single user
   public $uid;
+  // Language code
+  public $language;
   // Sender parameters
   public $sender = array();
   // Module and key (type by module), will have defaults
@@ -111,15 +113,12 @@ class Messaging_Message {
    * 
    * @param $destination
    *   Destination object
-   * @param $check
-   *   Check whether this destination type is valid for the send method
-   * @return Messaging_Destination
-   *   Returns the destination if successfully added
+   * @param $method
+   *   Optional send method, otherwise it will be current method
    */
-  function add_destination($destination, $check = FALSE) {
-    if (!$check || $destination->type == $this->send_method()->address_type()) {
-      $this->destination[$destination->index()] = $destination;
-    }
+  function add_destination($destination, $method = NULL) {
+    $method = $method ? $method : $this->method;
+    $this->destination[$method][$destination->index()] = $destination;
     return $this;
   }
   /**
@@ -127,11 +126,10 @@ class Messaging_Message {
    * 
    * @param $destinations
    *   Array of destinations
-   * @
    */
-  function add_destination_list($destinations, $check = TRUE) {
+  function add_destination_list($destinations, $method = NULL) {
     foreach ($destinations as $index => $dest) {
-      $destinations[$index] = $this->add_destination($dest, $check);
+      $this->add_destination($dest, $method);
     }
     return $this;
   }
@@ -154,7 +152,7 @@ class Messaging_Message {
    */
   function add_user_list($users) {
     foreach ($users as $index => $user) {
-      $users[$index] = $this->add_user();
+      $this->add_user();
     }
     return $this;
   }
@@ -177,12 +175,21 @@ class Messaging_Message {
     return $this;
   }
   /**
-   * Get destinations for sending
+   * Get destinations for sending with current method
+   * 
    * @todo Return only the ones not sent
    */
-  function get_destinations() {
-    return $this->destination;
+  function get_destinations($method = NULL) {
+    $method = $method ? $method : $this->method;
+    return $this->destination[$method];
   }
+  /**
+   * Get sending results
+   */
+  function get_results() {
+    return $this->results;
+  }
+  
   /**
    * Set user, if the message is intended for a single user try to find suitable method
    */
@@ -261,11 +268,11 @@ class Messaging_Message {
    * Get a list of destinations for current method
    */
   function check_destination() {
-    if (empty($this->method) || empty($this->destination)) {
+    if (empty($this->method) || empty($this->destination[$this->method])) {
       return FALSE;
     }
     else {
-      return $this->destination_type($this->send_method()->address_type());
+      return TRUE;
     }
   }
 
@@ -423,6 +430,19 @@ class Messaging_Message {
     $this->send = 1;
     return $this->process('build', 'prepare', 'dispatch');
   }
+  
+  /**
+   * Send message through all sending methods
+   */
+  public function send_all() {
+    $result = array();
+    foreach ($this->destination as $method => $destinations) {
+      $this->set_method($method);
+      $result[$method] = $this->send();
+    }
+    return $result;
+  }
+
   /**
    * Send message through sending method
    */

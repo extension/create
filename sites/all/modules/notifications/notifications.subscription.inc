@@ -1181,29 +1181,35 @@ abstract class Notifications_Subscription extends Notifications_Entity {
   }
 
   /**
-   * Get destination object
+   * Get destination object.
+   * 
+   * Though a destination is just an address, in this case it will have a sending method too,
+   * so it can be passed on to the messaging layer with the full information.
    */
   function get_destination() {
-    if (!isset($this->destination_object)) {
-      $this->destination_object = !empty($this->mdid) ? Messaging_Destination::load($this->mdid) : FALSE;
+    if (!empty($this->mdid)) {
+      // This is a stored destination, load and return
+      return Messaging_Destination::load($this->mdid);
     }
-    return $this->destination_object;
+    elseif ($this->uid && ($user = $this->get_user())) {
+      // We try to build a destination knowing the method and the user
+      return Messaging_Destination::build_method($this->send_method, NULL, $user);
+    }
+    else {
+      return NULL;
+    }
   }
 
   /**
    * Get language object
    */
   function get_language() {
-    if (!isset($this->_language)) {
-      if (!empty($this->language) && ($languages = language_list()) && isset($languages[$this->language])) {
-        $this->_language = $languages[$this->language];
-      }
-      else {
-        $this->_language = user_preferred_language($this->get_account());
-        $this->language = $this->_language->language;
-      }
+    if (!empty($this->language) && ($languages = language_list()) && isset($languages[$this->language])) {
+      return $languages[$this->language];
     }
-    return $this->_language;
+    else {
+      return user_preferred_language($this->get_account());
+    }
   }
 
   /**
@@ -1213,13 +1219,11 @@ abstract class Notifications_Subscription extends Notifications_Entity {
     if (empty($destination)) {
       $this->mdid = 0;
       $this->destination = '';
-      $this->destination_object = FALSE;
     }
     elseif (is_object($destination)) {
       $this->uid = $destination->uid;
       $this->mdid = $destination->mdid;
       $this->destination = $destination->address;
-      $this->destination_object = $destination;
     }
     elseif (is_numeric($destination)) {
       $this->mdid = $destination;
@@ -1371,10 +1375,9 @@ abstract class Notifications_Subscription extends Notifications_Entity {
       case $format & self::FORMAT_INLINE:
         return implode(',', $items);
       case $format & self::FORMAT_LIST:
-        return theme('item_list', $items);
+        return theme('item_list', array('items' => $items));
       case $format & self::FORMAT_TABLE:
-        return theme('table', array(), $items);
-
+        return theme('table', array('rows' => $items));
       default:
         // Items not formatted, return as array
         return $items;

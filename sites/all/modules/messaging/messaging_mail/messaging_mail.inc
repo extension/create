@@ -62,7 +62,6 @@ class Messaging_Mail_Method extends Messaging_Send_Method {
    *   Original message object
    */
   protected static function mail_send($mail, $message) {
-    debug($mail);
     // Retrieve the responsible implementation for this message.
     $system = drupal_mail_system($mail['module'], $mail['key']);
     // Format the message body, last chance for formatting

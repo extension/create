@@ -7,6 +7,9 @@
 
 /**
  * Message destination class
+ * 
+ * A destination can be mapped to a sending address (mail, mail@example.com), though optionally it can be linked
+ * to an user id. When adding a destination to a message it may have a sending method too. 
  */
 class Messaging_Destination extends Messaging_Object {
   // Destination status
@@ -15,36 +18,56 @@ class Messaging_Destination extends Messaging_Object {
 
   // Object unique id
   public $mdid = 0;
-  // Destination type
+  // Destination type (mail, xmpp, etc..)
   public $type;
   // User id.
   public $uid;
   // Address for this sending method
   public $address;
+  // User name, not saved to db
+  public $name;
   // Date sent
   public $sent = 0;
   // Status
   public $status = 0;
 
   /**
-   * Get name for display
+   * Get address type name for display
+   */
+  function get_title() {
+    return $this->address_info('name', t('Address'));
+  }
+  
+  /**
+   * Get address name (will be user name if available)
    */
   function get_name() {
-    return $this->address_info('name', t('Address'));
+    if (isset($this->name)) {
+      return $this->name;
+    }
+    elseif (isset($this->uid) && ($user = user_load($this->uid))) {
+      return $user->name;
+    }
+    elseif (is_string($this->address)) {
+      return $this->address;
+    }
+    else {
+      return ''; // Should it be 'none' ?
+    }
   }
 
   /**
    * Get address for sending
    */
   function get_address() {
-    return $this->address;
+    return isset($this->address) ? $this->address : NULL;
   }
 
   /**
    * Get user account
    */
   function get_user() {
-    return isset($this->uid) ? messaging_user_object($this->uid) : NULL;
+    return isset($this->uid) ? user_load($this->uid) : NULL;
   }
 
   /**
@@ -52,6 +75,7 @@ class Messaging_Destination extends Messaging_Object {
    */
   function set_user($user) {
     $this->uid = $user->uid;
+    $this->name = $user->name;
     if (!isset($this->address)) {
       $this->address = $this->get_address_from_user($user);
     }
@@ -103,17 +127,17 @@ class Messaging_Destination extends Messaging_Object {
   /**
    * Build from method, address, user
    */
-  public static function build_method($method, $adress = NULL, $account = NULL) {
-    $type = messaging_method($method)->address_type();
+  public static function build_method($method, $address = NULL, $account = NULL) {
+    $type = messaging_send_method($method)->address_type();
     $uid = $account ? $account->uid : 0;
     if ($type && $address) {
       return self::build($type, $address, $uid);
     }
     elseif($type && $account) {
-      return self::build_user($type, $user);
+      return self::build_user($type, $account);
     }
     elseif ($account) {
-      return messaging_method($method)->user_destination($account);
+      return messaging_send_method($method)->user_destination($account);
     }
   }
   /**
@@ -280,7 +304,7 @@ class Messaging_Destination extends Messaging_Object {
    * Get unique index for this destination
    */
   function index() {
-    return $this->uid . ':' . $this->type . ':' . $this->address;
+    return $this->type . ':' . $this->address;
   }
 
   /**
@@ -408,6 +432,12 @@ class Messaging_User_Destination extends Messaging_Destination {
    */
   function set_user($user) {
     $this->uid = $user->uid;
+  }
+  /**
+   * Get unique index for this destination
+   */
+  function index() {
+    return 'user:' . $this->uid;
   }
   /**
    * Get user from address

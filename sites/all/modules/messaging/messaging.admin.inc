@@ -36,8 +36,7 @@ function messaging_admin_settings() {
       if ($info['enabled']) {
         $enabled[] = $method;
       }
-      $method_names[$method] = $send_method->get_title();
-      $form['methods']['name'][$method]['#markup'] = $send_method->get_name();
+      $form['methods']['name'][$method]['#markup'] = $send_method->get_title();
       $form['methods']['description'][$method]['#markup'] = $send_method->get_description();
     }
     $form['methods']['messaging_method_enabled'] = array(
@@ -82,7 +81,7 @@ function messaging_admin_method_settings() {
       $form['methods'][$key]['#tree'] = TRUE;
       $form['methods'][$key]['title'] = array(
         '#title' => t('Method'),
-        '#markup' => $send_method->title,
+        '#markup' => $send_method->get_title(),
       );
       // Display name
       $form['methods'][$key]['name'] = array(
@@ -220,7 +219,6 @@ function messaging_admin_test_post_form_submit($form, $form_state) {
  */
 function messaging_admin_method_filters() {
   // Add information about input formats
-  messaging_include('text.inc');
   // List of Input formats
   $format_options = $filter_options = array();
   foreach (filter_formats() as $format) {
@@ -282,7 +280,7 @@ function messaging_admin_method_filters() {
 function theme_messaging_admin_methods_table($variables) {
   $elements = $variables['elements'];
   $output = '';
-  $header = array(t('Enabled'), t('Default'), t('Name'), t('Description'));
+  $header = array(t('Enabled'), t('Default'), t('Method'), t('Description'));
   $rows = array();
   foreach (element_children($elements['name']) as $key) {
     $rows[] = array(

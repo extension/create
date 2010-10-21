@@ -46,7 +46,7 @@ abstract class Messaging_Method {
    * Get method name, may be overridden by info properties
    */
   function get_name() {
-    return $this->method_info('name', t('Messaging'));
+    return $this->method_info('name', $this->get_title());
   }
   /**
    * Get method description, may be overridden by info properties
@@ -217,7 +217,7 @@ class Messaging_Send_Method extends Messaging_Method {
    */
   function message_send($message) {
     $this->message_log('Message send', $message);
-    $destinations = $message->get_destinations();debug($destinations);
+    $destinations = $message->get_destinations();
     $results = $this->send_multiple($destinations, $message);
     $message->set_results($results);
     return (boolean)array_filter($results);
