@@ -17,7 +17,7 @@ function exauth_help($path, $arg) {
 //logout by default seems to be redirecting back to /, so something will need to be figured out for a custom redirect for logout
 function accessing_unprotected_page()
 {
- if ( $_SERVER['REMOTE_ADDR']!='127.0.0.1' && strpos($_SERVER['REQUEST_URI'], "openid")=== FALSE && strpos($_SERVER['REQUEST_URI'], "logout")=== FALSE && strpos($_SERVER['REQUEST_URI'], "atomfeed") === FALSE && strpos($_SERVER['REQUEST_URI'], "cron.php") === FALSE && strpos($_SERVER['REQUEST_URI'], "loggedout") === FALSE )
+ if ( $_SERVER['REMOTE_ADDR']!='127.0.0.1' && strpos($_SERVER['REQUEST_URI'], "openid")=== FALSE && strpos($_SERVER['REQUEST_URI'], "logout")=== FALSE && strpos($_SERVER['REQUEST_URI'], "atomfeed") === FALSE && strpos($_SERVER['REQUEST_URI'], "cron.php") === FALSE && strpos($_SERVER['REQUEST_URI'], "loggedout") === FALSE && strpos($_SERVER['REQUEST_URI'], "taxonomy/term/85/feed") === FALSE )
   {
     return FALSE;
   }
@@ -27,12 +27,14 @@ function accessing_unprotected_page()
 //maintenance mode check
 function maintenance_mode()
 {
-	if (variable_get('maintenance_mode', 0)){
-		return FALSE;
-	}
-	else{
-		return TRUE;
-	}
+  if (variable_get('maintenance_mode', FALSE)){
+    //syslog(LOG_WARNING, "true, maintenance_mode: ".variable_get('maintenance_mode', 'default'));
+    return TRUE;
+  }
+  else{
+    //syslog(LOG_WARNING, "false, maintenance_mode: ".variable_get('maintenance_mode', 'default'));
+    return FALSE;
+  }
 }
 
 
