@@ -17,8 +17,6 @@
 class Notifications_Event extends Notifications_Entity {
   // Object unique id
   public $eid;
-  // Event key that will define event behavior
-  public $typekey;
   // Module and type of the event, will define it
   public $module = 'notifications';
   public $type = '';
@@ -61,15 +59,12 @@ class Notifications_Event extends Notifications_Entity {
     if (!isset($this->created)) {
       $this->created = time();
     }
-    if (!isset($this->typekey)) {
-      $this->typekey = $this->type . '-' . $this->action;
-    }
   }
   /**
    * Build Event from db object
    */
   public static function build_object($object) {
-    $class = self::type_info($object->typekey, 'class', 'Notifications_Event');
+    $class = self::type_info($object->type, 'class', 'Notifications_Event');
     if (!empty($object->data)) {
       drupal_unpack($object);
     }
@@ -78,17 +73,12 @@ class Notifications_Event extends Notifications_Entity {
   /**
    * Build Event from type and action
    */
-  public static function build_type($type, $action) {
-    $params = array('type' => $type, 'action' => $action);
-    if ($class = self::type_info($type . '-' . $action, 'class')) {
-      return new $class($params + self::type_info($type));
-    }
-    else {
-      $class = self::type_info($type, 'class', 'Notifications_Event');
-      // For this case $type and $action may override default type info 
-      return new $class($params + self::type_info());
-    }
+  public static function build_type($type, $action = NULL) {
+    $class = self::type_info($type, 'class', 'Notifications_Event');
+    $action = $action ? $action : self::type_info($type, 'action', 'default');
+    return new $class(array('type' => $type, 'action' => $action));
   }
+
   /**
    * Get object title
    */
@@ -129,15 +119,8 @@ class Notifications_Event extends Notifications_Entity {
   /**
    * Get event type information
    */
-  function get_type($property = NULL) {
-    if ($info = notifications_event_type($this->typekey)) {
-      if ($property) {
-        return isset($info[$property]) ? $info[$property] : NULL;
-      }
-      else {
-        return $info;
-      }
-    }
+  function get_type($property = NULL, $default = NULL) {
+    return $this->type_info($this->type, $property, $default);
   }
   /**
    * Get simple subject text
@@ -157,6 +140,7 @@ class Notifications_Event extends Notifications_Entity {
     }
     return $this->template;
   }
+
   /**
    * Create message template to build this event as text
    * 
@@ -164,9 +148,10 @@ class Notifications_Event extends Notifications_Entity {
    */
   function create_template() {
     $template_name = $this->get_type('template', 'default');
-    $class = notifications_info('message templates', $template_name, 'class', 'Notifications_Template');
+    $class = notifications_info('message templates', $template_name, 'class', 'Notifications_Message_Template');
     return new $class($this);
   }
+
   /**
    * Build template
    */
@@ -408,20 +393,11 @@ class Notifications_Event extends Notifications_Entity {
   /**
    * Build query for subscriptions that match this event type
    */
-  function query_subscriptions() {
-    $query = db_select('notifications_subscription', 's');
-    // Add field conditions for subscription types
-    if ($types = $this->get_subscription_types()) {
-      $condition = $this->get_field_conditions($types);
-      if ($condition && $condition->count()) {
-        $query
-          ->leftJoin('notifications_subscription_fields', 'f', 's.sid = f.sid')
-          ->condition($condition);
-      }
-      else {
-        $query->condition('type', $types);
-      }
-    }
+  public function query_subscriptions() {
+    // For regular events, time interval must be >= 0
+    $query = db_select('notifications_subscription', 's')
+      ->condition('s.status', Notifications_Subscription::STATUS_ACTIVE)
+      ->condition('s.send_interval', 0, '>=');
     // Maybe we don't need to notify the user who produced this
     if ($this->uid && !variable_get('notifications_sendself', 1)) {
       $query->condition('s.uid', $this->uid, '<>');
@@ -430,30 +406,32 @@ class Notifications_Event extends Notifications_Entity {
   }
 
   /**
-   * Get field conditions
+   * Get subscriptions conditions
    */
-  function get_field_conditions($subscription_types) {
+  protected function subscriptions_conditions() {
     $add = db_or();
-    foreach ($subscription_types as $type) {
-      $condition = notifications_subscription_type($type)->event_conditions($this, db_or());
+    foreach ($this->subscription_types() as $type) {
+      $condition = notifications_subscription($type)->event_conditions($this);
       if ($condition && $condition->count()) {
-        $add->condition(
-          db_and()
-          ->condition('type', $this->type)
-          ->condition($condition));         
-      }
-      else {
-        $add->condition('type', $this->type);
-      }
+        $add->condition($condition);
+      }      
     }
-    return $add;
+    return $add && $add->count() ? $add : NULL;
   }
+
   /**
    * Get subscription types triggered by this event
    */
-  function get_subscription_types() {
-    return array_unique($this->invoke_all('subscription types'));
+  function subscription_types() {
+    // Get types from event definition, add types for main object and run hook_notifications_event()
+    $types = $this->get_type('subscriptions', array());
+    if (($object_type = $this->get_type('object')) && $object = $this->get_object($object_type)) {
+      $types = array_merge($types, $object->subscription_types());
+    }
+    $types = array_merge($types, $this->invoke_all('subscription types'));
+    return array_filter(array_unique($types), 'notifications_subscription_type_enabled');
   }
+
   /**
    * Invoke all hook_notifications_event()
    */
@@ -487,17 +465,26 @@ class Notifications_Event extends Notifications_Entity {
    *   Array of subscription ids
    */
   public function get_subscriptions($limit = 0) {
-    $query = $this->query_subscriptions()
-      ->fields('s', array('sid'));
-    if ($limit) {
-      $query
-        ->condition('s.sid', $this->last_sid, '>')
-        ->orderBy('s.sid')
-        ->range(0, $limit);
+    if ($condition = $this->subscriptions_conditions()) {    
+      $query = $this->query_subscriptions()
+        ->fields('s', array('sid', 'conditions'));
+      $query->leftJoin('notifications_subscription_fields', 'f', 's.sid = f.sid');
+      $query->condition($condition);
+      $query->groupBy('s.sid');
+      $query->having('COUNT(f.sid) = s.conditions');
+      if ($limit) {
+        $query
+          ->condition('s.sid', $this->last_sid, '>')
+          ->orderBy('s.sid')
+          ->range(0, $limit);
+      }
+      return $query
+        ->execute()
+        ->fetchCol();
     }
-    return $query
-      ->execute()
-      ->fetchCol();
+    else {
+      return array();
+    }
   }
   /**
    * Send to subscriptors

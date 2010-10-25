@@ -131,6 +131,15 @@ abstract class Notifications_Scheduler_Event extends Notifications_Event {
     }
     return $result;
   }
+    /**
+   * Build query for subscriptions that match this event type
+   */
+  function query_subscriptions() {
+    // This is the condition for scheduled notifications
+    return db_select('notifications_subscription', 's')
+      ->condition('s.status', Notifications_Subscription::STATUS_ACTIVE)
+      ->condition('s.send_interval', -1);
+  }
   /**
    * Check user access to event's objects. Default for mass mailing events is TRUE
    */
@@ -145,31 +154,25 @@ abstract class Notifications_Scheduler_Event extends Notifications_Event {
  */
 class Notifications_Scheduler_Latest_Posts extends Notifications_Scheduler_Event {
   /**
-   * Whether the action is configurable. Forms handling must be provided by the module
-   */
-  public function is_configurable() {
-    return TRUE;
-  }
-  /**
    * Set action parameters, get field mapping from context
    */
   protected function prepare_context() {
-    if ($type = $this->get_action_context('type')) {
+    if ($type = $this->get_action_context('node_type')) {
       $this->add_object('node_type', $type);
     }
     // Some hack, try a field with array value ??
-    if ($tid = $this->get_action_context('term')) {
+    if ($tid = $this->get_action_context('taxonomy_term')) {
       $this->add_object('taxonomy_term', $tid);
     }
   } 
   /**
-   * Load latest nodes created and published. It doesn't check node access
+   * Load nodes created and published or updated since latest time. It doesn't check node access
    */
   protected function load_content() {
     $query = db_select('node', 'n')
       ->fields('n', array('nid', 'created'))
-            ->orderBy('created', 'DESC')
-      ->condition('status', 1)
+      ->orderBy('n.created', 'DESC')
+      ->condition('n.status', 1)
       ->extend('PagerDefault')
       ->limit($this->get_action_context('node_number', variable_get('default_nodes_main', 10)));
     if ($type = $this->get_action_context('node_type')) {
@@ -189,5 +192,70 @@ class Notifications_Scheduler_Latest_Posts extends Notifications_Scheduler_Event
   public function user_access($account, $op = 'view') {
     return user_access('access content', $account);
   }
+  /**
+   * Get subscription types triggered by this event
+   */
+  function subscription_types() {
+    $types = parent::subscription_types();
+    if ($this->get_action_context('node_type')) {
+      $types[] = 'content_type';
+    }
+    if ($this->get_action_context('taxonomy_term')) {
+      $types[] = 'taxonomy_term';
+    }
+    return $types;
+  }
 }
 
+/**
+ * Send new content posted since last notification.
+ */
+class Notifications_Scheduler_New_Posts extends Notifications_Scheduler_Latest_Posts {
+  /**
+   * Set action parameters, get field mapping from context
+   * 
+   * We need to find out when this was last executed for which we build a unique key based on parameters
+   * and also we must log it somewhere
+   */
+  protected function prepare_context() {
+    parent::prepare_context();
+    $this->action = 'new_posts';
+    foreach ($this->get_objects() as $object) {
+      $this->action .= ':' . $object->index();
+    }
+    // Our action could look like new_posts:type:story:term:25
+  }
+  
+  /**
+   * Load latest nodes created and published. It doesn't check node access
+   */
+  protected function load_content() {
+    // Get the last time this event was executed
+    $last_time = db_query('SELECT MAX(created) FROM {notifications_event} WHERE type = :type AND action = :action', array(
+      ':type' => $this->type,
+      ':action' => $this->action,
+    ))->fetchField();
+    // Only nodes updated since last time
+    $query = db_select('node', 'n')
+      ->fields('n', array('nid', 'created'))
+      ->orderBy('n.created', 'DESC')
+      ->condition('n.status', 1)
+      ->condition('n.changed', $last_time, '>=');
+    if ($type = $this->get_action_context('node_type')) {
+      $query->condition('type', $type);
+    }
+    if ($tid = $this->get_action_context('taxonomy_term')) {
+      $query->join('taxonomy_index', 't', 'n.nid = t.nid');
+      $query->condition('t.tid', $tid);      
+    }
+    if ($nids = $query->execute()->fetchCol()) {
+      return node_load_multiple($nids);
+    }
+  }
+  /**
+   * Check user access to event's objects.
+   */
+  public function user_access($account, $op = 'view') {
+    return user_access('access content', $account);
+  }  
+}

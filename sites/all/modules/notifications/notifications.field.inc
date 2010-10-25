@@ -137,6 +137,14 @@ abstract class Notifications_Field {
     }
   }
   /**
+   * Get value from object
+   */
+  function object_value($object) {
+    if ($object->type == $this->object_type) {
+      return $object->get_value();
+    }
+  }
+  /**
    * Get query condition for a given value
    */
   function get_value_condition($value, $alias = 'f') {

@@ -590,7 +590,7 @@ function notifications_notifications_subscription_list($name, $list = NULL) {
         if ($add = Notifications_Subscription::object_subscriptions($objects, $account)) {
           $list->add($add);
         }
-        $list->set_user($account)->load_instances();
+        $list->set_user($account);
       }
       break;
   }
@@ -709,11 +709,11 @@ function notifications_user_setting($name, $account = NULL, $default = NULL) {
  *   notifications_event('node', 'insert');
  *   
  * @param $type
- *   Array with event parameters
- * @param $objects
- *   Array of event objects (type => $object)
+ *   Event type key
+ * @param $action
+ *   Event action
  */
-function notifications_event($type, $action) {
+function notifications_event($type, $action = NULL) {
   $event = Notifications_Event::build_type($type, $action);
   $event->queue = variable_get('notifications_event_queue', 0);
   return $event;

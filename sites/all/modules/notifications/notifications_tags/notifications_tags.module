@@ -52,6 +52,10 @@ function notifications_tags_permission() {
       'title' => t('Subscribe to taxonomy terms'),
       'description' => t('Subscribe to content tagged with a given taxonomy term.'),
     ),
+    'subscribe to taxonomy vocabulary' =>  array(
+      'title' => t('Subscribe to taxonomy vocabularies'),
+      'description' => t('Subscribe to terms in a given taxonomy vocabulary.'),
+    ),
   );
 }
 
@@ -60,14 +64,20 @@ function notifications_tags_permission() {
  */
 function notifications_tags_notifications($op) {
   switch ($op) {
-
     case 'subscription types':
       $types['taxonomy_term'] = array(
-        'title' => t('Tags'),
+        'title' => t('Tag'),
         'description' => t('Subscribe to content tagged with a given taxonomy term.'),
         'class' => 'Notifications_Taxonomy_Term_Subscription',
         'field_types' => array('term:tid'),
         'access' => array('subscribe to taxonomy terms'),
+      );
+      $types['taxonomy_vocabulary'] = array(
+        'title' => t('Vocabulary'),
+        'description' => t('Subscribe to terms of a given vocabulary.'),
+        'class' => 'Notifications_Taxonomy_Vocabulary_Subscription',
+        'field_types' => array('vocabulary:vid'),
+        'access' => array('subscribe to taxonomy vocabularies'),
       );
       return $types;
 
@@ -77,6 +87,10 @@ function notifications_tags_notifications($op) {
         'title' => t('Taxonomy term'),
         'class' => 'Notifications_Taxonomy_Term_Field',
       );
+      $fields['vocabulary:vid'] = array(
+        'title' => t('Taxonomy vocabulary'),
+        'class' => 'Notifications_Taxonomy_Vocabulary_Field',
+      );
       return $fields;
     
     case 'object types':
@@ -85,8 +99,33 @@ function notifications_tags_notifications($op) {
         'title' => t('Taxonomy term'),
         'class' => 'Notifications_Taxonomy_Term'
       );
+      // Define object types used by subscriptions and events
+      $types['taxonomy_vocabulary'] = array(
+        'title' => t('Taxonomy vocabulary'),
+        'class' => 'Notifications_Taxonomy_Vocabulary'
+      );
       return $types;
- 
+
+    case 'event types':
+      $types['taxonomy_term-create'] = array(
+        'object' => 'taxonomy_term',
+        'action' => 'create',
+        'title' => t('Taxonomy term post'),
+        'class' => 'Notifications_Taxonomy_Term_Create_Event',
+        'template' => 'notifications_taxonomy_term-created',
+        'triggers' => array('taxonomy' => array('taxonomy_term_insert', 'taxonomy_term_update')),
+        'actions' => array('notifications_tags_term_create_action'),
+      );
+      return $types;
+
+    case 'message templates':
+      // Single node templates
+      $types['notifications_taxonomy_term-created'] = array(
+        'object' => 'taxonomy_term',
+        'title' => t('Taxonomy term created'),
+        'class' => 'Notifications_Taxonomy_Term_Create_Template',
+      );
+      return $types;
   }
 }
 
@@ -98,13 +137,13 @@ function notifications_tags_notifications_subscription($op, $subscription = NULL
     case 'page objects':
       // Return objects on current page to which we can subscribe
       $objects = array();
-      if (arg(0) == 'taxonomy') {
-        if (arg(1) == 'term' && is_numeric(arg(2)) && ($term = taxonomy_term_load(arg(2)))) {
-          $objects[] = notifications_object('taxonomy_term', $term);
-        }
+      if (arg(0) == 'taxonomy' && arg(1) == 'term' && is_numeric(arg(2)) && ($term = menu_get_object('taxonomy_term', 2))) {
+        $objects[] = notifications_object('taxonomy_term', $term);
+      }
+      elseif (arg(0) == 'admin' && arg(1) == 'structure' && arg(2) == 'taxonomy' && arg(3) && ($vocabulary = menu_get_object('taxonomy_vocabulary_machine_name', 3))) {
+        $objects[] = notifications_object('taxonomy_vocabulary', $vocabulary);
       }
       return $objects;
-      break;
   }  
 }
 
@@ -114,7 +153,8 @@ function notifications_tags_notifications_subscription($op, $subscription = NULL
  */
 function notifications_tags_notifications_object_node($op, $node, $account = NULL) {
   switch ($op) {
-
+    case 'subscription types':
+      return array('taxonomy_term');
     case 'conditions':
       // For a queue query, when not account, we must use our own function to retrieve terms
       $tids = notifications_tags_node_get_terms($node);
@@ -122,7 +162,6 @@ function notifications_tags_notifications_object_node($op, $node, $account = NUL
         return array('tid' => $tids);
       }
       break;
-
     case 'subscriptions':
       // Get all available subscriptions to current node
       $options = array();
@@ -146,13 +185,14 @@ function notifications_tags_notifications_object_node($op, $node, $account = NUL
 }
 
 /**
- * Implementation of hook_notifications_object_taxonomy_term()
+ * Implements hook_notifications_object_taxonomy_term()
  */
 function notifications_tags_notifications_object_taxonomy_term($op, $term, $account = NULL) {
   switch ($op) {
+    case 'subscription types':
+      return array('taxonomy_term', 'taxonomy_vocabulary');
     case 'conditions':
       return array('term:tid' => $term->tid);
-      break;
     case 'subscriptions':
       // Get all available subscriptions to current node
       $options = array();
@@ -165,46 +205,64 @@ function notifications_tags_notifications_object_taxonomy_term($op, $term, $acco
 }
 
 /**
-* Implementation of hook_taxonomy().
-*/
-function notifications_tags_taxonomy($op, $type, $array = NULL) {
+ * Implements hook_notifications_object_taxonomy_vocabulary()
+ */
+function notifications_tags_notifications_object_taxonomy_vocabulary($op, $vocabulary, $account = NULL) {
   switch ($op) {
-    case 'delete':
-      switch ($type) {
-        case 'term':
-          // takes care of individual term deletion and vocab deletion because taxonomy iterates through all term delete hooks on the latter
-          Notifications_Subscription::delete_multiple(array(), array('term:tid' => $array['tid']), FALSE);
-          break;
+    case 'subscription types':
+      return array('taxonomy_vocabulary');
+    case 'subscriptions':
+      $options = array();
+      if (!$account || user_access('subscribe to taxonomy vocabulary')) {
+        $options[] = notifications_subscription('taxonomy_vocabulary')
+          ->add_field('vocabulary:vid', $vocabulary->vid);        
       }
-      break;
+      return $options;
   }
 }
 
 /**
- * Fields information, translate term tid to name
+ * Implements hook_taxonomy_term_delete().
  */
-function notifications_tags_term_name($tid, $html = FALSE) {
-  if ($term = taxonomy_get_term($tid)) {
-    return $html ? l($term->name, "taxonomy/term/$tid") : check_plain($term->name);
-  }
+function notifications_tabs_taxonomy_term_delete($term) {
+  Notifications_Subscription::delete_multiple(array(), array('term:tid' => $term->tid), FALSE);
 }
 
 /**
- * Fields information, translate term name to tid
+ * Implements hook_taxonomy_vocabulary_delete().
  */
-function notifications_tags_term_tid($name, $field = NULL) {
-  if ($vocabs = notifications_tags_vocabulary_list()) {
-    // Add vids and name to args
-    $args = array_keys($vocabs);
-    $args[] = $name;
-    $tid = db_result(db_query_range(db_rewrite_sql("SELECT t.tid FROM {term_data} t WHERE t.vid IN (" . db_placeholders($vocabs) . ") AND LOWER(t.name) = LOWER('%s')", 't', 'tid'), $args, 0, 1));
-    if ($tid) {
-      return $tid;
-    }
-    elseif ($field) {
-      form_set_error($field, t('Term name not found.'));
-    }
-  }
+function notifications_tabs_taxonomy_vocabulary_delete($vocabulary) {
+  Notifications_Subscription::delete_multiple(array(), array('vocabulary:vid' => $vocabulary->tid), FALSE);
+}
+
+/**
+ * Implements hook_action_info().
+ * 
+ * These actions are a bit tricky because they are not unconditional. We check node status before.
+ */
+function notifications_tags_action_info() {
+  return array(
+    'notifications_tags_term_create_action' => array(
+      'type' => 'notifications',
+      'label' => t('Send notifications for new term'),
+      'configurable' => FALSE,
+      'behavior' => array('sends_notification'),
+      'triggers' => array('taxonomy_term_insert', 'taxonomy_term_update'),
+    ),
+  );
+}
+
+/**
+ * Send content notificaitons
+ *
+ * @ingroup actions
+ */
+function notifications_tags_term_create_action($object, $context = array()) {
+  $term = $object;
+  // Just for new nodes that are published and updated nodes that change status
+  notifications_event('taxonomy_term-create')
+    ->add_object('taxonomy_term', $term)
+    ->trigger();
 }
 
 /**

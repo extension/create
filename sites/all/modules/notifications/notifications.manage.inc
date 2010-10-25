@@ -38,7 +38,7 @@ function notifications_manage_subscriptions_form($conditions = array()) {
   $status_list = Notifications_Subscription::status_list();
   $type_list = notifications_subscription_type(NULL, 'title');
   $send_methods = messaging_method_info(NULL, 'name');
-  $send_intervals = notifications_send_intervals();
+  $send_intervals = notifications_send_intervals() + array(-1 => t('Scheduled'));
   $drupal_destination = drupal_get_destination();
   // This is the full options subsform
   $form = notifications_manage_subscriptions_form_options($admin_access);

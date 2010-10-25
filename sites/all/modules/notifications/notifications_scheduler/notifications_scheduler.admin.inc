@@ -159,7 +159,7 @@ function notifications_scheduler_admin_action_list() {
 function notifications_scheduler_admin_action_build($action) {
   $object = NULL; // It should be a job scheduler object
   $context = !empty($action['parameters']) ? unserialize($action['parameters']) : array();
-  return notifications_scheduler_event($action['event_key'])
+  return notifications_event($action['event_key'])
     ->set_action($object, $context)
     ->prepare();
 }

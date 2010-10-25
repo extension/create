@@ -18,8 +18,8 @@ class Notifications_Subscription_List implements Iterator {
   public $template;
   // Header for tableselect
   public $header;
-  
-  protected $instances = array();
+  // Whether instances have been loaded from db
+  protected $loaded = FALSE;
   // Array indexed by subscription type
   protected $types = array();
   // Parameters common to all instances
@@ -85,6 +85,7 @@ class Notifications_Subscription_List implements Iterator {
    * Get all of the subscriptions that are actual instances
    */
   function get_instances() {
+    $this->load_instances();
     $list = array();
     foreach ($this->subscriptions as $index => $subscription) {
       if ($subscription->is_instance()) {
@@ -100,14 +101,17 @@ class Notifications_Subscription_List implements Iterator {
    * Load stored instances for subscriptions in the list
    */
   function load_instances() {
-    foreach ($this->subscriptions as $key => $subscription) {
-      if (!$subscription->is_stored() && ($stored = $subscription->get_instance())) {
-        // Carry name over to the new one as it may be page specific
-        if (!empty($subscription->name)) {
-          $stored->name = $subscription->name;
+    if (!$this->loaded) {
+      foreach ($this->subscriptions as $key => $subscription) {
+        if (!$subscription->is_stored() && ($stored = $subscription->get_instance())) {
+          // Carry name over to the new one as it may be page specific
+          if (!empty($subscription->name)) {
+            $stored->name = $subscription->name;
+          }
+          $this->subscriptions[$key] = $stored;
         }
-        $this->subscriptions[$key] = $stored;
       }
+      $this->loaded = TRUE;
     }
     return $this;
   }
@@ -129,7 +133,7 @@ class Notifications_Subscription_List implements Iterator {
    */
   function set_user($user) {
     $this->instance_params['uid'] = $user->uid;
-    foreach ($this->get_instances() as $subscription) {
+    foreach ($this->get_subscriptions() as $subscription) {
       $subscription->set_user($user);
     }
     return $this;
@@ -139,12 +143,11 @@ class Notifications_Subscription_List implements Iterator {
    */
   function set_all($name, $value) {
     $this->instance_params[$name] = $value;
-    foreach ($this->get_instances() as $subscription) {
+    foreach ($this->get_subscriptions() as $subscription) {
       $subscription->$name = $value;
     }
     return $this;
   }
-
   /**
    * Get all subscription links
    * 

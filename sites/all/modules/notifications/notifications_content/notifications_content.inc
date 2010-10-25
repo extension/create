@@ -156,7 +156,7 @@ class Notifications_Node_Type extends Notifications_Object {
    */
   public static function object_value($object) {
     return $object->type;
-  }  
+  }
 }
 
 /**
@@ -164,7 +164,8 @@ class Notifications_Node_Type extends Notifications_Object {
  */
 class Notifications_Node_Type_Field extends Notifications_Field_Select {
   public $type = 'node:type';
-  
+  public $object_type = 'nodetype';
+
   public function get_title() {
     return t('Content type');
   }
@@ -176,6 +177,17 @@ class Notifications_Node_Type_Field extends Notifications_Field_Select {
    */
   public function select_options () {
     return node_type_get_names();
+  }
+  /**
+   * Get value from node or from node type
+   */
+  public function object_value($object) {
+    if($object->type == 'node' && $node = $object->drupal_object()) {
+      return $node->type;
+    }
+    else {
+      return parent::object_value($object);
+    }
   }
 }
   

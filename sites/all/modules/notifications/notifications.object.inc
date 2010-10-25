@@ -134,7 +134,7 @@ abstract class Notifications_Object {
    * Get object unique key as string. The default will be 'type:value'
    */
   public function index() {
-    return $this->type . (isset($this->value) ? ':' . $this->value : ':empty');
+    return $this->type . ':' . (isset($this->value) ? $this->value : 'empty');
   }
   /**
    * Get object value
@@ -209,6 +209,12 @@ abstract class Notifications_Object {
       $subscriptions->add($options);
     }
     return $subscriptions;
+  }
+  /**
+   * Get subscription types for this object
+   */
+  public function subscription_types() {
+    return $this->invoke_all('subscription types');
   }
 
   /**

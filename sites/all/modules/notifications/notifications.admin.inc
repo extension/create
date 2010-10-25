@@ -210,7 +210,7 @@ function notifications_admin_events_form($form, &$form_state) {
   // Compile template list by type
   $template_list = array();
   foreach (notifications_info('message templates') as $key => $template) {
-    $template_list[$template['type']][$key] = $template['title'];    
+    $template_list[$template['object']][$key] = $template['title'];    
   }
 
   $header = array(
@@ -229,7 +229,7 @@ function notifications_admin_events_form($form, &$form_state) {
     $form['events'][$key]['name']['#markup'] = $event['title'];
     $form['events'][$key]['template'] = array(
       '#type' => 'select',
-      '#options' => isset($template_list[$event['type']]) ? $template_list[$event['type']] : array(),
+      '#options' => isset($template_list[$event['object']]) ? $template_list[$event['object']] : array(),
       '#default_value' => $event['template'],
     );
     $form['events'][$key]['triggers']['#markup'] = implode(', ', notifications_admin_event_triggers($key));

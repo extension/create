@@ -71,6 +71,7 @@ function notifications_schema() {
     ),
     'primary key' => array('sid'),
   );
+
   $schema['notifications_subscription_fields'] = array(
     'description' => 'Conditions for subscriptions, there may be none or many for each subscription.',
     'fields' => array(
@@ -106,8 +107,12 @@ function notifications_schema() {
         'type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'disp-width' => '11',
       ),
       'type' => array(
+        'description' => 'Event type: node-insert, feed-refresh, etc..',
+        'type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => '',
+      ),
+      'action' => array(
         'description' => 'Event type: node, feed, etc..',
-        'type' => 'varchar', 'length' => '255', 'not null' => FALSE
+        'type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => '',
       ),
       'created' => array(
         'description' => 'Unix timestamp, when it was created.',

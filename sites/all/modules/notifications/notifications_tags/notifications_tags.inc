@@ -95,11 +95,29 @@ class Notifications_Taxonomy_Term_Field extends Notifications_Field_Autocomplete
   }
 }
 
+class Notifications_Taxonomy_Vocabulary_Subscription extends Notifications_Subscription_Simple {
+  /**
+   * Get proper name
+   */
+  public function get_name() {
+    if (isset($this->name)) {
+      return $this->name;
+    }
+    elseif ($vocabulary = $this->get_field('vocabulary:vid')->drupal_object()) {
+      return t('Terms in @name', array('@name' => $vocabulary->name));
+    }
+    else {
+      parent::get_name();
+    }
+  }
+}
+
+
 /**
  * Taxonomy vocabulary object
  */
 class Notifications_Taxonomy_Vocabulary extends Notifications_Object {
-  public $type = 'vocabulary';
+  public $type = 'taxonomy_vocabulary';
 
   /**
    * Title
@@ -112,7 +130,7 @@ class Notifications_Taxonomy_Vocabulary extends Notifications_Object {
    * Load object
    */
   public static function object_load($value) {
-    return taxonomy_term_load($value);
+    return taxonomy_vocabulary_load($value);
   }
   /**
    * Get name for object
@@ -125,5 +143,98 @@ class Notifications_Taxonomy_Vocabulary extends Notifications_Object {
    */
   public static function object_value($vocabulary) {
     return $vocabulary->vid;
+  }
+}
+
+/**
+ * Taxonomy term field
+ */
+class Notifications_Taxonomy_Vocabulary_Field extends Notifications_Field_Select {
+  public $type = 'vocabulary:vid';
+  public $object_type = 'taxonomy_vocabulary';
+  protected static $vocabulary_names;
+  /**
+   * Get field name
+   */
+  function get_title() {
+    return t('Vocabulary');
+  }
+
+  /**
+   * Get description
+   */
+  function get_description() {
+    return t('Taxonomy vocabulary');
+  }
+
+  /**
+   * Get system path
+   */
+  function get_path() {
+    return isset($this->value) ? 'taxonomy/vocabulary/' . $this->value : ''; 
+  }
+
+  /**
+   * List of options
+   */
+  function select_options() {
+    if (!isset($this->vocabulary_names)) {
+      //foreach (taxonomy_get_vocabularies() as $vocab) {
+      $this->vocabulary_names = db_query('SELECT vid, name FROM {taxonomy_vocabulary}')->fetchAllKeyed();
+    }
+    return $this->vocabulary_names;    
+  }
+}
+
+/**
+ * Node events
+ */
+class Notifications_Taxonomy_Term_Create_Event extends Notifications_Event {
+  /**
+   * Set main object id and vocabulary id when term is added
+   */
+  public function set_object($object) {
+    if ($object->type == 'taxonomy_term') {
+      $this->oid = $object->get_value();
+      $this->add_object('taxonomy_vocabulary', $object->get_object()->vid);
+    }
+    return parent::set_object($object);
+  }
+
+  /**
+   * Trigger node event
+   */
+  public function trigger() {
+    $term = $this->get_object('taxnomy_term');
+    if ($result = parent::trigger()) {
+      watchdog('action', 'Triggered notifications for new taxonomy term @name..', array('@name' => $term->name));
+    }
+    return $result;
+  }
+}
+
+/**
+ * Message templates for node events. Base class.
+ */
+class Notifications_Taxonomy_Term_Create_Template extends Notifications_Message_Template {
+  /**
+   * Default texts for this template, may need token replacement
+   */
+  function default_text($type, $options) {
+    switch ($type) {
+      case 'subject':
+        return t('Update for [vocabulary:name]', array(), $options);
+      case 'content':
+        return array(
+          '#type' => 'messaging_text',
+          'header' => t('Update for [vocabulary:name]:', array(), $options),
+          'teaser' => 'A new term has been created: [term:name]',
+          'more' => t('Read more [term:url]', array(), $options),
+        );
+      case 'digest':
+        return t('New term [term:name] created for vocabulary [vocabulary:name].', array(), $options);
+      default:
+        return parent::default_text($type, $options);
+    }
   }
 }

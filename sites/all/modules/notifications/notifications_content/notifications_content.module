@@ -290,7 +290,7 @@ function notifications_content_notifications($op) {
 
     case 'event types':
       $types['node-post'] = array(
-        'type' => 'node',
+        'object' => 'node',
         'action' => 'post',
         'title' => t('Node post'),
         'class' => 'Notifications_Node_Post_Event',
@@ -299,7 +299,7 @@ function notifications_content_notifications($op) {
         'actions' => array('notifications_content_node_post_action'),
       );
       $types['node-update'] = array(
-        'type' => 'node',
+        'object' => 'node',
         'action' => 'update',
         'class' => 'Notifications_Node_Update_Event',
         'title' => t('Node update'),
@@ -308,7 +308,7 @@ function notifications_content_notifications($op) {
         'actions' => array('notifications_content_node_update_action'),
       );      
       $types['node-comment'] = array(
-        'type' => 'node',
+        'object' => 'node',
         'action' => 'comment',
         'class' => 'Notifications_Node_Comment_Event',
         'title' => t('Node comment'),
@@ -321,28 +321,28 @@ function notifications_content_notifications($op) {
     case 'message templates':
       // Single node templates
       $types['notifications_content-node-insert'] = array(
-        'type' => 'node',
+        'object' => 'node',
         'title' => t('Node post'),
         'class' => 'Notifications_Node_Insert_Template',
       );
       $types['notifications_content-node-update'] = array(
-        'type' => 'node',
+        'object' => 'node',
         'title' => t('Node update'),
         'class' => 'Notifications_Node_Update_Template',
       );
       $types['notifications_content-node-comment'] = array(
-        'type' => 'node',
+        'object' => 'node',
         'title' => t('Node comment'),
         'class' => 'Notifications_Node_Comment_Template',
       );
       // Node listing templates
       $types['notifications_content-node_list'] = array(
-        'type' => 'node_list',
+        'object' => 'node_list',
         'title' => t('Node list titles'),
         'class' => 'Notifications_Content_Node_List',
       );
       $types['notifications_content-node_teasers'] = array(
-        'type' => 'node_list',
+        'object' => 'node_list',
         'title' => t('Node list teasers'),
         'class' => 'Notifications_Content_Node_Teasers',
       );
@@ -427,10 +427,10 @@ function notifications_content_node_event($action, $node) {
   $page = &drupal_static(__FUNCTION__);
   if (!isset($page[$action][$node->nid])) {
     if (notifications_event_type('node-' . $node->type . '-' . $action)) {
-      $type = 'node-' . $node->type;
+      $type = 'node-' . $node->type . '-' . $action;
     }
     else {
-      $type = 'node';
+      $type = 'node-' . $action;
     }
     $page[$action][$node->nid] = notifications_event($type, $action)->add_object('node', $node);
   }
@@ -476,6 +476,8 @@ function notifications_content_notifications_subscription($op, $subscription = N
  */
 function notifications_content_notifications_object_node($op, $node, $account = NULL) {
   switch ($op) {
+    case 'subscription_types':
+      return array('content_thread', 'content_type', 'content_author', 'content_type_author');
     case 'subscriptions':
       // Return available subscription options for this node and this user account
       $options = array();

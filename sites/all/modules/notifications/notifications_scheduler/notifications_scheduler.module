@@ -57,15 +57,25 @@ function notifications_scheduler_notifications($op) {
   switch ($op) {
     case 'event types':
       $types['notifications_scheduler_latest_posts'] = array(
-        'type' => 'node_list',
+        'object' => 'node_list',
         'scheduler' => TRUE,
-        'action' => 'latest_posts',
         'title' => t('Latest posts'),
         'class' => 'Notifications_Scheduler_Latest_Posts',
         'template' => 'notifications_content-node_list',
         // Type of trigger that throws these events
         'triggers' => array('job_scheduler' => array('any')),
         'actions' => array('notifications_scheduler_latest_posts_action'),
+        'configurable' => TRUE,
+      );
+      $types['notifications_scheduler_new_posts'] = array(
+        'object' => 'node_list',
+        'scheduler' => TRUE,
+        'title' => t('New posts'),
+        'class' => 'Notifications_Scheduler_New_Posts',
+        'template' => 'notifications_content-node_list',
+        // Type of trigger that throws these events
+        'triggers' => array('job_scheduler' => array('any')),
+        'actions' => array('notifications_scheduler_new_posts_action'),
         'configurable' => TRUE,
       );
       return $types;
@@ -103,8 +113,19 @@ function notifications_scheduler_action_info() {
  *   Job object from job_scheduler
  */
 function notifications_scheduler_latest_posts_action($job, $context, $a1, $a2) {
-  watchdog('notifications_scheduler', 'Context: !object', array('!object' => var_export($context, TRUE)));
-  notifications_scheduler_event('notifications_scheduler_latest_posts')
+  notifications_event('notifications_scheduler_latest_posts')
+    ->set_action($job, $context)
+    ->trigger();
+}
+
+/**
+ * Action callback
+ * 
+ * @param $job,
+ *   Job object from job_scheduler
+ */
+function notifications_scheduler_new_posts_action($job, $context, $a1, $a2) {
+  notifications_event('notifications_scheduler_new_posts')
     ->set_action($job, $context)
     ->trigger();
 }
@@ -113,6 +134,31 @@ function notifications_scheduler_latest_posts_action($job, $context, $a1, $a2) {
  * Action: Configuration form
  */
 function notifications_scheduler_latest_posts_action_form($context) {
+  $form = notifications_scheduler_new_posts_action_form($context);
+  $form['node_number'] = array(
+    '#title' => t('Number of items to send'),
+    '#type' => 'select',
+    '#default_value' => isset($context['node_number']) ? $context['node_number'] : variable_get('default_nodes_main', 10),
+    '#options' => drupal_map_assoc(array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30)),
+  );
+  return $form;
+}
+
+/**
+ * Action: Configuration form submit
+ */
+function notifications_scheduler_latest_posts_action_submit($form, &$form_state) {
+  // Process the HTML form to store configuration. The keyed array that
+  // we return will be serialized to the database.
+  $params = notifications_scheduler_new_posts_action_submit($form, $form_state);
+  $params['node_number'] = $form_state['values']['node_number'];
+  return $params;
+}
+
+/**
+ * Action: Configuration form
+ */
+function notifications_scheduler_new_posts_action_form($context) {
   $form['node_type'] = array(
     '#title' => t('Content type'),
     '#type' => 'select',
@@ -137,37 +183,18 @@ function notifications_scheduler_latest_posts_action_form($context) {
       '#disabled' => !(bool)notifications_tags_vocabulary_enabled(),
     );
   }
-  $form['node_number'] = array(
-    '#title' => t('Number of items to send'),
-    '#type' => 'select',
-    '#default_value' => isset($context['node_number']) ? $context['node_number'] : variable_get('default_nodes_main', 10),
-    '#options' => drupal_map_assoc(array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30)),
-  );
-  return $form;
+  return $form;  
 }
 
 /**
  * Action: Configuration form submit
  */
-function notifications_scheduler_latest_posts_action_submit($form, &$form_state) {
+function notifications_scheduler_new_posts_action_submit($form, &$form_state) {
   // Process the HTML form to store configuration. The keyed array that
   // we return will be serialized to the database.
-  $params = array(
-    'node_type' => $form_state['values']['node_type'],
-    'node_number'   => $form_state['values']['node_number'],
-  );
+  $params['node_type'] = $form_state['values']['node_type'];
   if (isset($form_state['values']['taxonomy_term'])) {
     $params['taxonomy_term'] = $form_state['values']['taxonomy_term'];
   }
-  return $params;
-}
-
-/**
- * Build notifications scheduler event
- */
-function notifications_scheduler_event($event_key) {
-  $class = notifications_event_type($event_key, 'class');
-  $event = new $class(array('typekey' => $event_key));
-  $event->queue = variable_get('notifications_event_queue', 0);
-  return $event;
+  return $params;  
 }
