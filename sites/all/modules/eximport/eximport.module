@@ -12,7 +12,34 @@
 // require 'includes/bootstrap.inc';
 // drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
 
-// TODO document process plan
+/**
+ *
+ * Import Plan
+ *
+ * 1. export all revisions of all articles from MW
+ *    a. create XML files with about 250 articles in each
+ *    b. Format as valid Atom 1.0 feed
+ *    c. will have approx 1200 files after export
+ *
+ * 2. import revisions
+ *    a. use DrupalBot as the user for publishing events
+ *    b. mark all published revisions as such
+ *    c. when import complete, mark all unpublished articles as draft
+ *    d. import 'news' articles as content-type news, all others as articles
+ *
+ * 3. import images?
+ *    a. image search?
+ *    b. metadata? - only if we use a 3rd party module
+ *    c. mgmt - admins could delete files
+ *
+ * 4. rewrite URLs
+ *    a. rewrite img src's
+ *    b. rewrite wiki href's
+ *
+ * 5. article metadata
+ *    a. ???
+ */
+
 // TODO handle publishing flag
 // TODO metadata?
 
@@ -190,7 +217,8 @@ function eximport_node_create($entry) {
   // Construct the new node object.
   
   if ($nid) {
-    $node = node_load($nid);
+    // reset entity_load cache - be sure we have the latest version
+    $node = node_load($nid, NULL, TRUE);
     $node->revision = '1';
   } else {
     $new = TRUE;
