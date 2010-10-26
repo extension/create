@@ -19,14 +19,14 @@ on :load, "deploy:setup_environment"
 
 # Disable our app before running the deploy
 #TODO: either figure out how to use drush to put drupal into maintenance mode
-#before "deploy", "deploy:web:disable"
+before "deploy", "deploy:web:disable"
 
 # After code is updated, do some house cleaning
 after "deploy:update_code", "deploy:link_configs"
 after "deploy:update_code", "deploy:cleanup"
 
 # don't forget to turn it back on
-#after "deploy", "deploy:web:enable"
+after "deploy", "deploy:web:enable"
 after "deploy", 'deploy:notification:email'
 
 # Add tasks to the deploy namespace
@@ -67,14 +67,14 @@ namespace :deploy do
     # Override default web enable/disable tasks
   namespace :web do
     
-    desc "Put Apache in maintenancemode by touching the system/maintenancemode file"
+    desc "Put Drupal in maintenancemode by updating the maintenancemode db variable"
     task :disable, :roles => :app do
-      invoke_command "touch #{shared_path}/system/maintenancemode"
+      invoke_command "/usr/local/bin/drush -r #{current_path} vset --always-set maintenance_mode 1"
     end
   
     desc "Remove Apache from maintenancemode by removing the system/maintenancemode file"
     task :enable, :roles => :app do
-      invoke_command "rm -f #{shared_path}/system/maintenancemode"
+      invoke_command "/usr/local/bin/drush -r #{current_path} vset --always-set maintenance_mode 0"
     end
     
   end
@@ -83,7 +83,7 @@ namespace :deploy do
   namespace :notification do
     desc "Generate an email for the deploy"
     task :email, :roles => [:app] do 
-      run "#{ruby} #{release_path}/config/deploy_notification.rb -r #{repository} -a #{application} -h #{server_settings['host']} -u #{localuser} -p #{previous_revision} -l #{latest_revision} -b #{branch}"
+      run "#{ruby} #{release_path}/config/deploy_notification.rb -r #{release_path} -a #{application} -h #{server_settings['host']} -u #{localuser} -p #{previous_revision} -l #{latest_revision} -b #{branch}"
     end
   end
 end

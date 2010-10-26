@@ -5,3 +5,4 @@ version = VERSION
 package = eXtension
 core = 7.x
 files[] = exauth.module
+dependencies[] = openid
