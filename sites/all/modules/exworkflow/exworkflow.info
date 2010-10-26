@@ -1,0 +1,7 @@
+; $Id$
+name = eXtension Publishing Workflow
+description = "Adds a workflow view with status states on content pages for publishing to the public site."
+core = 7.x
+package = eXtension
+files[] = exworkflow.module
+files[] = exworkflow.install

@@ -1,0 +1,191 @@
+<?php
+
+/**
+ * Implements hook_schema().
+*/
+function exworkflow_schema() {
+  $schema['node_workflow'] = array(
+    'description' => 'Table for storing workflow for nodes.',
+  'fields' => array(
+    
+    'nwid' => array(
+      'description' => 'Unique identifier for the workflow to node association record.',
+      'type' => 'serial',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+    ),
+    
+    'node_id' => array(
+      'description' => 'Id of the node with this workflow applied.',  
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,  
+    ),
+    
+    'current_revision_id' => array(
+      'description' => 'The current revision id (vid) for this node.',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+    ),
+    
+    'review_count' => array(
+      'description' => 'The number of reviews this node has had since it was in the ready for review state',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => FALSE,  
+      'default' => 0,
+    ),
+    
+    'status' => array(
+      'description' => 'The current workflow state of a node',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+      'default' => 1,
+    ), 
+    
+    'status_text' => array(
+      'description' => 'The text of the current workflow state of a node',
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => FALSE,
+    ),
+    
+    'draft_status' => array(
+      'description' => 'The current workflow sub-state of a node in draft',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+      'default' => 1,
+    ),
+    
+    'draft_status_text' => array(
+      'description' => 'The text of the current workflow draft state of a node',
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => FALSE,
+    ),
+    
+    'published_at' => array(
+      'description' => 'The Unix timestamp of when the node was published. Can be used to determine whether this node is published.',
+      'type' => 'int',
+      'not null' => FALSE,
+    ),
+    
+    'published_revision_id' => array(
+      'description' => 'The id of the published revision associated with this node whether it is the current revision or not.',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+    ),
+    
+    'created' => array(
+      'description' => 'The Unix timestamp when the workflow state was applied.',
+      'type' => 'int',
+      'not null' => TRUE,
+    ),
+    
+    'changed' => array(
+      'description' => 'The Unix timestamp when the workflow state record was most recently updated.',
+      'type' => 'int',
+      'not null' => TRUE,
+    ),
+  ),
+  
+  'indexes' => array(
+    'status' => array('status'),
+    'draft_status' => array('draft_status'),
+  ),
+  
+  'primary key' => array('nwid'),
+  
+  'foreign keys' => array(
+    'node' => array(
+    'table' => 'node',
+    'columns' => array('node_id' => 'nid'),
+    ),
+  ),
+    
+  );
+  
+  $schema['node_workflow_events'] = array(
+    'description' => 'Table for storing workflow events for nodes.',
+  'fields' => array(
+    
+    'weid' => array(
+      'description' => 'Unique identifier for the workflow event for a node.',
+      'type' => 'serial',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+    ),
+    
+    'node_id' => array(
+      'description' => 'Id of the node this workflow event was applied to.',  
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,  
+    ),
+    
+    'node_workflow_id' => array(
+      'description' => 'Id of the related workflow for the node.',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+    ),
+    
+    'user_id' => array(
+      'description' => 'Id of user who created this workflow event on this node.',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+    ),
+    
+    'revision_id' => array(
+      'description' => 'Id of the revision of the node when this workflow event occurred',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+    ),
+    
+    'description' => array(
+      'description' => 'Description of the workflow event.',
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => TRUE,
+      'default' => '',
+    ),
+    
+    'created' => array(
+      'description' => 'The Unix timestamp when the workflow event occurred.',
+      'type' => 'int',
+      'not null' => TRUE,
+    ),
+  ),
+  
+  'indexes' => array(
+    'description' => array('description'),
+  ),
+  
+  'primary key' => array('weid'),
+  
+  'foreign keys' => array(
+    'node' => array(
+    'table' => 'node',
+    'columns' => array('node_id' => 'nid'),
+    ),
+    'user' => array(
+    'table' => 'users',
+    'columns' => array('user_id' => 'uid'),
+    ),
+    'revision' => array(
+    'table' => 'node_revision',
+    'columns' => array('revision_id' => 'vid'),
+    ),
+  ),
+    
+  );
+  
+  return $schema;
+  
+}
