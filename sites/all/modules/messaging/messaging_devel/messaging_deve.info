@@ -1,0 +1,6 @@
+; $Id: messaging_debug.info,v 1.1.2.1 2010/03/30 14:54:48 jareyero Exp $
+name = Messaging devel
+description = Debugging and development utilities for messaging package.
+package = "Development"
+dependencies[] = messaging
+core = 6.x

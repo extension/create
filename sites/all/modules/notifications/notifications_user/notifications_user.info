@@ -1,0 +1,8 @@
+; $Id: notifications.info,v 1.1.4.1.6.1 2010/03/26 17:40:15 jareyero Exp $
+name = User subscriptions
+description = User pages to manage own subscriptions
+package = Notifications
+version = VERSION
+core = 7.x
+dependencies[] = notifications
+configure = admin/config/notifications

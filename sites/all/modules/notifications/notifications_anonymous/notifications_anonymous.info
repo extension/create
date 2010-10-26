@@ -1,0 +1,7 @@
+; $Id: notifications_anonymous.info,v 1.1.2.1 2010/03/16 15:50:13 jareyero Exp $
+name = "Anonymous subscriptions"
+description = "Provides subscriptions to anonymous users."
+package = Notifications
+dependencies[] = notifications
+core = 6.x
+php = 5.x
