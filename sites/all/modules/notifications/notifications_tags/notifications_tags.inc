@@ -4,22 +4,6 @@
  * @file
  * Drupal Notifications Framework - Default class file
  */
-class Notifications_Taxonomy_Term_Subscription extends Notifications_Subscription_Simple {
-  /**
-   * Get proper name
-   */
-  public function get_name() {
-    if (isset($this->name)) {
-      return $this->name;
-    }
-    elseif ($term = $this->get_field('term:tid')->drupal_object()) {
-      return t('Content tagged with @term', array('@term' => $term->name));
-    }
-    else {
-      parent::get_name();
-    }
-  }
-}
 
 /**
  * Taxonomy term object
@@ -183,6 +167,109 @@ class Notifications_Taxonomy_Vocabulary_Field extends Notifications_Field_Select
       $this->vocabulary_names = db_query('SELECT vid, name FROM {taxonomy_vocabulary}')->fetchAllKeyed();
     }
     return $this->vocabulary_names;    
+  }
+}
+
+
+/**
+ * Subscription to simple taxonomy term
+ */
+class Notifications_Taxonomy_Term_Subscription extends Notifications_Subscription_Simple {
+  /**
+   * Get proper name
+   */
+  public function get_name() {
+    if (isset($this->name)) {
+      return $this->name;
+    }
+    elseif ($term = $this->get_field('term:tid')->drupal_object()) {
+      return t('Content tagged with @term', array('@term' => $term->name));
+    }
+    else {
+      parent::get_name();
+    }
+  }
+  /**
+   * Add term object
+   */
+  public function add_term($term) {
+    $this->add_field('term:tid', $term->tid);
+    return $this;
+  }
+  /**
+   * Add term by name (and optional vid)
+   */
+  public function add_term_by_name($name, $vid = NULL) {
+    $conditions = array('name' => trim($name));
+    if ($vid) {
+      $conditions['vid'] = $vid;
+    }
+    if ($terms = taxonomy_term_load_multiple(array(), $conditions)) {
+      $this->add_term(reset($terms));
+    }
+    return $this;
+  }
+}
+
+/**
+ * Subscription to conent type + taxonomy term
+ */
+class Notifications_Content_Type_Term_Subscription extends Notifications_Taxonomy_Term_Subscription {
+  /**
+   * Get proper name
+   */
+  public function get_name() {
+    if (isset($this->name)) {
+      return $this->name;
+    }
+    elseif ($term = $this->get_field('term:tid') && $type == $this->get_field('node:type')) {
+      return t('@type posts tagged with @term', array('@type' => $type->get_name(), '@term' => $term->get_name()));
+    }
+    else {
+      parent::get_name();
+    }
+  }
+}
+
+/**
+ * Subscription to simple taxonomy term
+ */
+class Notifications_Taxonomy_Term_Multiple_Subscription extends Notifications_Subscription_Multiple {
+  /**
+   * Get proper name
+   */
+  public function get_name() {
+    if (isset($this->name)) {
+      return $this->name;
+    }
+    elseif ($terms = $this->get_fields()) {
+      foreach ($terms as $term_field) {
+        $names = $term_field->get_name();
+      }
+      return t('Content tagged with @terms', array('@terms' => implode(', ', $names)));
+    }
+    else {
+      parent::get_name();
+    }
+  }
+  /**
+   * Add term object
+   */
+  public function add_term($term) {
+    return $this->add_field('term:tid', $term->tid);
+  }
+  /**
+   * Add term by name (and optional vid)
+   */
+  public function add_term_by_name($name, $vid = NULL) {
+    $conditions = array('name' => trim($name));
+    if ($vid) {
+      $conditions['vid'] = $vid;
+    }
+    if ($terms = taxonomy_term_load_multiple(array(), $conditions)) {
+      $this->add_term(reset($terms));
+    }
+    return $this;
   }
 }
 

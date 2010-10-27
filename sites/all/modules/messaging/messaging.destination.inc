@@ -350,8 +350,13 @@ class Messaging_Destination extends Messaging_Object {
    * Delete messaging destination object/s
    */
   public static function delete_multiple($params) {
-    return self::db_query("DELETE", $params);
+    $query = db_delete('messaging_destination');
+    foreach ($params as $field => $value) {
+      $query->condition($field, $value);
+    }
+    return $query->execute();
   }
+
   // Magic function, format as string
   public function __toString() {
     return 'Destination: ' . $this->index();
