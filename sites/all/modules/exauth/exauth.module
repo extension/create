@@ -17,7 +17,7 @@ function exauth_help($path, $arg) {
 //logout by default seems to be redirecting back to /, so something will need to be figured out for a custom redirect for logout
 function accessing_unprotected_page()
 {
- if ( $_SERVER['REMOTE_ADDR']!='127.0.0.1' && strpos($_SERVER['REQUEST_URI'], "openid")=== FALSE && strpos($_SERVER['REQUEST_URI'], "logout")=== FALSE && strpos($_SERVER['REQUEST_URI'], "atomfeed") === FALSE && strpos($_SERVER['REQUEST_URI'], "cron.php") === FALSE && strpos($_SERVER['REQUEST_URI'], "loggedout") === FALSE && strpos($_SERVER['REQUEST_URI'], "taxonomy/term/85/feed") === FALSE )
+ if ( $_SERVER['REMOTE_ADDR']!='127.0.0.1' && strpos($_SERVER['REQUEST_URI'], "openid")=== FALSE && strpos($_SERVER['REQUEST_URI'], "logout")=== FALSE && strpos($_SERVER['REQUEST_URI'], "atomfeed") === FALSE && strpos($_SERVER['REQUEST_URI'], "cron.php") === FALSE && strpos($_SERVER['REQUEST_URI'], "loggedout") === FALSE && strpos($_SERVER['REQUEST_URI'], "taxonomy/term/85/feed") === FALSE && strpos($_SERVER['REQUEST_URI'], "rss.xml") === FALSE && strpos($_SERVER['REQUEST_URI'], "/blog/feed") === FALSE )
   {
     return FALSE;
   }
