@@ -79,6 +79,20 @@ function notifications_tags_notifications($op) {
         'field_types' => array('vocabulary:vid'),
         'access' => array('subscribe to taxonomy vocabularies'),
       );
+      $types['taxonomy_term_multiple'] = array(
+        'title' => t('Multiple tags'),
+        'description' => t('Subscribe to content tagged with multiple taxonomy terms.'),
+        'class' => 'Notifications_Taxonomy_Term_Multiple_Subscription',
+        'field_types' => array('term:tid'),
+        'access' => array('subscribe to taxonomy terms'),
+      );
+      $types['content_type_term'] = array(
+        'title' => t('Content type and term'),
+        'description' => t('Subscribe to content of given type tagged with term.'),
+        'class' => 'Notifications_Content_Type_Term_Subscription',
+        'field_types' => array('node:type', 'term:tid'),
+        'access' => array('subscribe to taxonomy vocabularies'),
+      );
       return $types;
 
     case 'field types':
@@ -154,7 +168,7 @@ function notifications_tags_notifications_subscription($op, $subscription = NULL
 function notifications_tags_notifications_object_node($op, $node, $account = NULL) {
   switch ($op) {
     case 'subscription types':
-      return array('taxonomy_term');
+      return array('taxonomy_term', 'taxonomy_term_multiple', 'content_type_term');
     case 'conditions':
       // For a queue query, when not account, we must use our own function to retrieve terms
       $tids = notifications_tags_node_get_terms($node);

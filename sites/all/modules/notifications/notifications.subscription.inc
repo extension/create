@@ -11,7 +11,7 @@
 /**
  * Common base for subscription type and subscription instance
  */
-abstract class Notifications_Subscription extends Notifications_Entity {
+class Notifications_Subscription extends Notifications_Entity {
     // Format as plaintext. Note it evaluates to false.
   const FORMAT_PLAIN = 0;
   // Format as html. Note it evaluates to true
@@ -754,7 +754,7 @@ abstract class Notifications_Subscription extends Notifications_Entity {
    */
   public static function delete_multiple($conditions, $field_conditions = array(), $limit = FALSE) {
     $query = db_select('notifications_subscription', 's')->fields('s', array('sid'));
-    foreach ($condtions as $field => $value) {
+    foreach ($conditions as $field => $value) {
       $query->condition($field, $value);
     }
     // For exact condition fields we add one more main condition.
@@ -900,6 +900,20 @@ abstract class Notifications_Subscription extends Notifications_Entity {
    */
   function set_name($name) {
     $this->name = $name;
+    return $this;
+  }
+  /**
+   * Set send interval
+   */
+  function set_interval($interval = 0) {
+    $this->send_interval = $interval;
+    return $this;
+  }
+  /**
+   * Set send method
+   */
+  function set_method($method) {
+    $this->send_method = $method;
     return $this;
   }
   /**
@@ -1116,7 +1130,7 @@ abstract class Notifications_Subscription extends Notifications_Entity {
   /**
    * Set a field, we may need to find out the position
    */
-  function set_field($field, $overwrite = TRUE) {
+  function set_field($field) {
     $field->set_subscription($this);
     if (!isset($field->position)) {
       $field->position = $this->map_field($field);
@@ -1174,10 +1188,8 @@ abstract class Notifications_Subscription extends Notifications_Entity {
   }
   /**
    * Check all fields are there and they have a value
-   * 
-   * @todo check values?
    */
-  function check_fields($check_values = TRUE) {
+  function check_fields() {
     return count($this->type_fields()) === count($this->get_fields(TRUE));
   }
   /**
@@ -1539,4 +1551,27 @@ class Notifications_Subscription_Simple extends Notifications_Subscription {
     }
   }
   
+}
+
+/**
+ * Multiple subscription. It has an undetermined number of fields
+ * 
+ * This is the base class for subscriptions that:
+ * - Have a fixed number of fields defined by the subscription type
+ * - Have only a field of each type
+ */
+class Notifications_Subscription_Multiple extends Notifications_Subscription {
+
+  /**
+   * Map field to its right position in this subscription. As fields have no specific position it will be the next one
+   */
+  function map_field($field) {
+    return isset($this->fields) ? count($this->fields) : 0;
+  }
+  /**
+   * Check all fields are there and they have a value. In this case we need at least the same fields that the type fields has
+   */
+  function check_fields() {
+    return count($this->type_fields()) <= count($this->get_fields(TRUE));
+  }
 }

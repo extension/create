@@ -56,16 +56,16 @@ function messaging_mail_messaging($op, $type = NULL) {
 }
 
 /**
- * Implementation of hook_user().
- *
- * Adds fieldset and default sending method setting.
+ * Implements hook_user_insert().
  */
-function messaging_mail_user($type, $edit, &$user, $category = NULL) {
-  switch ($type) {
-    case 'update':
-      // Claim user mail address if in destinations table
-      messaging_mail_update_user($user);
-  }
+function messaging_mail_user_insert(&$edit, $account, $category) {
+  messaging_mail_update_user($account);
+}
+/**
+ * Implements hook_user_update().
+ */
+function messaging_mail_user_update(&$edit, $account, $category) {
+  messaging_mail_update_user($account);
 }
 
 /**
@@ -89,32 +89,10 @@ function messaging_mail_methods() {
 function messaging_mail_update_user($account) {
   if ($account->status) {
     // Update mail for destinations of this user
-    db_query("UPDATE {messaging_destination} SET address = '%s' WHERE uid = %d AND type = 'mail'", $account->mail, $account->uid);
+    db_query("UPDATE {messaging_destination} SET address = :address WHERE uid = :uid AND type = 'mail'", array(':address' => $account->mail, ':uid' => $account->uid));
     // Update uid for destinations with this mail
-    db_query("UPDATE {messaging_destination} SET uid = %d WHERE uid = 0 AND type = 'mail' AND address = '%s'", $account->uid, $account->mail);
+    db_query("UPDATE {messaging_destination} SET uid = :uid WHERE uid = 0 AND type = 'mail' AND address = :address", array(':address' => $account->mail, ':uid' => $account->uid));
   }
-}
-
-
-/**
- * Send mail message to user account
- * 
- * This is a callback function that will be invoked from messaging delivery methods
- * 
- * @see messaging_message_send()
- * @see drupal_mail()
- * 
- * @param $destination
- *   Single email address
- * @param $message
- *   Message array
- * @param $params
- *   Optional parameters for this method type
- */
-function messaging_mail_send_msg($address, $message, $params = array()) {
-  // Build the message in drupal mail format
-  $mail = $message->send_method()->mail_build($address, $message, $params);
-  return drupal_mail_send($mail);
 }
 
 /**
