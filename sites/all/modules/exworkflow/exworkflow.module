@@ -13,11 +13,15 @@ function exworkflow_node_view($node, $view_mode) {
     
     // if no workflow to be found yet, start it at a draft state
     if($node_workflow == false) {
+      $review_count = "Review Count: 0";
       $node_status = "Status: {$workflow_list[1]}";
     }
     else {
+      $review_count = "Review Count: {$node_workflow->review_count}";
       $node_status = "Status: {$workflow_list[$node_workflow->status]}";
-      if($workflow_list[$node_workflow->status] == 'Published') {
+      
+      # is the node published
+      if(isset($node_workflow->published_at)) {
         // if the current revision of the node is published, notify 
         // the user of that
         if($node_workflow->published_revision_id == $node->vid) {
@@ -27,13 +31,10 @@ function exworkflow_node_view($node, $view_mode) {
         else {
           $node_status .= "<br /><small>A previous version of this content is published.</small>";
         }  
-      
       }
-      
-      
     }
     
-    if(($node_workflow != false) && (!is_null($node_workflow->draft_status))) {
+    if(($node_workflow != false) && (isset($node_workflow->draft_status))) {
       $draft_status_string = "<br />Draft Status: {$workflow_list[$node_workflow->draft_status]}";
     }
     else {
@@ -41,7 +42,7 @@ function exworkflow_node_view($node, $view_mode) {
     }
     
     $workflow_content = '<h2>Publishing Workflow</h2>'.
-    $node_status.$draft_status_string."<p>".drupal_render(drupal_get_form('exworkflow_form'))."</p>";
+    $node_status.$draft_status_string."<br />{$review_count}"."<p>".drupal_render(drupal_get_form('exworkflow_form'))."</p>";
     $node->content['my_additional_field'] = array('#markup' => $workflow_content);
   }
   
@@ -55,29 +56,31 @@ function exworkflow_form($form, &$form_state) {
   
   // if no workflow to be found yet, start it at a draft state
   if($node_workflow == false) {
-    $initial_value = 1;
+    $initial_workflow_value = 1;
   }
   else { 
     // if draft_status is null and it's published, set the initial workflow state to published
     if(is_null($node_workflow->draft_status) && $workflow_list[$node_workflow->status] == 'Published') {
-      $initial_value = $node_workflow->status;
+      $initial_workflow_value = $node_workflow->status;
       // if it's published and we are currently on the published revision, only 
       // give the user the option to unpublish or they can start a new revision
       if($node_workflow->published_revision_id == $node->vid) {
-        $workflow_list = get_published_workflow();
+        $form['unpublish'] = array('#type' => 'value', '#value' => true);
+        $form['submit'] = array('#type' => 'submit', '#value' => t('Unpublish'));
+        return $form;
       }
       
     }
     // if not published and the workflow does exist, tell us where we are in the draft process
     else {
-      $initial_value = $node_workflow->draft_status;
+      $initial_workflow_value = $node_workflow->draft_status;
     }
   }
   
   $form['wf_state'] = array(
     '#type' => 'select', 
     '#title' => t('Select Workflow State'), 
-    '#default_value' => $initial_value,
+    '#default_value' => $initial_workflow_value,
     '#options' => $workflow_list, 
     '#required' => TRUE
   );
@@ -91,7 +94,10 @@ function exworkflow_form($form, &$form_state) {
 
 function exworkflow_form_validate($form, &$form_state) {
   $workflow_states = get_workflow_states();
-  if (!isset($form_state['values']['wf_state']) || !isset($workflow_states[$form_state['values']['wf_state']])) {
+  if (!isset($form_state['values']['wf_state']) && !isset($form_state['values']['unpublish'])) {
+    form_set_error('wf_state', "You must submit a valid workflow state.");
+  }
+  else if (isset($form_state['values']['wf_state']) and !isset($workflow_states[$form_state['values']['wf_state']])) {
     form_set_error('wf_state', "You must submit a valid workflow state.");
   }
 }
@@ -102,34 +108,55 @@ function exworkflow_form_submit($form, &$form_state) {
   $node = menu_get_object();
   $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
   
-  $current_state = $form_state['values']['wf_state'];
   $workflow_list = get_workflow_states();
   $workflow_event_list = get_workflow_events();
   
-  if($workflow_list[$current_state] == 'Published') {
-    $node_status = $current_state;
-    $draft_status = null;
-    $additional_fields = array('published_at' => REQUEST_TIME, 'published_revision_id' => $node->vid);
-  }
-  else {
+  // if the unpublish button was clicked
+  if(isset($form_state['values']['unpublish']) && ($form_state['values']['unpublish'] == 'true')) {
     $node_status = 1;
-    $draft_status = $current_state;
-    $additional_fields = array();
+    $draft_status = 1;
+    $current_state = 6;
+    $additional_fields = array('published_at' => null, 'published_revision_id' => null);  
+    $reviews = 0;
   }
+  // the unpublish button was not clicked, receive workflow form input
+  else {
+    $current_state = $form_state['values']['wf_state'];
+    
+    // handle review counts if no node workflow was found
+    if($node_workflow == false) {
+      // if a review event occured, we need to set the number of reviews
+      if($workflow_list[$current_state] == 'Reviewed') { $reviews = 1; }
+      else { $reviews = 0; }
+    }
+      
+    if($workflow_list[$current_state] == 'Published') {
+      $node_status = $current_state;
+      $draft_status = null;
+      $additional_fields = array('published_at' => REQUEST_TIME, 'published_revision_id' => $node->vid);
+    }
+    else {
+      $node_status = 1;
+      $draft_status = $current_state;
+      $additional_fields = array();
+    }
+  }  // end of test for unpublish button click  
   
-  // if no node workflow was found
-  if($node_workflow == false) {
-    // if no workflow record exists and the current state is greater than 1, record a new workflow, 
+  // if no node workflow was found, create a new workflow record
+  if($node_workflow == false) {    
+    // if no workflow record exists and the current state is greater than 1, record a new workflow. 
     // if the current state is 1, we do not record anything as everything starts out as draft
+    // if we're in an unpublishing state, this should never happen but it is handled, if something needs to be unpublished, 
+    // there should be a workflow record for it in the db.)
     if($current_state > 1) {
       $fields = array(
                 'node_id' => $node->nid, 
                 'current_revision_id' => $node->vid,
-                'review_count' => 0, 
+                'review_count' => $reviews, 
                 'status' => $node_status, 
                 'status_text' => $workflow_list[$node_status],
                 'draft_status' => $draft_status, 
-                'draft_status_text' => $workflow_list[$draft_status],
+                'draft_status_text' => ($draft_status == null) ? null : $workflow_list[$draft_status],
                 'created' => REQUEST_TIME, 
                 'changed' => REQUEST_TIME) + $additional_fields;
       $workflow_id = db_insert('node_workflow')->fields($fields)->execute();
@@ -148,14 +175,34 @@ function exworkflow_form_submit($form, &$form_state) {
     }
   
   }
+  
   // update current workflow record
   else {
+    // if the current state falls within the workflow states (ie. not an unpublished event)
+    if ($current_state <= 5) {
+      // if a review event occured, we need to increase the number of reviews for the review count
+      if($workflow_list[$current_state] == 'Reviewed') {
+        $reviews = $node_workflow->review_count + 1;
+      }
+      // if the node has been moved to ready for review or draft which come before the review 
+      // process in the workflow, then set the review count back to zero.
+      else if($workflow_list[$current_state] == 'Ready for Review' || $workflow_list[$current_state] == 'Draft') {
+        $reviews = 0;
+      }
+      // if the current state is not the review state and we are not in a state before the review process, then 
+      // keep the review count for the workflow the same
+      else {
+        $reviews = $node_workflow->review_count;
+      }
+    }
+    
     db_update('node_workflow')
     ->fields(array(
+             'review_count' => $reviews,
              'status' => $node_status,
              'status_text' => $workflow_list[$node_status],
              'draft_status' => $draft_status,
-             'draft_status_text' => $workflow_list[$draft_status],
+             'draft_status_text' => ($draft_status == null) ? null : $workflow_list[$draft_status],
              'changed' => REQUEST_TIME) + $additional_fields)
       ->condition('nwid', $node_workflow->nwid)
       ->execute();
@@ -233,13 +280,6 @@ function get_workflow_states() {
     3 => t('Reviewed'),
     4 => t('Copy Edited'),
     5 => t('Published'),
-  );
-}
-
-// WARNING: DO NOT CHANGE THESE NUMBERS
-function get_published_workflow() {
-  return array(
-    6 => t('Unpublish'),
   );
 }
 
