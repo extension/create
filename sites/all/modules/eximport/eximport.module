@@ -27,10 +27,7 @@
  *    c. when import complete, mark all unpublished articles as draft
  *    d. import 'news' articles as content-type news, all others as articles
  *
- * 3. import images?
- *    a. image search?
- *    b. metadata? - only if we use a 3rd party module
- *    c. mgmt - admins could delete files
+ * 3. import images? Nope
  *
  * 4. rewrite URLs
  *    a. rewrite img src's
