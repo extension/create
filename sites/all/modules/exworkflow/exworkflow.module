@@ -17,6 +17,13 @@ function exworkflow_node_view($node, $view_mode) {
       $node_status = "Status: {$workflow_list[1]}";
     }
     else {
+      // check to see if the node has been set to inactive
+      if($node_workflow->active == false) {
+        $workflow_content = '<p>This content has been set to inactive.</p>'.drupal_render(drupal_get_form('exworkflow_activate_form'));
+        $node->content['my_additional_field'] = array('#markup' => $workflow_content);
+        return;
+      }
+        
       $review_count = "Review Count: {$node_workflow->review_count}";
       $node_status = "Status: {$workflow_list[$node_workflow->status]}";
       
@@ -41,8 +48,8 @@ function exworkflow_node_view($node, $view_mode) {
       $draft_status_string = '';
     }
     
-    $workflow_content = '<h2>Publishing Workflow</h2>'.
-    $node_status.$draft_status_string."<br />{$review_count}"."<p>".drupal_render(drupal_get_form('exworkflow_form'))."</p>";
+    $workflow_content = '<h2>Publishing Workflow</h2>'.$node_status.$draft_status_string."<br/>{$review_count}"."<p>".
+    drupal_render(drupal_get_form('exworkflow_form')).drupal_render(drupal_get_form('exworkflow_inactivate_form'))."</p>";
     $node->content['my_additional_field'] = array('#markup' => $workflow_content);
   }
   
@@ -92,6 +99,7 @@ function exworkflow_form($form, &$form_state) {
   return $form;
 }
 
+// workflow form validation
 function exworkflow_form_validate($form, &$form_state) {
   $workflow_states = get_workflow_states();
   if (!isset($form_state['values']['wf_state']) && !isset($form_state['values']['unpublish'])) {
@@ -102,6 +110,51 @@ function exworkflow_form_validate($form, &$form_state) {
   }
 }
 
+// build the form button to inactivate
+function exworkflow_inactivate_form($form, &$form_state) {
+  $node = menu_get_object();
+  $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
+  
+  // show an inactivate button if it's active
+  if(($node_workflow == false) || ($node_workflow != false && $node_workflow->active == true)) {
+    $form['inactivate'] = array('#type' => 'value', '#value' => true);
+    $form['submit'] = array('#type' => 'submit', '#value' => t('Inactivate'));
+    return $form;
+  }
+  else { return null; }
+}
+
+// probably not necessary, but will do anyways
+// inactivate form validation
+function exworkflow_inactivate_form_validate($form, &$form_state) {
+  if (!isset($form_state['values']['inactivate'])) {
+    form_set_error('inactivate', "You must submit a valid inactivation.");
+  }
+}
+
+// build the form button to activate
+function exworkflow_activate_form($form, &$form_state) {
+  $node = menu_get_object();
+  $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
+  
+  // show an activate button if it's inactive
+  if($node_workflow != false && $node_workflow->active == false) {
+    $form['activate'] = array('#type' => 'value', '#value' => true);
+    $form['submit'] = array('#type' => 'submit', '#value' => t('Activate'));
+    return $form;
+  }
+  else { return null; }  
+}
+
+// probably not necessary, but will do anyways
+// activate form validation
+function exworkflow_activate_form_validate($form, &$form_state) {
+  if (!isset($form_state['values']['activate'])) {
+    form_set_error('activate', "You must submit a valid activation.");
+  }
+}
+
+// handle form submission
 function exworkflow_form_submit($form, &$form_state) {
   global $user;
   
@@ -111,15 +164,15 @@ function exworkflow_form_submit($form, &$form_state) {
   $workflow_list = get_workflow_states();
   $workflow_event_list = get_workflow_events();
   
-  // if the unpublish button was clicked
+  // if the unpublish value was selected
   if(isset($form_state['values']['unpublish']) && ($form_state['values']['unpublish'] == 'true')) {
     $node_status = 1;
-    $draft_status = 1;
+    $draft_status = null;
     $current_state = 6;
     $additional_fields = array('published_at' => null, 'published_revision_id' => null);  
     $reviews = 0;
   }
-  // the unpublish button was not clicked, receive workflow form input
+  // the unpublish value was not selected, receive workflow form input
   else {
     $current_state = $form_state['values']['wf_state'];
     
@@ -152,6 +205,7 @@ function exworkflow_form_submit($form, &$form_state) {
       $fields = array(
                 'node_id' => $node->nid, 
                 'current_revision_id' => $node->vid,
+                'active' => 1,
                 'review_count' => $reviews, 
                 'status' => $node_status, 
                 'status_text' => $workflow_list[$node_status],
@@ -160,24 +214,14 @@ function exworkflow_form_submit($form, &$form_state) {
                 'created' => REQUEST_TIME, 
                 'changed' => REQUEST_TIME) + $additional_fields;
       $workflow_id = db_insert('node_workflow')->fields($fields)->execute();
-    
-      // record the workflow event
-      $fields = array(
-                'node_id' => $node->nid, 
-                'node_workflow_id' => $workflow_id, 
-                'user_id' => $user->uid,
-                'revision_id' => $node->vid,
-                'description' => $workflow_event_list[$current_state],
-                'created' => REQUEST_TIME,
-      );
-      
-      db_insert('node_workflow_events')->fields($fields)->execute();
     }
   
   }
   
+   // workflow record exists
   // update current workflow record
   else {
+    $workflow_id = $node_workflow->nwid;
     // if the current state falls within the workflow states (ie. not an unpublished event)
     if ($current_state <= 5) {
       // if a review event occured, we need to increase the number of reviews for the review count
@@ -207,21 +251,173 @@ function exworkflow_form_submit($form, &$form_state) {
       ->condition('nwid', $node_workflow->nwid)
       ->execute();
   
-      // record the workflow event
-      $fields = array(
-                'node_id' => $node->nid,
-                'node_workflow_id' => $node_workflow->nwid,  
-                'user_id' => $user->uid,
-                'revision_id' => $node->vid,
-                'description' => $workflow_event_list[$current_state],
-                'created' => REQUEST_TIME,
-      );
-      
-      db_insert('node_workflow_events')->fields($fields)->execute();  
-  }
+  } // end of does the workflow record exist
+  
+  // record the workflow event
+  $fields = array(
+            'node_id' => $node->nid,
+            'node_workflow_id' => $workflow_id,  
+            'user_id' => $user->uid,
+            'revision_id' => $node->vid,
+            'event_id' => $current_state,
+            'description' => $workflow_event_list[$current_state],
+            'created' => REQUEST_TIME,
+  );
+  
+  db_insert('node_workflow_events')->fields($fields)->execute();
   
   drupal_set_message("Node workflow updated successfully!");
   
+}
+
+// submission of inactive form button
+// if it was published, unpublish it
+function exworkflow_inactivate_form_submit($form, &$form_state) {
+  global $user;
+  $node = menu_get_object();
+  $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
+  $workflow_list = get_workflow_states();
+  $workflow_event_list = get_workflow_events();
+  
+  
+  // if no node workflow exists
+  if($node_workflow == false) {
+    $fields = array(
+              'node_id' => $node->nid, 
+              'current_revision_id' => $node->vid,
+              'active' => 0,
+              'review_count' => 0, 
+              'status' => 1, 
+              'status_text' => $workflow_list[1],
+              'draft_status' => null, 
+              'draft_status_text' => null,
+              'created' => REQUEST_TIME, 
+              'changed' => REQUEST_TIME,
+              'published_at' => null, 
+              'published_revision_id' => null,
+              );
+    $workflow_id = db_insert('node_workflow')->fields($fields)->execute();
+  } 
+  // node workflow does exist 
+  else {
+    $workflow_id = $node_workflow->nwid;
+    // check and see if the node was published
+    if($node_workflow->published_at != null) {
+      $is_published = true;
+    }
+    else {
+      $is_published = false;
+    }
+    
+    db_update('node_workflow')
+    ->fields(array(
+             'review_count' => 0,
+             'active' => 0, 
+             'status' => 1, 
+             'status_text' => $workflow_list[1],
+             'draft_status' => null, 
+             'draft_status_text' => null,
+             'changed' => REQUEST_TIME,
+             'published_at' => null, 
+             'published_revision_id' => null,
+             ))
+      ->condition('nwid', $node_workflow->nwid)
+      ->execute();
+  
+      // record the unpublish event if the node was published
+      if($is_published == true) {
+        // record the unpublish workflow event
+        $fields = array(
+                  'node_id' => $node->nid,
+                  'node_workflow_id' => $node_workflow->nwid,  
+                  'user_id' => $user->uid,
+                  'revision_id' => $node->vid,
+                  'event_id' => 6,
+                  'description' => $workflow_event_list[6],
+                  'created' => REQUEST_TIME,
+        );
+        db_insert('node_workflow_events')->fields($fields)->execute();
+      } // end of was it published
+      
+  } // end of did the workflow exist
+  
+  // record the inactive workflow event
+  $fields = array(
+            'node_id' => $node->nid,
+            'node_workflow_id' => $workflow_id,  
+            'user_id' => $user->uid,
+            'revision_id' => $node->vid,
+            'event_id' => 7,
+            'description' => $workflow_event_list[7],
+            'created' => REQUEST_TIME,
+  );
+  
+  db_insert('node_workflow_events')->fields($fields)->execute();
+  
+  drupal_set_message("Node workflow updated successfully!");
+}
+
+// submission of activate form button
+// sets everything back to draft
+function exworkflow_activate_form_submit($form, &$form_state) {
+  global $user;
+  $node = menu_get_object();
+  $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
+  $workflow_list = get_workflow_states();
+  $workflow_event_list = get_workflow_events();
+    
+  // if no node workflow exists
+  // this should not happen, but will cover the case anyways
+  if($node_workflow == false) {
+    $fields = array(
+              'node_id' => $node->nid, 
+              'current_revision_id' => $node->vid,
+              'active' => 1,
+              'review_count' => 0, 
+              'status' => 1, 
+              'status_text' => $workflow_list[1],
+              'draft_status' => null, 
+              'draft_status_text' => null,
+              'created' => REQUEST_TIME, 
+              'changed' => REQUEST_TIME,
+              'published_at' => null, 
+              'published_revision_id' => null,
+              );
+    $workflow_id = db_insert('node_workflow')->fields($fields)->execute();
+  } 
+  // node workflow does exist 
+  else {
+    $workflow_id = $node_workflow->nwid;
+    db_update('node_workflow')
+    ->fields(array(
+             'review_count' => 0,
+             'active' => 1, 
+             'status' => 1, 
+             'status_text' => $workflow_list[1],
+             'draft_status' => null, 
+             'draft_status_text' => null,
+             'changed' => REQUEST_TIME,
+             'published_at' => null, 
+             'published_revision_id' => null,
+             ))
+      ->condition('nwid', $node_workflow->nwid)
+      ->execute();    
+  } // end of did the workflow exist
+  
+  // record the activate workflow event
+  $fields = array(
+            'node_id' => $node->nid,
+            'node_workflow_id' => $workflow_id,  
+            'user_id' => $user->uid,
+            'revision_id' => $node->vid,
+            'event_id' => 7,
+            'description' => $workflow_event_list[7],
+            'created' => REQUEST_TIME,
+  );
+  
+  db_insert('node_workflow_events')->fields($fields)->execute();
+  
+  drupal_set_message("Node updated successfully!");
 }
 
 /**
@@ -235,7 +431,7 @@ function exworkflow_form_submit($form, &$form_state) {
 function exworkflow_node_update($node) {
   if($node->type == 'faq' || $node->type == 'event') {
     $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
-    
+      
     // the revision has changed, so set status back to draft and update current revision id
     if($node_workflow != false && $node_workflow->current_revision_id != $node->vid) {
       global $user;
@@ -243,29 +439,55 @@ function exworkflow_node_update($node) {
       $workflow_list = get_workflow_states();
       $workflow_event_list = get_workflow_events();
       
+      if($node_workflow->active == true) {
+        $is_active = true;
+      }
+      else {
+        $is_active = false;
+      }
+    
+      // updating a revision of a node also sets it back to active if it was inactive
       db_update('node_workflow')
       ->fields(array(
+               'active' => 1,
                'current_revision_id' => $node->vid,
                'status' => 1,
                'status_text' => $workflow_list[1],
-               'draft_status' => 1,
-               'draft_status_text' => $workflow_list[1],
+               'draft_status' => null,
+               'draft_status_text' => null,
                'review_count' => 0,
                'changed' => REQUEST_TIME))
         ->condition('nwid', $node_workflow->nwid)
         ->execute();
         
-       // record the workflow event
+       // record the workflow update event
        $fields = array(
                  'node_id' => $node->nid,
                  'node_workflow_id' => $node_workflow->nwid,  
                  'user_id' => $user->uid,
                  'revision_id' => $node->vid,
+                 'event_id' => 1,
                  'description' => $workflow_event_list[1],
                  'created' => REQUEST_TIME,
        );
 
        db_insert('node_workflow_events')->fields($fields)->execute();  
+       
+       if($is_active == false) {
+         // if the node was edited, the node is automatically activated if it was inactive
+         // record the activated event
+         $fields = array(
+                    'node_id' => $node->nid,
+                    'node_workflow_id' => $node_workflow->nwid,  
+                    'user_id' => $user->uid,
+                    'revision_id' => $node->vid,
+                    'event_id' => 8,
+                    'description' => $workflow_event_list[8],
+                    'created' => REQUEST_TIME,
+          );
+          db_insert('node_workflow_events')->fields($fields)->execute(); 
+       }
+       
     }
   }
   
@@ -294,6 +516,7 @@ function get_workflow_events() {
   5 => "published",
   6 => 'unpublished',
   7 => 'made inactive',
+  8 => 'activated',
   );
 }
 

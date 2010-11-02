@@ -22,6 +22,14 @@ function exworkflow_schema() {
       'not null' => TRUE,  
     ),
     
+    'active' => array(
+      'description' => 'Boolean of whether the current article is active or archived which implies unpublished.',
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 1,  
+    ),
+    
     'current_revision_id' => array(
       'description' => 'The current revision id (vid) for this node.',
       'type' => 'int',
@@ -143,6 +151,13 @@ function exworkflow_schema() {
     
     'revision_id' => array(
       'description' => 'Id of the revision of the node when this workflow event occurred',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+    ),
+    
+    'event_id' => array(
+      'description' => 'Id of this workflow event',
       'type' => 'int',
       'unsigned' => TRUE,
       'not null' => TRUE,
