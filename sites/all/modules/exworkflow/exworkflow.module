@@ -6,6 +6,7 @@
  * Creates a publishing workflow for articles (including legacy mediawiki article types, FAQs and Events)  
  *
  * @copyright North Carolina State University 2010
+ *
  */
 
 // Implements hook_node_view
