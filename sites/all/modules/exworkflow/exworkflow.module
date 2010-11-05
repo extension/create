@@ -12,7 +12,17 @@
 // Implements hook_node_view
 // Display the workflow form on node view
 function exworkflow_node_view($node, $view_mode) {
-  // type will need to be eventually expanded to include the old wiki article type
+  // if it's a FAQ, see if it has an answer, and if not, denote that below the question
+  if($node->type == 'faq') {
+    // get the node's current revision id and use it to query the field_revision_body table
+    // if the record does not exist, it does not have an answer.
+    $faq_answer = db_query('SELECT * FROM {field_revision_body} WHERE revision_id = :vid', array(':vid' => $node->vid))->fetchObject();
+    
+    if($faq_answer == false) {
+      $node->content['no_body'] = array('#markup' => '<p>There is no answer to this FAQ at this time.</p>');
+    }
+  }
+  
   if(($node->type == 'article' || $node->type == 'faq' || $node->type == 'event') && $view_mode == 'full') {
     $workflow_list = get_workflow_states();
     
@@ -28,7 +38,7 @@ function exworkflow_node_view($node, $view_mode) {
       // check to see if the node has been set to inactive
       if($node_workflow->active == false) {
         $workflow_content = '<p>This content has been set to inactive.</p>'.drupal_render(drupal_get_form('exworkflow_activate_form'));
-        $node->content['my_additional_field'] = array('#markup' => $workflow_content);
+        $node->content['additional_field'] = array('#markup' => $workflow_content);
         return;
       }
         
@@ -58,7 +68,7 @@ function exworkflow_node_view($node, $view_mode) {
     
     $workflow_content = '<h2>Publishing Workflow</h2>'.$node_status.$draft_status_string."<br/>{$review_count}"."<p>".
     drupal_render(drupal_get_form('exworkflow_form')).drupal_render(drupal_get_form('exworkflow_inactivate_form'))."</p>";
-    $node->content['my_additional_field'] = array('#markup' => $workflow_content);
+    $node->content['additional_field'] = array('#markup' => $workflow_content);
   }
   
 }
