@@ -1,0 +1,433 @@
+<?php
+// $Id: media_youtube.module,v 1.1.4.50 2010/10/28 20:34:55 aaron Exp $
+
+/**
+ *  @file
+ *  Media YouTube provides a stream wrapper and formatters for videos provided
+ *  by YouTube, available at http://youtube.com/.
+ *
+ *  @TODO:
+ *  Create a thumbnail importer for media styles/ image styles.
+ *  Tie in YouTube API.
+ *  Allow editors to search for videos to display on the browser.
+ *  Allow editors to put in a youtube username to display on the browser.
+ *  Allow editors to log in w/ their credentials.
+ */
+
+/**
+ *  Create stream wrapper for YouTube videos.
+ */
+function media_youtube_stream_wrappers() {
+  return array(
+    'youtube' => array(
+      'name' => t('YouTube videos'),
+      'class' => 'MediaYouTubeStreamWrapper',
+      'description' => t('Videos provided by YouTube.'),
+      'type' => STREAM_WRAPPERS_READ_VISIBLE,
+    ),
+  );
+}
+
+/**
+ *  Implements hook_theme().
+ */
+function media_youtube_theme($existing, $type, $theme, $path) {
+  return array(
+    'media_youtube_preview_style_old' => array(
+      'variables' => array('style' => NULL),
+    ),
+    'media_youtube_preview_style' => array(
+      'variables' => array('field_type' => NULL, 'container_name' => NULL, 'style_name' => NULL),
+    ),
+    'media_youtube_field_formatter_styles' => array(
+      'variables' => array('element' => NULL, 'style' => NULL),
+    ),
+    'media_youtube_embed' => array(
+      'variables' => array('style_name' => NULL, 'uri' => NULL, 'alt' => NULL, 'title' => NULL),
+    ),
+    'media_youtube_styles' => array(
+      'variables' => array('element' => NULL, 'style' => NULL),
+    ),
+  );
+}
+
+function theme_media_youtube_field_formatter_styles($variables) {
+  $element = $variables['element'];
+  $style = $variables['style'];
+  $variables['file'] = $element['#item'];
+  $variables['uri'] = $variables['file']['uri'];
+  $variables['style_name'] = $style['name'];
+  return theme('media_youtube_embed', $variables);
+}
+
+/**
+ *  Implements hook_styles_containers().
+ */
+function media_youtube_styles_containers() {
+  return array(
+    'file' => array(
+      'containers' => array(
+        'media_youtube' => array(
+          'label' => t('YouTube Styles'),
+          'data' => array(
+            'streams' => array(
+              'youtube',
+            ),
+            'mimetypes' => array(
+              'video/youtube',
+            ),
+          ),
+          'weight' => 0,
+          'filter callback' => 'media_youtube_formatter_filter',
+          'themes' => array(
+            'field_formatter_styles' => 'media_youtube_field_formatter_styles',
+            'styles' => 'media_youtube_styles',
+            'preview' => 'media_youtube_preview_style',
+          ),
+          'description' => t('YouTube Styles will display embedded YouTube videos and thumbnails to your choosing, such as by resizing, setting colors, and autoplay. You can !manage.', array('!manage' => l(t('manage your YouTube styles here'), 'admin/config/media/media-youtube-styles'))),
+        ),
+      ),
+    ),
+  );
+}
+
+function media_youtube_formatter_filter($variables) {
+  if (isset($variables['object'])) {
+    $object = $variables['object'];
+    return (file_uri_scheme($object->uri) == 'youtube') && ($object->filemime == 'video/youtube');
+  }
+}
+
+/**
+ * Implementation of the File Styles module's hook_file_styles_filter().
+ */
+function media_youtube_file_styles_filter($object) {
+  if ((file_uri_scheme($object->uri) == 'youtube') && ($object->filemime == 'video/youtube')) {
+    return 'media_youtube';
+  }
+}
+
+/**
+ *  Implements hook_styles_styles().
+ */
+function media_youtube_styles_styles() {
+  $styles = array(
+    'file' => array(
+      'containers' => array(
+        'media_youtube' => array(
+          'styles' => array(
+            'youtube_thumbnail' => array(
+              'name' => 'youtube_thumbnail',
+              'effects' => array(
+                array('label' => t('Thumbnail'), 'name' => 'thumbnail', 'data' => array('thumbnail' => 1)),
+                array('label' => t('Resize'), 'name' => 'resize', 'data' => array('width' => 100, 'height' => 75)),
+              ),
+            ),
+            'youtube_preview' => array(
+              'name' => 'youtube_preview',
+              'effects' => array(
+                array('label' => t('Autoplay'), 'name' => 'autoplay', 'data' => array('autoplay' => 1)),
+                array('label' => t('Resize'), 'name' => 'resize', 'data' => array('width' => 220, 'height' => 165)),
+              ),
+            ),
+            'youtube_full' => array(
+              'name' => 'youtube_full',
+              'effects' => array(
+                array('label' => t('Autoplay'), 'name' => 'autoplay', 'data' => array('autoplay' => 0)),
+                array('label' => t('Resize'), 'name' => 'resize', 'data' => array('width' => 640, 'height' => 480)),
+                array('label' => t('Full screen'), 'name' => 'fullscreen', 'data' => array('fullscreen' => 1)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  // Allow any image style to be applied to the thumbnail.
+  foreach (image_styles() as $style_name => $image_style) {
+    $styles['file']['containers']['media_youtube']['styles']['youtube_thumbnail_' . $style_name] = array(
+      'name' => 'youtube_thumbnail_' . $style_name,
+      'image_style' => $style_name,
+      'effects' => array(
+        array('label' => t('Thumbnail'), 'name' => 'thumbnail', 'data' => array('thumbnail' => 1)),
+      ),
+    );
+  }
+
+  return $styles;
+}
+
+/**
+ *  Implements hook_styles_presets().
+ */
+function media_youtube_styles_presets() {
+  $presets = array(
+    'file' => array(
+      'square_thumbnail' => array(
+        'media_youtube' => array(
+          'youtube_thumbnail_square_thumbnail',
+        ),
+      ),
+      'thumbnail' => array(
+        'media_youtube' => array(
+          'youtube_thumbnail',
+        ),
+      ),
+      'small' => array(
+        'media_youtube' => array(
+          'youtube_preview',
+        ),
+      ),
+      'large' => array(
+        'media_youtube' => array(
+          'youtube_full',
+        ),
+      ),
+      'original' => array(
+        'media_youtube' => array(
+          'youtube_full',
+        ),
+      ),
+    ),
+  );
+  return $presets;
+}
+
+function theme_media_youtube_preview_style($variables) {
+  $variables['uri'] = variable_get('media_youtube_preview_uri', 'youtube://v/-jubiv7QUco');
+  return theme('media_youtube_embed', $variables);
+}
+
+function theme_media_youtube_styles($variables) {
+  $style = $variables['style'];
+  $variables['file'] = $variables['object'];
+  $variables['uri'] = $variables['object']->uri;
+  $variables['style_name'] = $style['name'];
+  return theme('media_youtube_embed', $variables);
+}
+
+/**
+ * @todo: get this working
+ *
+ * This code is for embedding videos in WYSIYWG areas, not currently working
+ */
+function theme_media_youtube_embed($variables) {
+  $preset_name = $variables['preset_name'];
+  $preset = styles_containers_available_styles('file', 'media_youtube', $preset_name);
+  $output = '';
+  if (!empty($preset)) {
+    // Build the URL for display.
+    $uri = $variables['uri'];
+    $wrapper = file_stream_wrapper_get_instance_by_uri($uri);
+    $parts = $wrapper->get_parameters();
+    $url = 'http://youtube.com/v/'. check_plain($parts['v']);
+
+    $fullscreen_value = $autoplay = 'false';
+    $in_browser = $thumbnail = FALSE;
+
+    foreach ($preset['effects'] as $effect) {
+      switch ($effect['name']) {
+        case 'autoplay':
+          $autoplay = $effect['data']['autoplay'] ? 'true' : 'false';
+          break;
+        case 'resize':
+          $width = $effect['data']['width'];
+          $height = $effect['data']['height'];
+          break;
+        case 'fullscreen':
+          $fullscreen_value = $effect['data']['fullscreen'] ? 'true' : 'false';
+          break;
+        case 'thumbnail':
+          $thumbnail = $effect['data']['thumbnail'];
+      }
+    }
+    if (isset($variables['object']->override)) {
+      $override = $variables['object']->override;
+      if (isset($override['width'])) {
+        $width = $override['width'];
+      }
+      if (isset($override['height'])) {
+        $height = $override['height'];
+      }
+      if (isset($override['wysiwyg'])) {
+        $thumbnail = TRUE;
+      }
+      if (isset($override['browser']) && $override['browser']) {
+        $in_browser = TRUE;
+        $thumbnail = TRUE;
+      }
+    }
+    $width = isset($width) ? $width : 560;
+    $height = isset($height) ? $height : 340;
+    $video_id = check_plain($parts['v']);
+    if ($thumbnail) {
+      // @todo Clean this up.
+      $image_variables = array(
+        'path' => $wrapper->getOriginalThumbnailPath(),
+        'alt' => $variables['alt'],
+        'title' => $variables['title'],
+        'getsize' => FALSE,
+      );
+      if (isset($preset['image_style'])) {
+        $image_variables['path'] = $wrapper->getLocalThumbnailPath();
+        $image_variables['style_name'] = $preset['image_style'];
+        $output = theme('image_style', $image_variables);
+      }
+      else {
+        $image_variables['attributes'] = array('width' => $width, 'height' => $height);
+        $output = theme('image', $image_variables);
+      }
+      if ($in_browser) {
+        // Add an overlay that says 'YouTube' to media library browser thumbnails.
+        $output .= '<span />';
+      }
+    }
+    else {
+      $output = '<div class="media-youtube-outer-wrapper"><div id="video_'. $video_id .'" class="media-youtube-preview-wrapper" style="width: ' . $width . 'px; height: ' . $height . 'px;">';
+
+      // For users with JavaScript, these object and embed tags will be replaced
+      // by an iframe, so that we can support users without Flash.
+      $output .= '<object width="' . $width . '" height="' . $height . '">';
+      $output .= '<param name="movie" value="http://www.youtube.com/v/' . $video_id . '"></param>';
+      $output .= '<param name="allowFullScreen" value="true"></param>';
+      $output .= '<embed src="http://www.youtube.com/v/' . $video_id .'" type="application/x-shockwave-flash" width="' . $width . '" height="' . $height . '" allowfullscreen="true"></embed>';
+      $output .= '</object>';
+      $output .= '</div></div>';
+
+      $media_youtube_preview = array();
+      $media_youtube_preview['media_youtube']['width'] = $width;
+      $media_youtube_preview['media_youtube']['height'] = $height;
+      $media_youtube_preview['media_youtube']['video_id'] = $video_id;
+      $media_youtube_preview['media_youtube']['fullscreen'] = $fullscreen_value;
+      $media_youtube_preview['media_youtube']['id'] = 'media-youtube-preview';
+
+      // @todo Replace this inline JavaScript with at least calls to
+      //   drupal_add_js()/drupal_get_js(), and ideally, with a behavior. Keep
+      //   in mind that the solution needs to work when inside a colorbox or
+      //   otherwise in an AJAX response, but that should now be possible in D7.
+      $video_id_json = drupal_json_encode($video_id);
+      $prefixed_video_id_json = drupal_json_encode('video_' . $video_id);
+      $JSObject = 'Drupal.settings.media_youtube[' . $prefixed_video_id_json . ']';
+      $output .= '<script type="text/javascript">
+        <!--//--><![CDATA[//><!--
+        if (Drupal.settings && Drupal.media_youtube) {
+          if (!Drupal.settings.media_youtube) {
+            Drupal.settings.media_youtube = {};
+          }
+          ' . $JSObject . ' = {};
+          ' . $JSObject . '.width = '. $width . ';
+          ' . $JSObject . '.height = '. $height . ';
+          ' . $JSObject . '.video_id = "'. check_plain($parts['v']) . '";
+          ' . $JSObject . '.fullscreen = '. $fullscreen_value . ';
+          ' . $JSObject . '.id = ' . $video_id_json . ';
+          Drupal.media_youtube.insertEmbed(' . $prefixed_video_id_json . ');
+        }
+        //--><!]]>
+        </script>';
+    }
+    drupal_add_js(drupal_get_path('module', 'media_youtube') . '/js/media_youtube.js');
+    drupal_add_css(drupal_get_path('module', 'media_youtube') . '/css/media_youtube.css');
+    drupal_add_js(drupal_get_path('module', 'media_youtube') . '/js/flash_detect_min.js');
+  }
+  return $output;
+}
+
+/**
+ *  Implements hook_media_parse().
+ *
+ *  @todo: this might be deprecated now that we have media_internet,
+ *  but the hook is still being called in a couple places in media.
+ */
+function media_youtube_media_parse($url, $options = array()) {
+  $scheme = 'youtube://';
+  preg_match('@youtube\.com/watch[#\?]v=([^"\& ]+)@i', $url, $matches);
+  if (isset($matches[1])) {
+    return file_stream_wrapper_uri_normalize($scheme . 'v/' . $matches[1]);
+  }
+  // @TODO: Validate for malformed youtube urls.
+}
+
+/**
+ * Implements hook_media_internet_providers();
+ */
+function media_youtube_media_internet_providers() {
+  $path = drupal_get_path('module', 'media_youtube');
+  return array(
+    'MediaInternetYouTubeHandler' => array(
+      'title' => 'youtube',
+      'image' => $path . '/images/stream-youtube.png'
+    ),
+  );
+}
+
+class MediaInternetYouTubeHandler extends MediaInternetBaseHandler {
+  public function claim($embedCode) {
+    if (media_youtube_media_parse($embedCode)) {
+      return TRUE;
+    }
+  }
+
+  public function validate() {
+    // @todo Media module currently fails when two files try to have the same
+    //   URI, so catch that in the validation step. Some day, it would be nice
+    //   to allow it, however. See http://drupal.org/node/952422.
+    $uri = media_youtube_media_parse($this->embedCode);
+    $existing_files = file_load_multiple(array(), array('uri' => $uri));
+    if (count($existing_files)) {
+      throw new MediaInternetValidationException(t('You have entered a URL for a video that is already in your library.'));
+    }
+  }
+
+  public function save() {
+    $file = $this->getFileObject();
+    file_save($file);
+    return $file;
+  }
+
+  public function getFileObject() {
+    $uri = media_youtube_media_parse($this->embedCode);
+    //@todo: this is terribly broken in some ways because the function is really
+    // made for local files which are 'real'
+    return file_uri_to_object($uri);
+  }
+
+  /**
+   * Returns information about the media. See http://video.search.yahoo.com/mrss.
+   *
+   * @return
+   *   If ATOM+MRSS information is available, a SimpleXML element containing
+   *   ATOM and MRSS elements, as per those respective specifications.
+   *
+   * @todo Would be better for the return value to be an array rather than a
+   *   SimpleXML element, but media_retrieve_xml() needs to be upgraded to
+   *   handle namespaces first.
+   */
+  public function getMRSS() {
+    $uri = media_youtube_media_parse($this->embedCode);
+    $video_id = arg(1, file_uri_target($uri));
+    $rss_url = url('http://gdata.youtube.com/feeds/api/videos/' . $video_id, array('query' => array('v' => '2')));
+    // @todo Use media_retrieve_xml() once it's upgraded to include elements
+    //   from all namespaces, not just the document default namespace.
+    $entry = simplexml_load_file($rss_url);
+    return $entry;
+  }
+
+  /**
+   * Returns information about the media. See http://www.oembed.com/.
+   *
+   * @return
+   *   If oEmbed information is available, an array containing 'title', 'type',
+   *   'url', and other information as specified by the oEmbed standard.
+   *   Otherwise, NULL.
+   */
+  public function getOEmbed() {
+    $uri = media_youtube_media_parse($this->embedCode);
+    $external_url = drupal_realpath($uri);
+    $oembed_url = url('http://www.youtube.com/oembed', array('query' => array('url' => $external_url, 'format' => 'json')));
+    $response = drupal_http_request($oembed_url);
+    if (!isset($response->error)) {
+      return drupal_json_decode($response->data);
+    }
+  }
+}

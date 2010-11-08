@@ -1,14 +1,32 @@
 <?php
 
 /**
- * Creates a publishing workflow for articles (including legacy mediawiki article types, FAQs and Events)
-*/
+ * exworkflow - publishing workflow module
+ *
+ * Creates a publishing workflow for articles (including legacy mediawiki article types, FAQs and Events)  
+ *
+ * @copyright North Carolina State University 2010
+ *
+ */
 
+// Implements hook_node_view
+// Display the workflow form on node view
 function exworkflow_node_view($node, $view_mode) {
-  // type will need to be eventually expanded to include the old wiki article type
-  if(($node->type == 'faq' || $node->type == 'event') && $view_mode == 'full') {
+  // if it's a FAQ, see if it has an answer, and if not, denote that below the question
+  if($node->type == 'faq') {
+    // get the node's current revision id and use it to query the field_revision_body table
+    // if the record does not exist, it does not have an answer.
+    $faq_answer = db_query('SELECT * FROM {field_revision_body} WHERE revision_id = :vid', array(':vid' => $node->vid))->fetchObject();
+    
+    if($faq_answer == false) {
+      $node->content['no_body'] = array('#markup' => '<p>There is no answer to this FAQ at this time.</p>');
+    }
+  }
+  
+  if(($node->type == 'article' || $node->type == 'faq' || $node->type == 'event') && $view_mode == 'full') {
     $workflow_list = get_workflow_states();
     
+    // find existing workflow
     $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
     
     // if no workflow to be found yet, start it at a draft state
@@ -20,7 +38,7 @@ function exworkflow_node_view($node, $view_mode) {
       // check to see if the node has been set to inactive
       if($node_workflow->active == false) {
         $workflow_content = '<p>This content has been set to inactive.</p>'.drupal_render(drupal_get_form('exworkflow_activate_form'));
-        $node->content['my_additional_field'] = array('#markup' => $workflow_content);
+        $node->content['additional_field'] = array('#markup' => $workflow_content);
         return;
       }
         
@@ -50,15 +68,17 @@ function exworkflow_node_view($node, $view_mode) {
     
     $workflow_content = '<h2>Publishing Workflow</h2>'.$node_status.$draft_status_string."<br/>{$review_count}"."<p>".
     drupal_render(drupal_get_form('exworkflow_form')).drupal_render(drupal_get_form('exworkflow_inactivate_form'))."</p>";
-    $node->content['my_additional_field'] = array('#markup' => $workflow_content);
+    $node->content['additional_field'] = array('#markup' => $workflow_content);
   }
   
 }
 
 // build the workflow form
 function exworkflow_form($form, &$form_state) {
+  // get the current node
   $node = menu_get_object();
   $workflow_list = get_workflow_states();
+  // find the current workflow for this node
   $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
   
   // if no workflow to be found yet, start it at a draft state
@@ -84,6 +104,7 @@ function exworkflow_form($form, &$form_state) {
     }
   }
   
+  // build the form
   $form['wf_state'] = array(
     '#type' => 'select', 
     '#title' => t('Select Workflow State'), 
@@ -156,9 +177,11 @@ function exworkflow_activate_form_validate($form, &$form_state) {
 
 // handle form submission
 function exworkflow_form_submit($form, &$form_state) {
+  // get the current user
   global $user;
-  
+  // get current node
   $node = menu_get_object();
+  // find workflow for node
   $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
   
   $workflow_list = get_workflow_states();
@@ -273,8 +296,11 @@ function exworkflow_form_submit($form, &$form_state) {
 // submission of inactive form button
 // if it was published, unpublish it
 function exworkflow_inactivate_form_submit($form, &$form_state) {
+  // get current user
   global $user;
+  // get current node
   $node = menu_get_object();
+  // find node workflow
   $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
   $workflow_list = get_workflow_states();
   $workflow_event_list = get_workflow_events();
@@ -360,8 +386,11 @@ function exworkflow_inactivate_form_submit($form, &$form_state) {
 // submission of activate form button
 // sets everything back to draft
 function exworkflow_activate_form_submit($form, &$form_state) {
+  // get current user
   global $user;
+  // get current node
   $node = menu_get_object();
+  // find node's workflow
   $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
   $workflow_list = get_workflow_states();
   $workflow_event_list = get_workflow_events();
@@ -429,7 +458,8 @@ function exworkflow_activate_form_submit($form, &$form_state) {
  * We also need to capture the new current revision id for workflow reference here.
  */
 function exworkflow_node_update($node) {
-  if($node->type == 'faq' || $node->type == 'event') {
+  if($node->type == 'article' || $node->type == 'faq' || $node->type == 'event') {
+    // get the node's workflow
     $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
       
     // the revision has changed, so set status back to draft and update current revision id
@@ -493,7 +523,7 @@ function exworkflow_node_update($node) {
   
 }
 
-// WARNING: DO NOT CHANGE THESE NUMBERS, 
+// WARNING: DO NOT CHANGE THESE VALUES, 
 // THEY ARE USED IN THE DATABASE TABLES
 function get_workflow_states() {
   return array(
@@ -505,7 +535,7 @@ function get_workflow_states() {
   );
 }
 
-// WARNING: DO NOT CHANGE THESE NUMBERS, 
+// WARNING: DO NOT CHANGE THESE VALUES, 
 // THEY ARE USED IN THE DATABASE TABLES
 function get_workflow_events() {
   return array(
