@@ -117,8 +117,9 @@ function node_schema() {
     'unique keys' => array(
       'vid' => array('vid'),
     ),
+    
     'foreign keys' => array(
-      'node_revision' => array(
+    'node_revision' => array(
         'table' => 'node_revision',
         'columns' => array('vid' => 'vid'),
       ),

@@ -12,13 +12,39 @@
 // require 'includes/bootstrap.inc';
 // drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
 
-// TODO document process plan
+/**
+ *
+ * Import Plan
+ *
+ * 1. export all revisions of all articles from MW
+ *    a. create XML files with about 250 articles in each
+ *    b. Format as valid Atom 1.0 feed
+ *    c. will have approx 1200 files after export
+ *
+ * 2. import revisions
+ *    a. use DrupalBot as the user for publishing events
+ *    b. mark all published revisions as such
+ *    c. when import complete, mark all unpublished articles as draft
+ *    d. import 'news' articles as content-type news, all others as articles
+ *
+ * 3. import images?
+ *    a. image search?
+ *    b. metadata? - only if we use a 3rd party module
+ *    c. mgmt - admins could delete files
+ *
+ * 4. rewrite URLs
+ *    a. rewrite img src's
+ *    b. rewrite wiki href's
+ *
+ * 5. article metadata
+ *    a. ???
+ */
+
 // TODO handle publishing flag
 // TODO metadata?
-// TODO test teaser grabber
 
 // confirm access to node methods
-module_load_include('inc', 'node', 'node.pages'); 
+module_load_include('inc', 'node', 'node.pages', 'path', 'filter'); 
 
 /**
  * hook_help entry-point function.
@@ -112,10 +138,10 @@ function eximport_admin_form($form, &$form_state) {
  * @see _form_validate
  */
 function eximport_admin_form_validate($form, &$form_state) {
-  $fname = $form_state['values']['filename'];
-  if ( ! preg_match('/\.(xml|atom)$/i', $fname)) {
+  $filename = $form_state['values']['filename'];
+  if ( ! preg_match('/\.(xml|atom)$/i', $filename)) {
     form_set_error('', t('A valid filename is required.'));
-  } elseif ( ! eximport_verify_filename($fname) ) {
+  } elseif ( ! eximport_verify_filename($filename) ) {
     form_set_error('', t('File must exist in import directory.'));
   }
 }
@@ -123,23 +149,23 @@ function eximport_admin_form_validate($form, &$form_state) {
 /**
  * Given filename, return location of file.
  *
- * @param string $fname Input filename.
- * @param array &$form_state Reference to array with the current form state.
+ * @param string $filename Input filename.
  * @return string Full path to file.
  */
-function eximport_get_fullpath($fname) {
-  return implode(DIRECTORY_SEPARATOR, array(DRUPAL_ROOT, 'import', $fname));
+function eximport_get_fullpath($filename) {
+  $path_parts = array(DRUPAL_ROOT, 'import', $filename);
+  return implode(DIRECTORY_SEPARATOR, $path_parts);
 }
 
 /**
  * Given filename, verify exists in file system.
  *
- * @param string $fname Input filename.
+ * @param string $filename Input filename.
  * @return boolean True if file exists, FALSE otherwise.
  * @see _form_validate
  */
-function eximport_verify_filename($fname) {
-  $target = eximport_get_fullpath($fname);
+function eximport_verify_filename($filename) {
+  $target = eximport_get_fullpath($filename);
   return file_exists($target);
 }
 
@@ -152,10 +178,9 @@ function eximport_verify_filename($fname) {
  * @see form_execute_handlers
  */
 function eximport_admin_form_submit($form, &$form_state) {
-  $fname = $form_state['values']['filename'];
-  $rc = FALSE;
+  $filename = $form_state['values']['filename'];
   
-  list($total, $added, $errors) = eximport_import_from_file($fname);
+  list($total, $added, $errors) = eximport_import_from_file($filename);
   
   if ($errors) {
     drupal_set_message(t('Import failed: ' 
@@ -166,8 +191,7 @@ function eximport_admin_form_submit($form, &$form_state) {
                          . $added . ' out of ' 
                          . $total . ' revisions imported.'));
   }
-  
-  $form_state['redirect'] = 'admin/modules';
+
   return;
 }
 
@@ -180,38 +204,74 @@ function eximport_admin_form_submit($form, &$form_state) {
  */
 function eximport_node_create($entry) {
   $rc = FALSE;
+  $nid = 0;
+  $new = FALSE;
+  
+  // First, try to see if we've imported a node with the same link
+  $path = path_load(array('alias' => $entry->old_link));
+  if ($path) {
+    $nid = $path['source'];
+  }
+  unset($path);
   
   // Construct the new node object.
-  $node = new stdClass();
-  $node->type = $entry->type;
-  node_object_prepare($node);
+  
+  if ($nid) {
+    // reset entity_load cache - be sure we have the latest version
+    $node = node_load($nid, NULL, TRUE);
+    $node->revision = '1';
+  } else {
+    $new = TRUE;
+    $node = new stdClass();
+    $node->type = $entry->type;
+    node_object_prepare($node);
+    $node->language = LANGUAGE_NONE;
+    $node->created = $entry->created;
+  }
+  
   $node->uid = $entry->uid;
   $node->title = $entry->title;
-  $node->body = $entry->body;
-  $node->teaser = $entry->teaser;
-  $node->filter = variable_get('filter_default_format', 1);
-  $node->format = FILTER_FORMAT_DEFAULT;
-  $node->language = '';
-  $node->revision = 1;
-  $node->promote = 0;
-  $node->created = $entry->created;
+  
   $node->changed = $entry->created;
-  $node->comment= 0;
-
-  $node->taxonomy = array('tags' => array('11' => ($data->categories)));
-  $rc = node_save($node);
+  
+  $node->body = $entry->body;
+  
+  $node->field_tags = $entry->field_tags;
+  node_save($node);
   
   $nid = $node->nid;
   
-  // Save the new alias based on old URL
-  if ($nid) {
-    path_set_alias('node/' . $nid, $entry->old_path, NULL, 'en');
+  if ($nid and $new) {
+    eximport_save_old_link($nid, $entry->old_link);
+    $rc = TRUE;
+  } elseif ($nid) {
+    $rc = TRUE;
   }
   
+  dvm($node);
   unset($node);
   unset($entry);
   
   return $rc;
+}
+
+/**
+ * Create a Drupal node and revision from input.
+ *
+ * @param integer $nid Node ID.
+ * @param string $old_link URL for old article location.
+ * @see path_inc
+ */
+function eximport_save_old_link($nid, $old_link) {
+  $path = array('alias' => $old_link, 'source' => "$nid");
+  
+  $exists = path_load("$nid");
+  if ($exists) {
+    $path['pid'] = $exists['pid'];
+  }
+  
+  path_save($path);
+  return;
 }
 
 /**
@@ -223,48 +283,65 @@ function eximport_node_create($entry) {
 function eximport_entry_create($atom_entry) {
   $entry = new stdClass();
   
-  dvp($atom_entry);
-  
+  // default to article content-type
   $entry->type = 'article';
-  
+    
+  // create our tag array
+  $categories = array();
   foreach ($atom_entry->category as $cat) {
     if ($cat['term'] == 'news') {
+      // if it is news, change content-type
       $entry->type = 'news';
-      break;
     }
+    $cat_entry = array('vid' => '1',
+                       'tid' => 'autocreate',
+                       'name' => (string)$cat['term']);
+    $categories[] = $cat_entry;
   }
   
-  $entry->uid = eximport_find_author($atom_entry->author->name);
-  $entry->title = $atom_entry->title;
-  $entry->body = $atom_entry->content;
+  $entry->field_tags = array(LANGUAGE_NONE => $categories);
   
-  if ($entry->type == 'news') {
-    $entry->teaser = eximport_get_teaser($atom_entry->content);
-  }
+  // author
+  $entry->uid = eximport_find_author((string)$atom_entry->author->name[0]);
+  
+  // duh
+  $entry->title = (string)$atom_entry->title;
+  
+  // create our body array
+  $teaser = eximport_get_teaser($atom_entry->content);
+  $body = (string)$atom_entry->content;
+  $entry->body = array(LANGUAGE_NONE =>
+                  array(0 =>
+                    array('summary' => $teaser,
+                          'value' => $body,
+                          'format' => filter_default_format()
+                          )));
   
   $entry->created = strtotime($atom_entry->updated);
   
-  // assume link is relative - not true for valid Atom feeds
-  $entry->old_path = $atom_entry->link;
+  $entry->old_link = (string)$atom_entry->link['href'];
+  
   return $entry;
 }
 
 /**
- * Existing eXtension 'news' articles have a teaser embeded.
- * Pull out teaser from HTML to enable us to put in teaser news node.
+ * Some existing eXtension articles have a teaser/summary embeded.
+ * Pull out teaser from HTML to enable us to put in new node.
  *
  * @param string $content HTML content for a 'news' article.
  * @return string HTML for teaser content only
  */
 function eximport_get_teaser($content) {
   $summary = "";
-  $find_sum = '#<div\ id="summary"\ class="printme\ toc">(.*?)</div>#m';
+  if ( ! empty($content)) {
+    $find_sum = '#<div\ id="summary"\ class="printme\ toc">(.*?)</div>#m';
   
-  $matches = array();
-  $found = preg_match($find_sum, $content, $matches);
+    $matches = array();
+    $found = preg_match($find_sum, $content, $matches);
   
-  if ($found) {
-    $summary = $matches[1];
+    if ($found) {
+      $summary = $matches[1];
+    }
   }
   
   return $summary;
@@ -278,14 +355,9 @@ function eximport_get_teaser($content) {
  * @see user_load_multiple
  */
 function eximport_find_author($exid) {
-  $account = FALSE;
   $id = 0;
-  
-  $accounts = user_load_by_name($exid);
-  if (empty($accounts)) {
-    $account = array_pop($accounts);
-  }
-  
+  $account = user_load_by_name($exid);
+
   if ($account) {
     $id = $account->uid;
   }
@@ -304,7 +376,9 @@ function eximport_import_from_file($filename) {
   $added = 0;
   $errors = 0;
   
-  $xml = simplexml_load_file($filename);
+  $target = eximport_get_fullpath($filename);
+  
+  $xml = simplexml_load_file($target);
   
   $total = count($xml->entry);
   

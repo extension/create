@@ -1,5 +1,5 @@
 <?php
-// $Id: whizzywig.inc,v 1.6 2010/04/02 14:24:44 sun Exp $
+// $Id: whizzywig.inc,v 1.7 2010/10/18 19:37:44 sun Exp $
 
 /**
  * @file
@@ -29,6 +29,9 @@ function wysiwyg_whizzywig_editor() {
       ),
       '56' => array(
         'js files' => array('whizzywig-56.js'),
+      ),
+      '60' => array(
+        'js files' => array('whizzywig-60.js'),
       ),
     ),
   );

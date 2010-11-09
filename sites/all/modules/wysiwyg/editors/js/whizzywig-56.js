@@ -1,4 +1,4 @@
-// $Id: whizzywig-56.js,v 1.2 2010/09/25 11:53:19 twod Exp $
+// $Id: whizzywig-56.js,v 1.4 2010/10/18 19:53:12 sun Exp $
 
 var wysiwygWhizzywig = { currentField: null, fields: {} };
 var buttonPath = null;
@@ -36,7 +36,9 @@ var o = function (id) {
   // Upon first access to "whizzy" + id, Whizzywig tries to access its IFRAME,
   // so we need to insert the editor into the DOM.
   if (id == 'whizzy' + wysiwygWhizzywig.currentField && wysiwygWhizzywig.fields[wysiwygWhizzywig.currentField]) {
-    jQuery('#' + wysiwygWhizzywig.currentField).after('<div id="' + wysiwygWhizzywig.currentField + '-whizzywig">' + w() + '</div>');
+    jQuery('#' + wysiwygWhizzywig.currentField).after('<div id="' + wysiwygWhizzywig.currentField + '-whizzywig"></div>');
+    // Iframe's .contentWindow becomes null in Webkit if inserted via .after().
+    jQuery('#' + wysiwygWhizzywig.currentField + '-whizzywig').html(w());
     // Prevent subsequent invocations from inserting the editor multiple times.
     wysiwygWhizzywig.fields[wysiwygWhizzywig.currentField] = '';
   }
@@ -72,7 +74,10 @@ Drupal.wysiwyg.editor.attach.whizzywig = function(context, params, settings) {
   wysiwygWhizzywig.fields[wysiwygWhizzywig.currentField] = '';
   // Whizzywig needs to have the width set 'inline'.
   $field = $('#' + params.field);
-  Drupal.wysiwyg.instances[params.field].originalWidth = $field.css('width');
+  var originalValues = Drupal.wysiwyg.instances[params.field];
+  originalValues.originalWidth = $field.css('width');
+  originalValues.originalColor = $field.css('color');
+  originalValues.originalZindex = $field.css('zIndex');
   $field.css('width', $field.width() + 'px');
 
   // Attach editor.
@@ -80,7 +85,7 @@ Drupal.wysiwyg.editor.attach.whizzywig = function(context, params, settings) {
   // Whizzywig fails to detect and set initial textarea contents.
   var instance = $('#whizzy' + params.field).get(0);
   if (instance) {
-    instance.contentWindow.document.body.innerHTML = $('#' + params.field).val();
+    instance.contentWindow.document.body.innerHTML = tidyD($field.val());
   }
 };
 
@@ -88,34 +93,43 @@ Drupal.wysiwyg.editor.attach.whizzywig = function(context, params, settings) {
  * Detach a single or all editors.
  */
 Drupal.wysiwyg.editor.detach.whizzywig = function(context, params) {
-  var detach = function (id) {
-    var instance = $('#whizzy' + whizzies[id]).get(0);
+  var detach = function (index) {
+    var id = whizzies[index];
+    var instance = $('#whizzy' + id).get(0);
     if (!instance) {
       return;
     }
-    var body = instance.contentWindow.document.body;
-    var $field = $('#' + whizzies[id]);
-    body.innerHTML = tidyH(instance.contentWindow.document);
+    var editingArea = instance.contentWindow.document;
+    var $field = $('#' + id);
+    // Whizzywig shows the original textarea in source mode.
+    if ($field.css('display') == 'block') {
+      editingArea.body.innerHTML = $field.val();
+    }
 
     // Save contents of editor back into textarea.
-    $field.val(window.get_xhtml ? get_xhtml(body) : body.innerHTML);
-    $field.val($field.val().replace(location.href + '#', '#'));
+    $field.val(tidyH(editingArea));
     // Remove editor instance.
-    $('#' + whizzies[id] + '-whizzywig').remove();
-    whizzies.splice(id, 1);
-    $field.css('width', Drupal.wysiwyg.instances[$field.attr('id')].originalWidth);
+    $('#' + id + '-whizzywig').remove();
+    whizzies.splice(index, 1);
+
+    // Restore original textarea styling.
+    var originalValues = Drupal.wysiwyg.instances[id];
+    $field.css('width', originalValues.originalWidth);
+    $field.css('color', originalValues.originalColor);
+    $field.css('zIndex', originalValues.originalZindex);
   };
 
   if (typeof params != 'undefined') {
-    for (var id in whizzies) {
-      if (whizzies[id] == params.field) {
-        detach(id);
+    for (var i = 0; i < whizzies.length; i++) {
+      if (whizzies[i] == params.field) {
+        detach(i);
+        break;
       }
     }
   }
   else {
-    for (var id in whizzies) {
-      detach(id);
+    while (whizzies.length > 0) {
+      detach(0);
     }
   }
 };

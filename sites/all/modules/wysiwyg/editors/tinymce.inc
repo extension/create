@@ -1,5 +1,5 @@
 <?php
-// $Id: tinymce.inc,v 1.40 2010/09/25 00:12:34 twod Exp $
+// $Id: tinymce.inc,v 1.44 2010/10/18 19:56:44 sun Exp $
 
 /**
  * @file
@@ -294,11 +294,9 @@ function wysiwyg_tinymce_settings($editor, $config, $theme) {
   unset($settings['buttons']);
 
   // Convert the config values into the form expected by TinyMCE.
-  foreach ($settings as $key => $value) {
-    if (is_bool($value)) {
-      continue;
-    }
-    if (is_array($value)) {
+  $csv_settings = array('plugins', 'extended_valid_elements', 'theme_advanced_buttons1', 'theme_advanced_buttons2', 'theme_advanced_buttons3');
+  foreach ($csv_settings as $key) {
+    if (isset($settings[$key]) && is_array($settings[$key])) {
       $settings[$key] = implode(',', $settings[$key]);
     }
   }
@@ -410,7 +408,7 @@ function wysiwyg_tinymce_plugins($editor) {
     'advimage' => array(
       'path' => $editor['library path'] . '/plugins/advimage',
       'extensions' => array('advimage' => t('Advanced image')),
-      'extended_valid_elements' => array('img[src|alt|title|align|width|height|hspace|vspace|border|style|class|onmouseover|onmouseout|id|name]'),
+      'extended_valid_elements' => array('img[src|alt|title|align|width|height|usemap|hspace|vspace|border|style|class|onmouseover|onmouseout|id|name]'),
       'url' => 'http://wiki.moxiecode.com/index.php/TinyMCE:Plugins/advimage',
       'internal' => TRUE,
       'load' => TRUE,
@@ -580,11 +578,29 @@ function wysiwyg_tinymce_plugins($editor) {
       );
     }
   }
+  if (version_compare($editor['installed version'], '3.2.5', '>=')) {
+    $plugins['autoresize'] = array(
+      'path' => $editor['library path'] . '/plugins/autoresize',
+      'extensions' => array('autoresize' => t('Auto resize')),
+      'url' => 'http://wiki.moxiecode.com/index.php/TinyMCE:Plugins/autoresize',
+      'internal' => TRUE,
+      'load' => TRUE,
+    );
+  }
   if (version_compare($editor['installed version'], '3.3', '>=')) {
     $plugins['advlist'] = array(
       'path' => $editor['library path'] . '/plugins/advlist',
       'extensions' => array('advlist' => t('Advanced list')),
       'url' => 'http://wiki.moxiecode.com/index.php/TinyMCE:Plugins/advlist',
+      'internal' => TRUE,
+      'load' => TRUE,
+    );
+  }
+  if (version_compare($editor['installed version'], '3.2.6', '>=')) {
+    $plugins['wordcount'] = array(
+      'path' => $editor['library path'] . '/plugins/wordcount',
+      'extensions' => array('wordcount' => t('Word count')),
+      'url' => 'http://wiki.moxiecode.com/index.php/TinyMCE:Plugins/wordcount',
       'internal' => TRUE,
       'load' => TRUE,
     );

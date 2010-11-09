@@ -1,4 +1,4 @@
-// $Id: CHANGELOG.txt,v 1.202 2010/09/25 11:53:19 twod Exp $
+// $Id: CHANGELOG.txt,v 1.213 2010/10/24 22:05:07 sun Exp $
 
 Wysiwyg x.x-x.x, xxxx-xx-xx
 ---------------------------
@@ -6,6 +6,9 @@ Wysiwyg x.x-x.x, xxxx-xx-xx
 
 Wysiwyg 7.x-3.x, xxxx-xx-xx
 ---------------------------
+#931374 by TwoD, ksenzee: Updated for text format schema change.
+#826914 by catch, sun: Added database cache for wysiwyg_profile_load().
+#941230 by sun: Fixed missing Configuration link on Modules page.
 #739558 by sun, TwoD: Updated for new #type text_format.
 #612954 by TwoD: Fixed broken editor settings.
 #585932 by sun: Ported to Drupal 7.
@@ -13,6 +16,14 @@ Wysiwyg 7.x-3.x, xxxx-xx-xx
 
 Wysiwyg 6.x-3.x, xxxx-xx-xx
 ---------------------------
+#803466 by hotspoons: Fixed TinyMCE image map support in advimage plugin.
+#922436 by TwoD: Fixed Whizzywig Uncaught TypeError in Chrome.
+#922520 by TwoD: Fixed Whizzywig is not detached properly.
+#907186 by TwoD: Fixed Whizzywig v60+ compatibility.
+#765292 by TwoD: Added TinyMCE WordCount plugin.
+#768726 by TwoD: Added TinyMCE AutoResize plugin.
+#781086 by TwoD: Fixed TinyMCE plugin options merged wrongly.
+#767628 by TwoD: Fixed 'The version of markItUp could not be detected' error.
 #651490 by TwoD: Fixed Whizzywig width.
 #715228 by TwoD: Fixed TinyMCE image popups not launching for existing images.
 #606952 by TwoD: Fixed inserting content in fullscreen TinyMCE.

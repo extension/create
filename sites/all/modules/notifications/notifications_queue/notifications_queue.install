@@ -1,0 +1,125 @@
+<?php
+// $Id: notifications.install,v 1.4.2.5.2.6.2.2.4.9 2010/06/01 11:00:12 jareyero Exp $
+
+/**
+ * Implementation of hook_schema()
+ */
+function notifications_queue_schema() {
+  $schema['notifications_queue'] = array(
+    'description' => 'Table to store notifications produced by subscriptions, to be processed on cron.',
+    'fields' => array(
+      'sqid' => array(
+        'description' => 'Unique row id',
+        'type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'disp-width' => '10',
+      ),
+      'name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The queue name.',
+      ),
+      'expire' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Timestamp when the claim lease expires on the item.',
+      ),
+      'created' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Timestamp when the item was created.',
+      ),
+      'data' => array(
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'big',
+        'serialize' => TRUE,
+        'description' => 'The arbitrary data for the item.',
+      ),
+      'eid' => array(
+        'description' => 'The {notifications_event}.eid of the Event producing this notification.',
+        'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '11',
+      ),
+      'sid' => array(
+        'description' => 'The {notifications_subscription}.sid of the Subscription producing this notification.',
+        'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '11',
+      ),
+      'uid' => array(
+        'description' => 'The {user}.uid of the user this notification is for.',
+        'type' => 'int', 'not null' => FALSE, 'disp-width' => '11',
+      ),
+      'language' => array(
+        'description' => 'Language, currently unused.',
+        'type' => 'varchar', 'length' => '255', 'not null' => TRUE, 'default' => ''
+      ),
+      'type' => array(
+        'description' => 'The {notifications_subscription}.type of the Subscription producing this notification.',
+        'type' => 'varchar', 'length' => '255', 'not null' => FALSE,
+      ),
+      'send_interval' => array(
+        'description' => 'Send interval for digesting notifications.',
+        'type' => 'int', 'not null' => FALSE, 'disp-width' => '11',
+      ),
+      'send_method' => array(
+        'description' => 'Messaging send method',
+        'type' => 'varchar', 'length' => '255', 'not null' => FALSE,
+      ),
+      'send_time' => array(
+        'description' => 'Unix timestamp, when this notification is to be sent, for scheduled notifications.',
+        'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10',
+      ),
+      'conditions' => array(
+        'description' => 'The {notifications_subscription}.conditions counter, just for query convenience.',
+        'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10',
+      ),
+      'destination' => array(
+        'description' => 'Optional destination for anonymous subscriptions.',
+        'type' => 'varchar', 'length' => '255', 'not null' => FALSE,
+      ),
+      'mdid'    => array(      
+        'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE,
+        'description' => 'Unique destination id.',
+      ),
+    ),
+    'primary key' => array('sqid'),
+    'indexes' => array(
+      'name_created' => array('name', 'created'),
+      'expire' => array('expire'),
+    ),
+  );
+
+  $schema['notifications_sent'] = array(
+    'description' => 'Keeps track of when the last notification was sent for a user, method, interval.',
+    'fields' => array(
+      'mdid'    => array(      
+        'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE,
+        'description' => 'Unique destination id.',
+      ),
+      'uid' => array(
+        'description' => 'The {user}.uid this row belongs to.',
+        'type' => 'int', 'not null' => TRUE, 'default' => 0, 'disp-width' => '11'
+      ),
+      'send_interval' => array(
+        'description' => 'The Notifications send interval.',
+        'type' => 'int', 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'
+      ),
+      'sent' => array(
+        'description' => 'Unix timestamp, when the last notification was sent.',
+        'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '10'
+      ),
+      'counter' => array(
+        'description' => 'Keeps a count of the notifications sent.',
+        'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '11'
+      ),
+    ),
+    'primary key' => array('mdid', 'send_interval'),
+  );
+  return $schema;  
+}
+
+/**
+ * Update from 6.x to 7.x
+ */
+// This is a new module 

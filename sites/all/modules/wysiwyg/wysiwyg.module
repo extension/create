@@ -1,5 +1,5 @@
 <?php
-// $Id: wysiwyg.module,v 1.45 2010/03/20 14:54:29 sun Exp $
+// $Id: wysiwyg.module,v 1.46 2010/10/18 21:57:48 sun Exp $
 
 /**
  * @file
@@ -575,12 +575,16 @@ function wysiwyg_get_css() {
 function wysiwyg_profile_load($format) {
   static $profiles;
 
-  if (!isset($profiles) || !array_key_exists($format, $profiles)) {
-    $result = db_query('SELECT format, editor, settings FROM {wysiwyg} WHERE format = :format', array(':format' => $format));
+  if ($cached = cache_get('wysiwyg_profiles')) {
+    $profiles = $cached->data;
+  }
+  else {
+    $result = db_query('SELECT format, editor, settings FROM {wysiwyg}');
     foreach ($result as $profile) {
       $profile->settings = unserialize($profile->settings);
       $profiles[$profile->format] = $profile;
     }
+    cache_set('wysiwyg_profiles', $profiles);
   }
 
   return (isset($profiles[$format]) ? $profiles[$format] : FALSE);
