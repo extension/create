@@ -1,0 +1,13 @@
+/* $Id*/
+CHANGELOG for field_group for Drupal 7
+
+Views 7.x-1.x-dev
+    o #960916 Fixed notice on for reference on group in field_group_settings.
+    o #961106 Fixed notice on entity type and bundle check.
+    o #962072 by mori: Improve CSS for horizontal tabs & accordion.
+    o Changed Fieldgroup API: defaults and instance_settings are now merged.
+    o Changed save action so everything is gathered during form_state to 
+      postpone saving until the save button is hit.
+    o Changed some important variable name, so it makes more sense and easier to read.
+    o Add basic crud functions.
+    
