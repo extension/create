@@ -1183,16 +1183,16 @@ function _forum_user_last_visit($nid) {
 function _forum_get_topic_order($sortby) {
   switch ($sortby) {
     case 1:
-      return array('field' => 'ncs.last_comment_timestamp', 'sort' => 'desc');
+      return array('field' => 'f.last_comment_timestamp', 'sort' => 'desc');
       break;
     case 2:
-      return array('field' => 'ncs.last_comment_timestamp', 'sort' => 'asc');
+      return array('field' => 'f.last_comment_timestamp', 'sort' => 'asc');
       break;
     case 3:
-      return array('field' => 'ncs.comment_count', 'sort' => 'desc');
+      return array('field' => 'f.comment_count', 'sort' => 'desc');
       break;
     case 4:
-      return array('field' => 'ncs.comment_count', 'sort' => 'asc');
+      return array('field' => 'f.comment_count', 'sort' => 'asc');
       break;
   }
 }
