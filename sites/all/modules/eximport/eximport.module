@@ -12,6 +12,8 @@
 // require 'includes/bootstrap.inc';
 // drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
 
+require_once 'simplehtmldom/simple_html_dom.php';
+
 /**
  *
  * Import Plan
@@ -285,10 +287,16 @@ function eximport_entry_create($atom_entry) {
     
   // create our tag array
   $categories = array();
+  $entry->published = FALSE;
+  
   foreach ($atom_entry->category as $cat) {
     if ($cat['term'] == 'news') {
       // if it is news, change content-type
       $entry->type = 'news';
+    }
+    if ($cat['term'] == 'published') {
+       $entry->published = TRUE;
+       continue;
     }
     $cat_entry = array('vid' => '1',
                        'tid' => 'autocreate',
@@ -392,4 +400,43 @@ function eximport_import_from_file($filename) {
   }
   
   return array($total, $added, $errors);
+}
+
+/**
+ * Process all revisions of imported nodes.
+ *
+ * @param string @url_pattern Pattern of nodes original URLs
+ * @return array Total number, number added, number errors.
+ * @see SimpleXML
+ */
+function eximport_rewrite_imported_urls($url_pattern) {
+   // get imported node list (list of nids)
+   $nids = eximport_load_imported_node_list();
+   // loop thru all nodes and get all revisions
+   foreach $nids as $nid {
+      // create fake node to load revision list
+      $fakenode = new stdClass();
+      $fakenode->nid = $nid;
+      $revisions = node_revision_list($fakenode);
+      foreach $revisions as $vid {
+         $node = node_load($nid, $vid);
+         eximport_rewrite_urls($node);
+         eximport_node_update_revision($node);
+      }
+   }
+   return;
+}
+
+function eximport_node_update_revision(&$node) {
+   
+   $sql = "";
+   return;
+}
+
+function eximport_rewrite_urls(&$node) {
+   $html = str_get_html($node->body);
+   
+   $node->body = $html;
+   unset($html);
+   return;
 }
