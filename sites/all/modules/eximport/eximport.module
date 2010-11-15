@@ -405,7 +405,7 @@ function eximport_import_from_file($filename) {
 /**
  * Process all revisions of imported nodes.
  *
- * @param string @url_pattern Pattern of nodes original URLs
+ * @param string $url_pattern Pattern of nodes original URLs
  * @return array Total number, number added, number errors.
  * @see SimpleXML
  */
@@ -427,16 +427,72 @@ function eximport_rewrite_imported_urls($url_pattern) {
    return;
 }
 
+/**
+ * Update the modified body and summary of a node.
+ * WARNING: not using API, direct DB update.
+ *
+ * @param object $node Reference to a node object
+ * @return N/A
+ */
 function eximport_node_update_revision(&$node) {
+   $fields = array(
+      'body_value' => $node->body[LANGUAGE_NONE][0]['value'],
+      'body_summary' => $node->body[LANGUAGE_NONE][0]['summary']
+   );
    
-   $sql = "";
+   // update in the revision history
+   db_update('field_revision_body')
+     ->fields($fields)
+     ->condition('revision_id', $node->vid)
+     ->execute();
+   
+   // also update latest version
+   db_update('field_data_body')
+     ->fields($fields)
+     ->condition('revision_id', $node->vid)
+     ->execute();
+   
    return;
 }
 
+/**
+ * Rewrite the URLs in the body and summary of a node.
+ *
+ * @param object $node Reference to a node object
+ * @return N/A
+ */
 function eximport_rewrite_urls(&$node) {
-   $html = str_get_html($node->body);
+   $body = str_get_html($node->body[LANGUAGE_NONE][0]['value']);
+   $summary = str_get_html($node->body[LANGUAGE_NONE][0]['summary']);
    
-   $node->body = $html;
-   unset($html);
+   // @JER now the fun part
+   foreach($body->find('a') as $element) {
+      eximport_process_anchor($element);
+   }
+   
+   foreach($summary->find('a') as $element) {
+      eximport_process_anchor($element);
+   }
+   
+   $node->body[LANGUAGE_NONE][0]['value'] = $body;
+   $node->body[LANGUAGE_NONE][0]['summary'] = $summary;
+   unset($body);
+   unset($summary);
+   
+   return;
+}
+
+/**
+ * Rewrite the URLs in an anchor element.
+ *
+ * @param object $element Reference to an anchor element object
+ * @return N/A
+ */
+function eximport_process_anchor(&$element) {
+   
+   if (! empty($element->href)) {
+      
+   }
+   
    return;
 }
