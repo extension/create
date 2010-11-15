@@ -413,12 +413,12 @@ function eximport_rewrite_imported_urls($url_pattern) {
    // get imported node list (list of nids)
    $nids = eximport_load_imported_node_list();
    // loop thru all nodes and get all revisions
-   foreach $nids as $nid {
+   foreach ($nids as $nid) {
       // create fake node to load revision list
       $fakenode = new stdClass();
       $fakenode->nid = $nid;
       $revisions = node_revision_list($fakenode);
-      foreach $revisions as $vid {
+      foreach ($revisions as $vid) {
          $node = node_load($nid, $vid);
          eximport_rewrite_urls($node);
          eximport_node_update_revision($node);
