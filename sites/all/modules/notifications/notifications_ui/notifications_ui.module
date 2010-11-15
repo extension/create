@@ -84,35 +84,6 @@ function notifications_ui_access_page($type, $account) {
 }
 
 /**
- * Implementation of hook_notifications_event().
- * 
- * We need to handle some things when an event is triggered on form subsmission
- */
- function notifications_ui_notifications_event($op, $event = NULL, $account = NULL) {
-  if ($op == 'trigger' && $event->type == 'node') { 
-    if (($node = $event->get_object('node')) && isset($node->subscriptions)) {
-      if ($event->action == 'insert') {
-        // On insert some field information will be missing, we need to recreate it.
-        // @todo Check this one, we may not need it anymore
-        foreach ($node->subscriptions['params'] as $i => $subscriptions) {
-          foreach ($subscriptions->fields as $key => $value) {
-            if (!$value && isset($event->params[$key])) {
-              $event->node->subscriptions['params'][$i]->fields[$key] = $event->params[$key];
-            }
-          }
-        }
-      }
-      $form_state['values']['subscriptions'] = $node->subscriptions;
-      notifications_subscriptions_options_form_submit('', $form_state);
-    }
-    elseif (($comment = $event->get_object('comment')) && isset($comment->subscriptions)) {
-      $form_state['values']['subscriptions'] = $comment->subscriptions;
-      notifications_subscriptions_options_form_submit('', $form_state);      
-    }
-  }
-}
-
-/**
  * Check whether this subscription type is enabled / disabled for the UI
  * 
  * @param $type

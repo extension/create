@@ -1,5 +1,5 @@
 <?php
-// $Id: markitup.inc,v 1.10 2010/10/17 21:06:19 twod Exp $
+// $Id: markitup.inc,v 1.11 2010/11/13 18:31:19 sun Exp $
 
 /**
  * @file
@@ -152,6 +152,7 @@ function wysiwyg_markitup_settings($editor, $config, $theme) {
       'call' => 'preview',
     ),
   );
+  $settings['markupSet'] = array();
   if (!empty($config['buttons'])) {
     foreach ($config['buttons'] as $plugin) {
       foreach ($plugin as $button => $enabled) {
@@ -160,9 +161,6 @@ function wysiwyg_markitup_settings($editor, $config, $theme) {
         }
       }
     }
-  }
-  else {
-    $settings['markupSet'] = $default_buttons;
   }
 
   return $settings;

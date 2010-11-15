@@ -88,6 +88,7 @@ function notifications_scheduler_admin_send_form($form, &$form_state, $action) {
     '#type' => 'item',
     '#markup' => drupal_render($subject),
   );
+
   // @todo Is this text safe for display without later filtering?
   $body = $template->build_body();
   $form['message']['body'] = array(

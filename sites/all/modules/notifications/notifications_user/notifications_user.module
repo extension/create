@@ -29,7 +29,7 @@ function notifications_user_menu() {
     'type' => MENU_LOCAL_TASK,
     'title' => 'Subscriptions',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('notifications_user_manage_subscriptions', 1),
+    'page arguments' => array('notifications_user_manage_subscriptions_form', 1),
     'access callback' => 'notifications_user_access',
     'access arguments' => array(1, 'maintain'),
     'file' => 'notifications_user.pages.inc',

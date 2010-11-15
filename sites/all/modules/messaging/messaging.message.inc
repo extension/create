@@ -71,12 +71,8 @@ class Messaging_Message {
   public $results = array();
   // Rendered message parts
   protected $text;
-  // Unrendered message parts
-  public $elements = array(
-    '#type' => 'messaging_message',
-    'subject' => array('#type' => 'messaging_subject'),
-    'body' => array('#type' => 'messaging_body'),
-  );
+  // Template for this message text
+  protected $template;
   // Files linked to this message, object array indexed by 'fid'
   public $files;
   // Processing flags. They are 1 if the message is:
@@ -190,6 +186,22 @@ class Messaging_Message {
     return $this->results;
   }
   
+  /**
+   * Set message template
+   */
+  function set_template($template) {
+    $this->template = $template;
+  }
+  /**
+   * Get message template
+   */
+  function get_template() {
+    if (!isset($this->template)) {
+      // We don't have a template yet, create one
+      $this->template = new Messaging_Message_Template();
+    }
+    return $this->template;
+  }
   /**
    * Set user, if the message is intended for a single user try to find suitable method
    */
@@ -305,13 +317,19 @@ class Messaging_Message {
    * Get rendered subject
    */
   function get_subject() {
-    return $this->get_text('subject');
+    return $this->get_text()->render(array('subject'));
   }
   /**
    * Get rendered body
    */
   function get_body() {
-    return $this->get_text('body');
+    return $this->get_text()->render(array('header', 'content', 'footer'));
+  }
+  /**
+   * Get message content rendered
+   */
+  function get_content() {
+    return $this->get_text()->render(array('content'));
   }
   /**
    * Get language object
@@ -325,40 +343,13 @@ class Messaging_Message {
     }
   }
   /**
-   * Get rendered text
+   * Get template text
    */
-  function get_text($key, $method = NULL) {
-    $method = $method ? $method : $this->method;
-    if (!isset($this->text[$method])) {
+  function get_text() {
+    if (!isset($this->text[$this->method])) {
       $this->render();
     }
-    return isset($this->text[$method][$key]) ? $this->text[$method][$key] : '';
-  }
-  
-  /**
-   * Get unrendered text parts
-   */
-  function get_element($key = NULL) {
-    if ($key) {
-      return isset($this->elements[$key]) ? $this->elements[$key] : NULL;
-    }
-    else {
-      return $this->elements;
-    }
-  }
-  /**
-   * Set text array, replace in message text
-   */
-  function set_element($name, $element) {
-    $this->elements[$name] = $this->prepare_element($element);
-    return $this;
-  }
-  /**
-   * Add element array, merge in message text
-   */
-  function add_element($name, $element) {
-    $this->elements[$name] = array_merge($this->elements[$name], $this->prepare_element($element));
-    return $this;
+    return $this->text[$this->method];
   }
   /**
    * Get message files
@@ -733,8 +724,11 @@ class Messaging_Message {
     switch ($name) {
       case 'subject':
       case 'body':
+      case 'content';
+      case 'header':
+      case 'footer':
         // Add text elements the right way
-        $this->add_element($name, $value);
+        $this->get_template()->add_item($name, $value);
     }
   }
   // Magic function, format as string

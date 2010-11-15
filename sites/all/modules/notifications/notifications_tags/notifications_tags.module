@@ -179,23 +179,38 @@ function notifications_tags_notifications_object_node($op, $node, $account = NUL
     case 'subscriptions':
       // Get all available subscriptions to current node
       $options = array();
-      if (!$account || user_access('subscribe to taxonomy terms', $account)) {
-        $vocabs = notifications_tags_vocabulary_list();
-        if (notifications_content_type_enabled($node->type, 'taxonomy') && !empty($node->taxonomy)) {
-          foreach ($node->taxonomy as $tid => $term) {
-            if (array_key_exists($term->vid, $vocabs)) {
-              $options[] = array(
-                'name' => t('Posts tagged with @name', array('@name' => $term->name)),
-                'type' => 'taxonomy',
-                'fields' => array('tid' => $term->tid),
-                'module' => 'notifications', // The module that will handle these subscriptions
-              );
+      if (notifications_subscription_type_enabled('taxonomy_term') && (!$account || user_access('subscribe to taxonomy terms', $account))) {
+        $vocabs = notifications_tags_vocabulary_enabled();
+        if ($vocabs && notifications_content_type_enabled($node->type, 'taxonomy_term') && ($terms = notifications_tags_node_terms($node))) {
+          foreach ($terms as $term) {
+            if (in_array($term->vid, $vocabs)) {
+              $options[] = notifications_subscription('taxonomy_term')
+                ->add_term($term);
             }
           }
         }
       }
       return $options;
   }
+}
+
+/**
+ * Get terms from node as notifications objects
+ */
+function notifications_tags_node_terms($node) {
+  $terms = array();
+  foreach (field_info_instances('node', $node->type) as $field_instance) {
+    if (!empty($node->{$field_instance['field_name']}) && $field = field_info_field($field_instance['field_name'])) {
+      if ($field['type'] === 'taxonomy_term_reference') {
+        $langcode = field_language('node', $node, $field_instance['field_name']);
+        foreach ($node->{$field_instance['field_name']}[$langcode] as $item) {
+          $term = isset($item['taxonomy_term']) ? $item['taxonomy_term'] : taxonomy_term_load($item['tid']);
+          $terms[$term->tid] = $term;
+        }
+      }
+    }
+  }
+  return $terms;
 }
 
 /**
@@ -238,14 +253,14 @@ function notifications_tags_notifications_object_taxonomy_vocabulary($op, $vocab
 /**
  * Implements hook_taxonomy_term_delete().
  */
-function notifications_tabs_taxonomy_term_delete($term) {
+function notifications_tags_taxonomy_term_delete($term) {
   Notifications_Subscription::delete_multiple(array(), array('term:tid' => $term->tid), FALSE);
 }
 
 /**
  * Implements hook_taxonomy_vocabulary_delete().
  */
-function notifications_tabs_taxonomy_vocabulary_delete($vocabulary) {
+function notifications_tags_taxonomy_vocabulary_delete($vocabulary) {
   Notifications_Subscription::delete_multiple(array(), array('vocabulary:vid' => $vocabulary->tid), FALSE);
 }
 

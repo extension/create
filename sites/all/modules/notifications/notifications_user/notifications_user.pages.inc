@@ -67,18 +67,18 @@ function notifications_user_overview($account) {
 /**
  * Menu callback: user subscriptions management
  */
-function notifications_user_manage_subscriptions($form_state, $account) {
-  module_load_include('inc', 'notifications', 'notifications.pages');
+function notifications_user_manage_subscriptions_form($form, &$form_state, $account) {
+  module_load_include('manage.inc', 'notifications');
   if (isset($form_state['values']['operation']) && $form_state['values']['operation'] == 'delete') {
-    $form = notifications_multiple_delete_confirm($form_state, array_filter($form_state['values']['subscriptions']));
-    return $form;
+    $list = Notifications_Subscription_List::build_sids(array_filter($form_state['values']['subscriptions']));
+    return notifications_subscription_list_form($form, $form_state, 'delete', $list);
   }
-  $form = notifications_subscriptions_filter_form();
+  $form = notifications_manage_subscriptions_filter_form();
   $form['filters']['#title'] = t('Filter');
   // Display collapsed only when no filters set
   $form['filters'] += array('#collapsible' => TRUE, '#collapsed' => empty($_SESSION['subscriptions_overview_filter']));
-  $form['#theme'] = 'notifications_subscriptions_filter_form';
-  $form['admin']  = notifications_manage_subscriptions_form($account);
+  $form['#theme'] = 'notifications_manage_subscriptions_filter_form';
+  $form['admin']  = notifications_manage_subscriptions_form(array('uid' => $account->uid));
 
   return $form;
 }
@@ -101,8 +101,8 @@ function notifications_user_manage_subscriptions($form_state, $account) {
 function notifications_user_subscription_list_form($form, &$form_state, $type, $account) {
   if (isset($form_state['values']['op']) && $form_state['values']['op'] == t('Delete')) {
     if ($selected = array_filter($form_state['values']['subscriptions']['select'])) {
-      $form = notifications_multiple_delete_confirm($form_state, $selected);
-      return $form;      
+      $list = Notifications_Subscription_List::build_sids(array_keys($selected));
+      return notifications_subscription_list_form($form, $form_state, 'delete', $list);     
     }
   }
   $account = messaging_user_object($account);

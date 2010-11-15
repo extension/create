@@ -102,21 +102,19 @@ function notifications_content_help($path, $arg) {
     $output .= '<p>'. t('On this page you can set which of the available subscription types are allowed. Alternatively you can select the <em>Set up for each content type</em> option and use the <a href="@content-type-settings">Administer Content types</a> page. These settings will be combined with permissions and other options (See user interface options if enabled) to determine which subscriptions will be finally available for users.', array('@content-type-settings' => url( 'admin/content/types'))) .'</p>';
     return $output;
   }
-  elseif (array($arg[0], $arg[1], $arg[2], $arg[3]) == array('admin', 'messaging', 'template', 'edit') && ($group = $arg[4])) {
-    switch ($group) {
-      case 'notifications-digest-node-nid':
-      case 'notifications-digest-node-type':
-        $help = '<p>' . t('This is the format for each digest group. A message may consist on one or many of these groups:') . '</p>';
-        $help .= '<small><pre>';
-        $help .= t('Group title') . "\n";
-        $help .= '- ' . t('Digest line.'). "\n";
-        $help .= '- ' . t('Digest line.'). "\n";
-        $help .= '-  ...'. "\n";
-        $help .= t('Group footer') . "\n";
-        $help .= '</pre></small>';
-        return $help;     
-    }    
-  }
+}
+
+/**
+ * Implements hook_trigger_info().
+ */
+function notifications_content_trigger_info() {
+  return array(
+    'node' => array(
+      'node_publish' => array(
+        'label' => t('After content is published, either created public or updated status'),
+      ),
+    ),
+  );
 }
 
 /**
@@ -286,6 +284,10 @@ function notifications_content_notifications($op) {
         'title' => t('Comment'),
         'class' => 'Notifications_Comment',
       );
+      $types['node_type'] = array(
+        'title' => t('Content type'),
+        'class' => 'Notifications_Node_Type',
+      );
       return $types;
 
     case 'event types':
@@ -295,7 +297,7 @@ function notifications_content_notifications($op) {
         'title' => t('Node post'),
         'class' => 'Notifications_Node_Post_Event',
         'template' => 'notifications_content-node-insert',
-        'triggers' => array('node' => array('node_insert', 'node_update')),
+        'triggers' => array('node' => array('node_publish', 'node_insert', 'node_update')),
         'actions' => array('notifications_content_node_post_action'),
       );
       $types['node-update'] = array(
@@ -372,7 +374,7 @@ function notifications_content_action_info() {
       'label' => t('Send notifications for new content (if published)'),
       'configurable' => FALSE,
       'behavior' => array('sends_notification'),
-      'triggers' => array('node_insert', 'node_update'),
+      'triggers' => array('node_publish', 'node_insert', 'node_update'),
     ),
     'notifications_content_node_update_action' => array(
       'type' => 'notifications',
@@ -383,7 +385,7 @@ function notifications_content_action_info() {
     ),
     'notifications_content_comment_action' => array(
       'type' => 'notifications',
-      'label' => t('Send notifications for comment'),
+      'label' => t('Send notifications for comment (if published)'),
       'configurable' => FALSE,
       'behavior' => array('sends_notification'),
       'triggers' => array('comment_insert', 'comment_update'),
@@ -399,7 +401,7 @@ function notifications_content_action_info() {
 function notifications_content_node_post_action($node, $context = array()) {
   $node = $context['node'];
   // Just for new nodes that are published and updated nodes that change status
-  if (!empty($node->status) && ($context['hook'] == 'node_insert' || $context['hook'] == 'node_update' && empty($node->notification_status))) { 
+  if (!empty($node->status)) { 
     notifications_content_node_event('post', $node)->trigger();
   }
 }
@@ -581,6 +583,26 @@ function notifications_content_node_load($nodes, $types) {
     $node->notifications_status = $node->status;
   }
 }
+
+/**
+ * Implements hook_node_insert().
+ */
+function notifications_content_node_insert($node) {
+  if (!empty($node->status)) {
+    _trigger_node($node, 'node_publish');
+  }
+}
+
+/**
+ * Implements hook_node_update().
+ */
+function notifications_content_node_update($node) {
+  // Content that was previously published has been updated.
+  if (!empty($node->status) && empty($node->notifications_status)) {
+    _trigger_node($node, 'node_publish');
+  }
+}
+
 /**
  * Implementation of hook_node_delete()
  */

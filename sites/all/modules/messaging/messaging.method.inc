@@ -130,7 +130,8 @@ class Messaging_Send_Method extends Messaging_Method {
   public $queue = FALSE;
   // Whether we want all messages logged for this method
   public $log = FALSE;
-  
+  // Default format for message rendering
+  public $format = MESSAGING_FORMAT_HTML;  
   /**
   * Get address type
   */
@@ -175,43 +176,13 @@ class Messaging_Send_Method extends Messaging_Method {
   }
 
   /**
-   * Renders full message with header and body
+   * Prepare template for this method.
+   * 
+   * Here we can clone and alter the template or just return the same
    */  
   function message_render($message) {
-    $elements = $message->get_element();
-    $text = array();
-    foreach (element_children($elements) as $name) {
-      $method = method_exists($this, 'render_' . $name) ? 'render_' . $name : 'render_text';
-      $text[$name] = $this->$method($elements[$name]);
-    }
-    return $text;
+    return $message->get_template();
   }
-  /**
-   * Render message subject
-   */
-  function render_subject($text) {
-    return $this->render_text($text, array('#type' => 'messaging_subject'));
-  }
-  /**
-   * Render message body
-   */
-  function render_body($text) {
-    return $this->render_text($text, array('#type' => 'messaging_body'));
-  }
-  
-  /**
-   * Render message text
-   */
-  function render_text($text, $defaults = array('#type' => 'messaging_text')) {
-    if (is_array($text)) {
-      $text += $defaults;
-      return drupal_render($text);
-    }
-    else {
-      return $text ? $text : '';
-    }
-  }
-
   /**
    * Send message to a single or multiple destination
    */

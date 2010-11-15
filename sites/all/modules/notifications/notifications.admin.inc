@@ -10,11 +10,14 @@ require_once drupal_get_path('module', 'notifications') . '/notifications.manage
 function notifications_admin_manage_subscriptions($form, &$form_state) {
   module_load_include('manage.inc', 'notifications');
   if (isset($form_state['values']['operation']) && $form_state['values']['operation'] == 'delete') {
-    return notifications_manage_multiple_delete_confirm($form_state, array_filter($form_state['values']['subscriptions']));
+   if ($selected = array_filter($form_state['values']['subscriptions']['select'])) { // $form_state['values']['subscriptions']
+      $list = Notifications_Subscription_List::build_sids(array_keys($selected));
+      return notifications_subscription_list_form($form, $form_state, 'delete', $list);     
+    }
   }
-  //$form['filter'] = notifications_manage_subscriptions_filter_form(TRUE);
+  $form['filter'] = notifications_manage_subscriptions_filter_form(TRUE);
   $form['#submit'][] = 'notifications_manage_subscriptions_filter_form_submit';
-  //$form['#theme'] = 'notifications_subscriptions_filter_form';
+  $form['#theme'] = 'notifications_manage_subscriptions_filter_form';
   $form['admin']  = notifications_manage_subscriptions_form();
 
   return $form;

@@ -1,5 +1,5 @@
 <?php
-// $Id: wysiwyg.admin.inc,v 1.25 2010/10/24 22:05:07 sun Exp $
+// $Id: wysiwyg.admin.inc,v 1.27 2010/11/13 19:44:05 sun Exp $
 
 /**
  * @file
@@ -94,7 +94,7 @@ function wysiwyg_profile_form($form, &$form_state, $profile) {
     '#type' => 'select',
     '#title' => t('Language'),
     '#default_value' => $profile->settings['language'],
-    '#options' => drupal_map_assoc(array('ar', 'ca', 'cs', 'cy', 'da', 'de', 'el', 'en', 'es', 'fa', 'fi', 'fr', 'fr_ca', 'he', 'hu', 'is', 'it', 'ja', 'ko', 'nb', 'nl', 'nn', 'pl', 'pt', 'pt_br', 'ru', 'ru_KOI8-R', 'ru_UTF-8', 'si', 'sk', 'sv', 'th', 'tr', 'uk', 'zh_cn', 'zh_tw', 'zh_tw_utf8')),
+    '#options' => drupal_map_assoc(array('ar', 'ca', 'cs', 'cy', 'da', 'de', 'el', 'en', 'es', 'fa', 'fi', 'fr', 'fr_ca', 'he', 'hu', 'is', 'it', 'ja', 'ko', 'nb', 'nl', 'nn', 'no', 'pl', 'pt', 'pt_br', 'ru', 'ru_KOI8-R', 'ru_UTF-8', 'si', 'sk', 'sv', 'th', 'tr', 'uk', 'zh_cn', 'zh_tw', 'zh_tw_utf8')),
     '#description' => t('The language to use for the editor interface. Language codes are based on the <a href="http://www.loc.gov/standards/iso639-2/englangn.html">ISO-639-2</a> format.'),
   );
 
@@ -305,6 +305,10 @@ function wysiwyg_profile_form_submit($form, &$form_state) {
     // Store only enabled plugins.
     $values['buttons'] = array_filter($values['buttons']);
   }
+  // Remove any white-space from 'block_formats' setting, since editor
+  // implementations rely on a comma-separated list to explode().
+  $values['block_formats'] = preg_replace('@\s+@', '', $values['block_formats']);
+
   // Remove input format name.
   $format = $values['format'];
   $input_format = $values['input_format'];

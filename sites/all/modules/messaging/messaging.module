@@ -448,14 +448,10 @@ function messaging_address_info($type = NULL, $property = NULL, $default = NULL)
 }
 
 /**
- * Implementation of hook_messaging()
+ * Implements hook_messaging().
  */
 function messaging_messaging($op, $type = NULL) {
   switch ($op) {
-    case 'text filters':
-      messaging_include('text.inc');
-      return _messaging_text_filter_info();
-
     case 'address types':
       // Get some built in address types
       $types['user'] = array(
@@ -463,6 +459,16 @@ function messaging_messaging($op, $type = NULL) {
         'class' => 'Messaging_User_Destination',
       );
       return $types;
+  }
+}
+
+/**
+ * Implements hook_messaging_destination().
+ */
+function messaging_messaging_destination($op, $destination) {
+  switch ($op) {
+    case 'tokens':
+      return array('[user:name]' => $destination->get_user()->name);
   }
 }
 

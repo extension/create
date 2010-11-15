@@ -1,5 +1,5 @@
 <?php
-// $Id: whizzywig.inc,v 1.7 2010/10/18 19:37:44 sun Exp $
+// $Id: whizzywig.inc,v 1.8 2010/11/13 18:31:21 sun Exp $
 
 /**
  * @file
@@ -93,15 +93,13 @@ function wysiwyg_whizzywig_settings($editor, $config, $theme) {
   }
 
   // Add configured buttons or all available.
+  $settings['buttons'] = array();
   if (!empty($config['buttons'])) {
     $buttons = array();
     foreach ($config['buttons'] as $plugin) {
       $buttons = array_merge($buttons, $plugin);
     }
     $settings['buttons'] = implode(' ', array_keys($buttons));
-  }
-  else {
-    $settings['buttons'] = 'all';
   }
 
   // Add editor content stylesheet.

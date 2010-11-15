@@ -34,8 +34,11 @@ class Messaging_Simple extends Messaging_Object {
     $store->msid = $message->msid;
     $store->sender = $message->get_sender('uid');
     $store->language = $message->get_language()->language;
-    $store->subject = $message->get_subject();
-    $store->body = $message->get_body();
+    // Build message subject and content, may do token replacement
+    $template = $message->get_text();
+    $template->set_user($user);
+    $store->subject = $template->get_subject();
+    $store->body = $template->render(array('content'));
     return $store;
   }
   /**

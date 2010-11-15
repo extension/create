@@ -32,7 +32,6 @@ abstract class Notifications_Scheduler_Event extends Notifications_Event {
    */
   function prepare() {
     parent::prepare();
-    $this->prepare_context();
     // Load the content now, later it may be different
     $this->content = $this->load_content();
     // Build message template so it can be reused later
@@ -240,7 +239,7 @@ class Notifications_Scheduler_New_Posts extends Notifications_Scheduler_Latest_P
       ->fields('n', array('nid', 'created'))
       ->orderBy('n.created', 'DESC')
       ->condition('n.status', 1)
-      ->condition('n.changed', $last_time, '>=');
+      ->condition('n.changed', $last_time ? $last_time : 0, '>=');
     if ($type = $this->get_action_context('node_type')) {
       $query->condition('type', $type);
     }

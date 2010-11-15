@@ -43,8 +43,8 @@ function notifications_page_subscribe($substype) {
  * @param $id
  *   Subscription id or user id, depending on type
  */
-function notifications_page_unsubscribe($subscription) {
-  $account = $GLOBALS['user'];
+function notifications_page_unsubscribe_subscription($subscription) {
+
   // If everything is ok and signed to skip confirmation, go ahead
   if (notifications_check_signature('skip')) {
     $subscription->delete();
@@ -60,10 +60,39 @@ function notifications_page_unsubscribe($subscription) {
 }
 
 /**
+ * Menu callback for unsubscribe page
+ * 
+ * @param $type
+ *   Either 'sid' or 'uid' (for unsubscribe all)
+ * @param $id
+ *   Subscription id or user id, depending on typeunt
+ */
+function notifications_page_unsubscribe_user($account) {
+  // If everything is ok and signed to skip confirmation, go ahead
+  if (notifications_check_signature('skip')) {
+    $count = Notifications_Subscription::delete_multiple(array('uid' => $account->uid));
+    drupal_set_message(t('All your subscriptions have been removed.'));
+    drupal_goto();      
+  }
+  else {
+    $subscriptions = new Notifications_Subscription_List();
+    $subscriptions->load_multiple(array(), array('uid' => $account->uid));
+    if ($subscriptions->count()) {
+      // Ask for confirmation
+      return drupal_get_form('notifications_subscription_list_form', 'unsubscribe', $subscriptions);
+    }
+    else {
+      // No subscriptions. Print warning and fall back to access denied.
+      drupal_set_message(t('You don\'t have any subscriptions on this site.'), 'error');
+    }
+  }
+  drupal_access_denied();
+}
+/**
  * Display unsubscribe options for this page
  */
 function notifications_page_unsubscribe_overview() { 
-  global $user;
+  $account = $GLOBALS['user'];
   notifications_include('destination.inc');
 
   $output = '';
@@ -354,7 +383,59 @@ function notifications_submit_subscription($subscription) {
       return FALSE;
   }
 }
+/**
+ * Form for multiple delete. When account passed check that all subscriptions belong to the user account
+ */
+function notifications_multiple_delete_confirm(&$form_state, $items, $destination = NULL) {
+  $destination = $destination ? $destination : $_GET['q'];
+  $sids = array_keys($items);
+  if (notifications_manage_subscriptions_access(array_keys($items))) {
+    $form['items'] = array('#prefix' => '<ul>', '#suffix' => '</ul>', '#tree' => TRUE);
+    // array_filter returns only elements with TRUE values
+    foreach ($items as $id => $value) {
+      // Load the subscription to display a friendly name
+      $subscription = notifications_load_subscription($id);
+      $form['items'][$id] = array(
+        '#type' => 'hidden',
+        '#value' => $id,
+        '#prefix' => '<li>',
+        '#suffix' => $subscription->format_long()."</li>\n",
+      );
+    }    
+    $form['operation'] = array('#type' => 'hidden', '#value' => 'delete');
+    $form['#submit'][] = 'notifications_multiple_delete_confirm_submit';
+    $form['#validate'][] = 'notifications_multiple_delete_confirm_validate';
+    $form['#redirect'] = $destination;
+    return confirm_form($form,
+                      t('Are you sure you want to delete these items?'),
+                      $destination, t('This action cannot be undone.'),
+                      t('Delete all'), t('Cancel'));
+  }
+  else {
+    drupal_set_message(t('Validation error. You don\'t have permission to delete some of these subscriptions'), 'error');
+    drupal_access_denied();
+  }
+}
 
+/**
+ * Validate permissions to delete all the subscriptions
+ */
+function notifications_multiple_delete_confirm_validate($form, &$form_state) {
+  if (!notifications_manage_subscriptions_access(array_keys($form_state['values']['items']))) {
+    form_set_error('', t('You don\'t have permission to manage all these subscriptions'));
+  }
+}
+
+/**
+ * Submit multiple delete from
+ */
+function notifications_multiple_delete_confirm_submit($form, &$form_state) {
+  if ($form_state['values']['confirm']) {
+    Notifications_Subscription::delete_subscription(array_keys($form_state['values']['items']));
+    drupal_set_message(t('The subscriptions have been deleted.'));
+  }
+  return;
+}
 /**
  * Theme function for fields in form
  */

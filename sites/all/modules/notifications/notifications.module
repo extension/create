@@ -179,10 +179,20 @@ function notifications_menu() {
   $items['notifications/unsubscribe/%notifications_subscription'] = array(
     'title' => 'Unsubscribe',
     'type' => MENU_CALLBACK,
-    'page callback' => 'notifications_page_unsubscribe',
+    'page callback' => 'notifications_page_unsubscribe_subscription',
     'page arguments' => array(2),
     'access callback' => 'notifications_access_unsubscribe',
-    'page arguments' => array(2),
+    'access arguments' => array(2),
+    'file' => 'notifications.pages.inc',
+  );
+  // Delete all subscriptions for user
+  $items['notifications/unsubscribe/user/%user'] = array(
+    'title' => 'Unsubscribe',
+    'type' => MENU_CALLBACK,
+    'page callback' => 'notifications_page_unsubscribe_user',
+    'page arguments' => array(3),
+    'access callback' => 'notifications_access_unsubscribe',
+    'access arguments' => array(NULL, 3),
     'file' => 'notifications.pages.inc',
   );
   // Edit subscription, stand alone page
@@ -260,16 +270,16 @@ function notifications_access_subscribe($substype, $account = NULL) {
 /**
  * Menu access callback for unsubscribe links.
  */
-function notifications_access_unsubscribe($subscription = NULL) {
-  $account = $GLOBALS['user'];
-  if (!$subscription) {
-    return user_access('manage own subscriptions');
-  }
-  elseif ($account->uid && $subscription->uid == $account->uid) {
-    return user_access('manage own subscriptions');
-  }
-  elseif (notifications_check_signature()) {
+function notifications_access_unsubscribe($subscription = NULL, $account = NULL) {
+  if (notifications_check_signature()) {
     return TRUE; // Signed link
+  }
+  elseif ($subscription && $GLOBALS['user']->uid && $subscription->uid == $GLOBALS['user']->uid
+    || $account && $GLOBALS['user']->uid == $account->uid) {
+    return user_access('manage own subscriptions');
+  }
+  elseif (!$subscription && !$account) {
+    return user_access('manage own subscriptions');
   }
 }
 
@@ -989,15 +999,50 @@ function notifications_messaging($op, $arg1 = NULL, $arg2 = NULL) {
         'description' => t('Messages coming from user subscriptions and system events')
       );
       return $info;
-
-    case 'method update':
-      // A messaging method has been disabled ($arg1) and replaced by the new one ($arg2)
-      notifications_include('destination.inc');
-      notifications_destination_method_replace($arg1, $arg2);
-      break;
   }
 }
 
+/**
+ * Implements hook_messaging_method()
+ */
+function notifications_messaging_method($op, $method, $param = NULL) {
+  switch ($op) {
+    case 'replace':
+      // Replace old method $method by new method $param
+      db_update('notifications_subscription')
+        ->fields(array('send_method' => $param))
+        ->condition('send_method', $method)
+        ->execute();
+      break;
+    case 'disable':
+      // Disable all subscriptions for disabled method
+      db_update('notifications_subscription')
+        ->fields(array('status' => Notifications_Subscription::STATUS_NOSEND))
+        ->condition('send_method', $method)
+        ->execute();
+      break;  
+  }
+}
+
+/**
+ * Implements hook_messaging_destination().
+ */
+function notifications_messaging_destination($op, $destination) {
+  switch ($op) {
+    case 'tokens':
+      $user = $destination->get_user();
+      $options = array('absolute' => TRUE);
+      if ($user->uid) {
+        $options['signed'] = TRUE;
+        $path = 'notifications/unsubscribe/user/' . $user->uid;
+        $options = notifications_url_options($path, $options);
+      }
+      else {
+        $path = 'notifications/unsubscribe';
+      }
+      return array('[user:unsubscribe-url]' => url($path, $options));
+  }
+}
 /**
  * Get event types. Invoking this function will also load the event API
  * 
@@ -1187,20 +1232,6 @@ function _notifications_send_methods($account = NULL) {
  */
 function notifications_theme() {
   return array(
-  /*
-    'notifications_send_intervals_form' => array(
-      'render element' => 'element',
-      'file' => 'notifications.admin.inc',
-    ),
-    */
-    'notifications_manage_subscriptions' => array(
-      'render element' => 'form',
-      'file' => 'notifications.manage.inc',
-    ),
-    'notifications_manage_subscriptions_filter_form' => array(
-      'render element' => 'form',
-      'file' => 'notifications.manage.inc',
-    ),
     'notifications_table_form' => array(
       'render element' => 'form',
       'file' => 'notifications.pages.inc',
@@ -1257,8 +1288,11 @@ function notifications_subscription_form_submit($form, &$form_state) {
  * Form with subscription list
  */
 function notifications_subscription_list_form($form, &$form_state, $type, $subscriptions) {
-  return Notifications_Subscription_List::build_list($subscriptions)
+  $form = Notifications_Subscription_List::build_list($subscriptions)
     ->get_form($type, $form, $form_state);
+  $form['#submit'][] = 'notifications_subscription_list_form_validate';
+  $form['#validate'][] = 'notifications_subscription_list_form_submit';
+  return $form;
 }
 
 /**

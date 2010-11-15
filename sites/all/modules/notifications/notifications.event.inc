@@ -149,7 +149,9 @@ class Notifications_Event extends Notifications_Entity {
   function create_template() {
     $template_name = $this->get_type('template', 'default');
     $class = notifications_info('message templates', $template_name, 'class', 'Notifications_Message_Template');
-    return new $class($this);
+    $template = new $class($this);
+    $template->set_event($this);
+    return $template;
   }
 
   /**
