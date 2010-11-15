@@ -16,7 +16,7 @@ function exauth_help($path, $arg) {
 //check to see if the user is accessing a cop-created "article". these are the only pages currently classified as "protected"
 function accessing_protected_page($node_type)
 {
-  if ($node_type == 'article'){
+  if ($node_type == 'article' || $node_type == 'faq' ){
     return TRUE;
   }
   return FALSE;
@@ -24,7 +24,6 @@ function accessing_protected_page($node_type)
 
 //check to see if the user is viewing the home page / landing page
 function accessing_home_page(){
-  syslog(LOG_WARNING, "current page: ".current_path());
   if (current_path() == "node" || current_path() == "/"){
     return TRUE;
   }
@@ -71,7 +70,6 @@ function exauth_user_login_form_alter(&$form, &$form_state){
   unset($form['name']);
   unset($form['pass']);
   unset($form['links']);
-  #unset($form['openid_links']);
   $form['openid_links']['#items'][0]['data'] = '<a href=""></a>Log in with your eXtensionID';
   $form['name']['#size'] = $size;
   $form['openid_identifier']['#default_value'] = 'http://people.extension.org/';
@@ -104,5 +102,10 @@ function exauth_form_alter(&$form, &$form_state, $form_id){
         $form['account']['pass']['#type']= 'hidden';
         unset($form['account']['current_pass']);
         break;
+      case 'user_pass':
+        $form['mail']['#markup'] = 'Password reset intentionally disabled'; // inform user that password reset when visiting /user/password
+        $form['name']['#attributes']['readonly'] = 'readonly'; // make the text field uneditable for anonymous users.
+        unset($form['actions']['submit']); // remove submit button from /user/login
+        break;        
   }
 }
