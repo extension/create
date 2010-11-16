@@ -1,5 +1,5 @@
 <?php
-// $Id: media.filter.inc,v 1.12 2010/10/26 22:46:37 JacobSingh Exp $
+// $Id: media.filter.inc,v 1.13 2010/10/28 14:54:23 aaron Exp $
 
 /**
  * @file
@@ -125,14 +125,14 @@ function _media_markup($match, $wysiwyg = FALSE) {
   $match = str_replace("[[","",$match);
   $match = str_replace("]]","",$match);
   $tag = $match[0];
-  
+
   try {
     if (!is_string($tag)) {
       throw new Exception('Unable to find matching tag');
     }
-    
+
     $media = drupal_json_decode($tag);
-  
+
     if (!isset($media['fid'])) {
       throw new Exception('No file Id');
     }
@@ -148,7 +148,7 @@ function _media_markup($match, $wysiwyg = FALSE) {
     $settings = is_array($media['attributes']) ? $media['attributes'] : array();
     $attribute_whitelist = media_variable_get('wysiwyg_allowed_attributes');
     $settings = array_intersect_key($settings, array_flip($attribute_whitelist));
-    
+
     // @TODO: What case does this provide for?  Can we add this logic in JS when we embed it?
     // This doesn't look great to me.  Also won't work if the style has anything
     // between width and height (or if they are in reverse order).
@@ -255,7 +255,7 @@ function media_format_form($form, $form_state, $media) {
   $view_modes = $entity_info['view modes'];
 
   $options = array();
-  
+
   drupal_alter('media_wysiwyg_allowed_view_modes', $media_type, $view_modes);
 
   foreach ($view_modes as $key => $title) {
@@ -269,15 +269,6 @@ function media_format_form($form, $form_state, $media) {
     $options[$key] = $title['label'];
     $file_field = media_get_file_without_label($media, $key, array('wysiwyg' => TRUE));
 
-    /**
-     * Currently not used in UI.
-     * Will provide more information in style selection from file_styles.
-     */
-    if (preg_match('/styles_file_(.*)/', $format['type'], $matches)) {
-      $style_name = $matches[1];
-      $style_info = styles_containers_available_styles('file', $media->type, $style_name);
-    }
-    
     // Make a pretty name out of this.
     $formats[$key] = drupal_render($file_field);
   }
@@ -291,7 +282,7 @@ function media_format_form($form, $form_state, $media) {
   if (!isset($formats[$default_view_mode])) {
     $default_view_mode = key($formats);
   }
-  
+
 
   // Add JS and settings array of formats.
   $settings = array();
@@ -311,7 +302,7 @@ function media_format_form($form, $form_state, $media) {
     '#suffix' => '</h1>',
     '#markup' => t('Embedding %filename', array('%filename' => $media->filename)),
   );
-  
+
   $preview = media_get_thumbnail_preview($media);
 
   $form['preview'] = array(

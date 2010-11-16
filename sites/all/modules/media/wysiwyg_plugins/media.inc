@@ -1,5 +1,5 @@
 <?php
-// $Id: media.inc,v 1.4 2010/06/21 08:00:13 JacobSingh Exp $
+// $Id: media.inc,v 1.6 2010/10/27 15:29:30 JacobSingh Exp $
 
 /**
  *  @file
@@ -29,7 +29,8 @@ function media_media_plugin() {
     'settings' => array(
       'global' => array(
         'types' => media_variable_get('wysiwyg_allowed_types'),
-      )
+        'id' => 'media_wysiwyg',
+      ),
     ),
    );
 

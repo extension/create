@@ -1,5 +1,5 @@
 <?php
-// $Id: media.module,v 1.56 2010/10/26 22:46:37 JacobSingh Exp $
+// $Id: media.module,v 1.57 2010/11/15 13:13:16 JacobSingh Exp $
 
 /**
  * @file
@@ -59,7 +59,7 @@ function media_help($path,$arg) {
  */
 function media_menu() {
   // For managing different types of media and the fields associated with them.
-  $items['admin/structure/media'] = array(
+  $items['admin/config/media/types'] = array(
     'title' => 'Media Types',
     'description' => 'Manage files used on your site.',
     'page callback' => 'media_admin_type_list',
@@ -67,7 +67,7 @@ function media_menu() {
     'file' => 'media.admin.inc',
   );
 
-  $items['admin/structure/media/manage/%media_type'] = array(
+  $items['admin/config/media/types/manage/%media_type'] = array(
     'title' => 'Manage media',
     'title callback' => 'media_type_page_title',
     'title arguments' => array(4),
@@ -78,7 +78,7 @@ function media_menu() {
     'file' => 'media.admin.inc',
   );
 
-  $items['admin/structure/media/manage/%media_type/settings'] = array(
+  $items['admin/config/media/types/manage/%media_type/settings'] = array(
     'title' => 'Settings',
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => -1,
@@ -1113,8 +1113,8 @@ function media_entity_info() {
     $return['media']['bundles'][$type] = (array)$bundle_info;
     $return['media']['bundles'][$type]['admin'] = array(
       'label' => $bundle_info->label,
-      'path' => 'admin/structure/media/manage/%media_type',
-      'real path' => 'admin/structure/media/manage/' . $type,
+      'path' => 'admin/config/media/types/manage/%media_type',
+      'real path' => 'admin/config/media/types/manage/' . $type,
       'bundle argument' => 4,
       // @TODO: Add an 'administer media types' perm?
       'access arguments' => array('administer site configuration'),

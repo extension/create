@@ -1,5 +1,5 @@
 <?php
-// $Id: media.admin.inc,v 1.22 2010/09/18 02:42:05 effulgentsia Exp $
+// $Id: media.admin.inc,v 1.23 2010/11/11 23:11:38 effulgentsia Exp $
 
 /**
  * @file
@@ -150,8 +150,19 @@ function media_admin_list() {
 function media_admin_thumbnails() {
   $limit = variable_get('media_admin_limit', 50);
 
-  $entity_controller = entity_get_controller('media');
-  $media_entities = $entity_controller->load(NULL, array(), 0, $limit);
+  $query = new EntityFieldQuery();
+
+  $query->range(0, $limit);
+  $query->entityCondition('entity_type', 'media');
+  
+  $result = $query->execute();
+  $ids = array_keys($result['media']);
+  if ($ids) {
+    $media_entities = entity_load('media', $ids);
+  }
+  else {
+    $media_entities = array();
+  }
 
   $destination = drupal_get_destination();
   $rows = array();

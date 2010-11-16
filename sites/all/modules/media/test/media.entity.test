@@ -25,13 +25,16 @@ class MediaEntityTest extends DrupalWebTestCase {
     variable_set('simpletest_verbose', TRUE);
   }
   
-  function createMedia() {
+  function createMedia($filename = NULL) {
+    if (!$filename) {
+      $filename = uniqid() . '.jpg';
+    }
     //file_save_data()
     $values = array(
       'type' => 'image',
       'uid' => 1,
-      'filename' => 'fakefile.jpg',
-      'uri' => 'temporary://blah.jpg',
+      'filename' => $filename,
+      'uri' => 'temporary://' . $filename,
       'filemime' => 'image/jpeg',
       'filesize' => 12345,
       'status' 	 => 1,
@@ -44,25 +47,36 @@ class MediaEntityTest extends DrupalWebTestCase {
   }
   
   function testCreateMedia() {
-    $m = $this->createMedia();
+    $m = $this->createMedia('blah.jpg');
     $loaded = entity_get_controller('media')->load(array($m->fid));
     $media = current($loaded);
-    $this->assertEqual($media->filename, $m->filename);
+    $this->assertEqual($media->filename, 'blah.jpg');
   }
-  
-  function testQueryMedia() {
-    $m = $this->createMedia();
-    $controller = entity_get_controller('media');
-    $result = $controller->load(NULL, array(array('uri', 'temporary://%', 'LIKE')));
-    $this->assertEqual(count($result), 1, "Returned one result as expected for like % condition");
-    
-    $controller = entity_get_controller('media');
-    $result = $controller->load(NULL, array(array('uri', 'http://%', 'LIKE')));
-    $this->assertNotEqual(count($result), 1, "Did not return 1 result");
 
-    $controller = entity_get_controller('media');
-    $result = $controller->load(NULL, array('uri' => 'temporary://blah.jpg'));
-    $this->assertEqual(count($result), 1, "Got one result for normal conditions");
+  /**
+   * Test the ability to create and query media items.
+   */
+  function testQueryMedia() {
+    $this->createMedia('blah.jpg');
+    $this->createMedia('blah2.jpg');
+    
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'media');
+    $query->propertyCondition('uri', 'temporary://%', 'LIKE');
+    $result = $query->execute();
+    $this->assertEqual(count($result['media']), 2, "Returned two results as expected for like % condition");
+    
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'media');
+    $query->propertyCondition('uri', 'temporary://blah.jpg');
+    $result = $query->execute();
+    $this->assertEqual(count($result['media']), 1, "Got one result for equality query");
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'media');
+    $query->propertyCondition('uri', 'http://%', 'LIKE');
+    $result = $query->execute();
+    $this->assertEqual(count($result), 0, "Got no results for http scheme uris");
   }
 }
 

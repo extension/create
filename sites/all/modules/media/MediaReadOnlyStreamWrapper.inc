@@ -1,5 +1,5 @@
 <?php
-// $Id: MediaReadOnlyStreamWrapper.inc,v 1.3 2010/10/20 16:08:12 effulgentsia Exp $
+// $Id: MediaReadOnlyStreamWrapper.inc,v 1.4 2010/11/11 18:57:06 JacobSingh Exp $
 
 /**
  * A base class for Resource Stream Wrappers.
@@ -55,7 +55,9 @@ abstract class MediaReadOnlyStreamWrapper implements DrupalStreamWrapperInterfac
   );
 
   function interpolateUrl() {
-    return $this->base_url .'?'. http_build_query($this->parameters);
+    if ($parameters = $this->get_parameters()) {
+      return $this->base_url .'?'. http_build_query($parameters);
+    }
   }
 
   /**
