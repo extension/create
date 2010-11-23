@@ -505,12 +505,10 @@ function eximport_rewrite_urls(&$node) {
   // using outertext() instead of save() to trigger callback
   $html->load($node->body[LANGUAGE_NONE][0]['value']);
   $node->body[LANGUAGE_NONE][0]['value'] = $html->root->outertext();
-  $node->body[LANGUAGE_NONE][0]['safe_value'] = $html->root->outertext();
   
   // then the summary/teaser html
   $html->load($node->body[LANGUAGE_NONE][0]['summary']);
   $node->body[LANGUAGE_NONE][0]['summary'] = $html->root->outertext();
-  $node->body[LANGUAGE_NONE][0]['safe_summary'] = $html->root->outertext();
   
   unset($html);
   return;
