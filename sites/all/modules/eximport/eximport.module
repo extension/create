@@ -13,6 +13,7 @@
 // drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
 
 require_once 'simplehtmldom/simple_html_dom.php';
+require_once 'http_build_url.php';
 
 /**
  *
@@ -120,10 +121,12 @@ function eximport_admin_form($form, &$form_state) {
     '#size' => 40,
     '#maxlength' => 80,
     '#description' => t("Filename of default import file."),
-    '#required' => TRUE,
+    '#required' => FALSE,
   );
   
   $form['submit'] = array('#type' => 'submit', '#value' => t('Import'));
+  
+  $form['rewrite'] = array('#type' => 'submit', '#value' => t('Update URLs'));
   
   return $form;
 }
@@ -137,12 +140,23 @@ function eximport_admin_form($form, &$form_state) {
  * @see _form_validate
  */
 function eximport_admin_form_validate($form, &$form_state) {
-  $filename = $form_state['values']['filename'];
-  if ( ! preg_match('/\.(xml|atom)$/i', $filename)) {
-    form_set_error('', t('A valid filename is required.'));
-  } elseif ( ! eximport_verify_filename($filename) ) {
-    form_set_error('', t('File must exist in import directory.'));
+  
+  switch ($form_state['values']['op']) {
+    case 'Import':
+      $filename = $form_state['values']['filename'];
+      if ( ! preg_match('/\.(xml|atom)$/i', $filename)) {
+        form_set_error('', t('A valid filename is required.'));
+      } elseif ( ! eximport_verify_filename($filename) ) {
+        form_set_error('', t('File must exist in import directory.'));
+      }
+      break;
+    case 'Update URLs':
+      break;
+    default:
+      form_set_error('', t('Invalid button pushed.'));
   }
+
+  return;
 }
 
 /**
@@ -177,18 +191,29 @@ function eximport_verify_filename($filename) {
  * @see form_execute_handlers
  */
 function eximport_admin_form_submit($form, &$form_state) {
-  $filename = $form_state['values']['filename'];
   
-  list($total, $added, $errors) = eximport_import_from_file($filename);
+  $cmd = $form_state['values']['op'];
+  
+  switch ($cmd) {
+      case 'Import':
+      $filename = $form_state['values']['filename'];
+      list($total, $added, $errors) = eximport_import_from_file($filename);
+      break;
+    case 'Update URLs':
+      list($total, $added, $errors) = eximport_rewrite_imported_urls();
+      break;
+    default:
+      form_set_error('', t('Invalid button pushed.'));
+  }
   
   if ($errors) {
-    drupal_set_message(t('Import failed: ' 
+    drupal_set_message(t($cmd . ' failed: ' 
                          . $errors . ' errors out of ' 
                          . $total . ' revisions.'), 'error');
   } else {
-    drupal_set_message(t('Import successful. ' 
+    drupal_set_message(t($cmd . ' successful. ' 
                          . $added . ' out of ' 
-                         . $total . ' revisions imported.'));
+                         . $total . ' revisions.'));
   }
 
   return;
@@ -247,7 +272,6 @@ function eximport_node_create($entry) {
     $rc = TRUE;
   }
   
-  dvm($node);
   unset($node);
   unset($entry);
   
@@ -405,26 +429,38 @@ function eximport_import_from_file($filename) {
 /**
  * Process all revisions of imported nodes.
  *
- * @param string $url_pattern Pattern of nodes original URLs
  * @return array Total number, number added, number errors.
  * @see SimpleXML
  */
-function eximport_rewrite_imported_urls($url_pattern) {
-   // get imported node list (list of nids)
-   $nids = eximport_load_imported_node_list();
-   // loop thru all nodes and get all revisions
-   foreach ($nids as $nid) {
-      // create fake node to load revision list
-      $fakenode = new stdClass();
-      $fakenode->nid = $nid;
-      $revisions = node_revision_list($fakenode);
-      foreach ($revisions as $vid) {
-         $node = node_load($nid, $vid);
-         eximport_rewrite_urls($node);
-         eximport_node_update_revision($node);
-      }
-   }
-   return;
+function eximport_rewrite_imported_urls() {
+  // get imported node list (list of nids)
+  $nids = eximport_load_imported_node_list();
+  
+  $total = 0;
+  $processed = 0;
+  $errors = 0;
+  // loop thru all nodes and get all revisions
+  foreach ($nids as $nid) {
+    // create fake node to load revision list
+    $fakenode = new stdClass();
+    $fakenode->nid = $nid;
+    $revisions = node_revision_list($fakenode);
+    $total += count($revisions);
+    foreach ($revisions as $vid => $rev) {
+      $node = node_load($nid, $vid);
+      $GLOBALS['eximport_nid'] = $node->nid;
+      eximport_rewrite_urls($node);
+      eximport_node_update_revision($node);
+      $processed++;
+    }
+  }
+  return array($total, $processed, $errors);
+}
+
+function eximport_load_imported_node_list() {
+  return db_query("SELECT source 
+             FROM url_alias 
+             WHERE source RLIKE '^[[:digit:]]+$'")->fetchCol();
 }
 
 /**
@@ -435,24 +471,24 @@ function eximport_rewrite_imported_urls($url_pattern) {
  * @return N/A
  */
 function eximport_node_update_revision(&$node) {
-   $fields = array(
-      'body_value' => $node->body[LANGUAGE_NONE][0]['value'],
-      'body_summary' => $node->body[LANGUAGE_NONE][0]['summary']
-   );
-   
-   // update in the revision history
-   db_update('field_revision_body')
-     ->fields($fields)
-     ->condition('revision_id', $node->vid)
-     ->execute();
-   
-   // also update latest version
-   db_update('field_data_body')
-     ->fields($fields)
-     ->condition('revision_id', $node->vid)
-     ->execute();
-   
-   return;
+  $fields = array(
+    'body_value' => $node->body[LANGUAGE_NONE][0]['value'],
+    'body_summary' => $node->body[LANGUAGE_NONE][0]['summary']
+  );
+  
+  // update in the revision history
+  db_update('field_revision_body')
+    ->fields($fields)
+    ->condition('revision_id', $node->vid)
+    ->execute();
+  
+  // also update latest version
+  db_update('field_data_body')
+    ->fields($fields)
+    ->condition('revision_id', $node->vid)
+    ->execute();
+  
+  return;
 }
 
 /**
@@ -462,37 +498,153 @@ function eximport_node_update_revision(&$node) {
  * @return N/A
  */
 function eximport_rewrite_urls(&$node) {
-   $body = str_get_html($node->body[LANGUAGE_NONE][0]['value']);
-   $summary = str_get_html($node->body[LANGUAGE_NONE][0]['summary']);
-   
-   // @JER now the fun part
-   foreach($body->find('a') as $element) {
-      eximport_process_anchor($element);
-   }
-   
-   foreach($summary->find('a') as $element) {
-      eximport_process_anchor($element);
-   }
-   
-   $node->body[LANGUAGE_NONE][0]['value'] = $body;
-   $node->body[LANGUAGE_NONE][0]['summary'] = $summary;
-   unset($body);
-   unset($summary);
-   
-   return;
+  $html = new simple_html_dom();
+  $html->set_callback('eximport_process_element');
+  
+  // first, the body html
+  // using outertext() instead of save() to trigger callback
+  $html->load($node->body[LANGUAGE_NONE][0]['value']);
+  $node->body[LANGUAGE_NONE][0]['value'] = $html->root->outertext();
+  $node->body[LANGUAGE_NONE][0]['safe_value'] = $html->root->outertext();
+  
+  // then the summary/teaser html
+  $html->load($node->body[LANGUAGE_NONE][0]['summary']);
+  $node->body[LANGUAGE_NONE][0]['summary'] = $html->root->outertext();
+  $node->body[LANGUAGE_NONE][0]['safe_summary'] = $html->root->outertext();
+  
+  unset($html);
+  return;
 }
 
 /**
  * Rewrite the URLs in an anchor element.
  *
- * @param object $element Reference to an anchor element object
+ * @param object $element Reference to an DOM element object
  * @return N/A
  */
-function eximport_process_anchor(&$element) {
-   
-   if (! empty($element->href)) {
-      
-   }
-   
+function eximport_process_element($element) {
+  if (! in_array($element->tag, array('a', 'img'))) {
    return;
+  }
+  
+  $orig_url = '';
+  
+  if ($element->tag == 'a') {
+    // only anchors, and not the nautical kind
+    
+    // not the label kind neither
+    if ( empty($element->href) ) {
+      return;
+    }
+    
+    $orig_url &= $element->href;
+  }
+  
+  if ($element->tag == 'img') {
+    // don't forget those images
+    $orig_url &= $element->src;
+  }
+  
+  $url = parse_url($orig_url);
+  
+  // parseable URL?  note, didn't say valid
+  if ($url === FALSE) {
+    // bogus, zap the element, leaving the innards
+    $element->outertext = $element->innertext;
+    return;
+  }
+  
+  eximport_process_url($url);
+  
+  if ( empty($url) ) {
+    // need to zap it
+    $element->outertext = $element->innertext;
+  } else {
+    $orig_url = $url;
+  }
+  
+  return;
+}
+
+/**
+ * Rewrite the URLs.
+ *
+ * @param array $url Reference to an array for an URL via parse_url
+ * @return N/A
+ */
+function eximport_process_url(&$url) {
+  // get the old URL for the current node
+  $current_node_path = path_load($GLOBALS['eximport_nid']);
+  $current_node_url = $current_node_path['alias'];
+  
+  // tells us where we are running
+  $my_url = parse_url(http_build_url());
+  
+  if (! empty($url['scheme'])) {
+    // only interested in http
+    if ($url['scheme'] != 'http') {
+      return;
+    }
+  } else {
+    $new_url = array();
+    // handle the relative URLs by fully specifying them
+    // using the scheme/host/port from the old URL for this node
+    http_build_url($current_node_url, $url, HTTP_URL_REPLACE, $new_url);
+    $url = $new_url;
+  }
+  
+  // at this point we have full URLs, let's see what to do with them
+  
+  $path = $url['path'];
+  
+  $matches = array();
+  $modified = FALSE;
+  if (preg_match('#^/wiki/Category\:(.+)#', $path, $matches)) {
+    $tag = $matches[1];
+    // map to taxonomy/tag URL - need term id
+    $term = taxonomy_get_term_by_name($tag);
+    if ($term) {
+      $path = '/taxonomy/term/' . $term[0]->tid;
+      $modified = TRUE;
+    } else {
+      // not found, zap link
+      $url = NULL;
+      return;
+    }
+  } elseif (preg_match('#^/mediawiki/(.*)#', $path, $matches)) {
+    // replace 'mediawiki/files' w/ 'sites/default/files/w'
+    $path = '/sites/default/files/w/' . $matches[1];
+    $modified = TRUE;
+  } elseif (preg_match('#^/learninglessons/(.*)#', $path, $matches)) {
+    // our work is done, just need to update host below
+    $modified = TRUE;
+  } elseif (preg_match('#^/wiki/File\:.*#', $path)) {
+    // zap it
+    $url = NULL;
+    return;
+  } elseif (preg_match('#^/wiki/Image\:.*#', $path)) {
+    // zap it
+    $url = NULL;
+    return;
+  } else {
+    // see if it is something we imported, zap the fragment
+    $uri = http_build_url($url, array('fragment' => ''));
+    $new_path = path_load(array('alias' => $uri));
+    if ($new_path) {
+      $nid = $new_path['source'];
+      $path = '/node/' . $nid;
+      $modified = TRUE;
+    }
+  }
+  
+  $url['path'] = $path;
+  
+  if ($modified) {
+    $url['host'] = $my_url['host'];
+    if (isset($my_url['port'])) {
+      $url['port'] = $my_url['port'];
+    }
+  }
+  
+  return;
 }
