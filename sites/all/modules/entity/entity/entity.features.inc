@@ -1,5 +1,5 @@
 <?php
-// $Id: entity.features.inc,v 1.1.2.6 2010/11/25 16:54:28 fago Exp $
+// $Id: entity.features.inc,v 1.1.2.4 2010/10/07 16:28:30 fago Exp $
 
 /**
  * @file
@@ -72,7 +72,7 @@ class EntityDefaultFeaturesController {
     $pipe = array();
     foreach (entity_load($this->type, $data) as $name => $entity) {
       // If this entity is provided by a different module, add it as dependency.
-      if (($entity->{$this->statusKey} & ENTITY_IN_CODE) && $entity->{$this->moduleKey} != $module_name) {
+      if ($entity->{$this->statusKey} & ENTITY_IN_CODE) {
         $module = $entity->{$this->moduleKey};
         $export['dependencies'][$module] = $module;
       }
@@ -101,13 +101,11 @@ class EntityDefaultFeaturesController {
    */
   function export_render($module, $data, $export = NULL) {
     $output = array();
-    $output[] = '  $items = array();';
+    $output[] = '  $items = array(';
     foreach (entity_load($this->type, $data) as $name => $entity) {
-      $output[] = '  $export = <<<EXPORT';
-      $output[] = '  ' . entity_export($this->type, $entity, '  ');
-      $output[] = 'EXPORT;';
-      $output[] = '  $items[' . "'$name'" . '] = entity_import(' . "'$this->type', " . '$export);';
+      $output[] = "    '$name' => " . entity_export($this->type, $entity, '    ') . ',';
     }
+    $output[] = '  );';
     $output[] = '  return $items;';
     $output = implode("\n", $output);
 

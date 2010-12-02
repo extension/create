@@ -1,5 +1,5 @@
 <?php
-// $Id: entity_metadata.api.php,v 1.1.2.24 2010/11/04 17:02:41 fago Exp $
+// $Id: entity_metadata.api.php,v 1.1.2.23 2010/10/05 15:33:15 fago Exp $
 
 /**
  * @file
@@ -59,12 +59,6 @@
  *       a function for sanitizing the value. Defaults to check_plain().
  *     - 'getter callback': A callback used to retrieve the value of the
  *       property. Defaults to entity_metadata_verbatim_get().
- *       It is important that your data is represented, as documented for your
- *       data type, e.g. a date has to be a timestamp. Thus if necessary, the
- *       getter callback has to do the necessary conversion. In case of an empty
- *       value, the callback has to return NULL; however if the property is
- *       not existing for the given data item, the callback should throw the
- *       EntityMetadataWrapperException.
  *     - 'setter callback': A callback used to set the value of the property.
  *       This is optional, however entity_metadata_verbatim_set() can be used.
  *     - 'validation callback': An optional callback that returns whether the

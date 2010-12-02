@@ -1,5 +1,5 @@
 <?php
-// $Id: user.info.inc,v 1.1.2.7 2010/11/19 09:21:00 fago Exp $
+// $Id: user.info.inc,v 1.1.2.6 2010/09/20 16:37:28 fago Exp $
 
 /**
  * @file
@@ -48,10 +48,9 @@ function entity_metadata_user_entity_property_info() {
     'getter callback' => 'entity_metadata_user_get_properties',
     'type' => 'uri',
   );
-  $properties['last-login'] = array(
+  $properties['login'] = array(
     'label' => t("Last login"),
     'description' => t("The date the user last logged in to the site."),
-    'getter callback' => 'entity_metadata_user_get_properties',
     'type' => 'date',
   );
   $properties['created'] = array(

@@ -1,5 +1,5 @@
 <?php
-// $Id: entity_metadata.wrapper.inc,v 1.1.2.46 2010/11/18 10:41:23 fago Exp $
+// $Id: entity_metadata.wrapper.inc,v 1.1.2.45 2010/10/07 16:28:08 fago Exp $
 
 /**
  * @file
@@ -329,9 +329,7 @@ class EntityStructureWrapper extends EntityMetadataWrapper implements IteratorAg
    */
   public function getPropertyLanguage() {
     if (isset($this->langcode) && $list = language_list()) {
-      if (isset($list[$this->langcode])) {
-        return $list[$this->langcode];
-      }
+      return $list[$this->langcode];
     }
     return NULL;
   }

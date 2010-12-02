@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.info.inc,v 1.1.2.9 2010/10/21 19:35:46 fago Exp $
+// $Id: comment.info.inc,v 1.1.2.7 2010/09/20 16:37:28 fago Exp $
 
 /**
  * @file
@@ -117,7 +117,7 @@ function entity_metadata_comment_entity_property_info() {
   );
   $properties['author'] = array(
     'label' => t("Author"),
-    'description' => t("The author of the comment."),
+    'description' => t("The author of the comment, if they were logged in."),
     'type' => 'user',
     'getter callback' => 'entity_metadata_comment_get_properties',
     'setter callback' => 'entity_metadata_comment_setter',
@@ -146,13 +146,11 @@ function entity_metadata_comment_entity_property_info_alter(&$info) {
     'label' => t("Comment count"),
     'description' => t("The number of comments posted on a node."),
     'getter callback' => 'entity_metadata_comment_get_node_properties',
-    'type' => 'integer',
   );
   $properties['comment_count_new'] = array(
     'label' => t("New comment count"),
     'description' => t("The number of comments posted on a node since the reader last viewed it."),
     'getter callback' => 'entity_metadata_comment_get_node_properties',
-    'type' => 'integer',
   );
 
   // The comment body field is available for all bundles, so add it directly
