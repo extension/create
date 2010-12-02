@@ -1,5 +1,5 @@
 <?php
-// $Id: entity_metadata.module,v 1.1.2.42 2010/10/05 15:33:22 fago Exp $
+// $Id: entity_metadata.module,v 1.1.2.48 2010/12/02 13:32:30 fago Exp $
 
 /**
  * @file
@@ -220,22 +220,29 @@ function entity_metadata_get_list($data, array $options, $name) {
  * Defines default property types for core field types.
  */
 function entity_metadata_field_info_alter(&$field_info) {
-  // Field API lists are key/value pairs but not multiple valued by default.
-  $field_info['list']['property_type'] = 'integer';
-  $field_info['list_boolean']['property_type'] = 'boolean';
-  $field_info['list_number']['property_type'] = 'decimal';
-  $field_info['list_text']['property_type'] = 'text';
-  $field_info['number_integer']['property_type'] = 'integer';
-  $field_info['number_decimal']['property_type'] = 'decimal';
-  $field_info['number_float']['property_type'] = 'decimal';
-  $field_info['text']['property_type'] = 'text';
-  $field_info['text']['property_callbacks'] = array('entity_metadata_field_text_property_callback');
-  $field_info['text_long']['property_type'] = 'text';
-  $field_info['text_long']['property_callbacks'] = array('entity_metadata_field_text_property_callback');
-  $field_info['text_with_summary']['property_type'] = 'text';
-  $field_info['text_with_summary']['property_callbacks'] = array('entity_metadata_field_text_property_callback');
-  $field_info['taxonomy_term_reference']['property_type'] = 'taxonomy_term';
-  $field_info['taxonomy_term_reference']['property_callbacks'] = array('entity_metadata_field_term_reference_callback');
+  if (module_exists('number')) {
+    $field_info['number_integer']['property_type'] = 'integer';
+    $field_info['number_decimal']['property_type'] = 'decimal';
+    $field_info['number_float']['property_type'] = 'decimal';
+  }
+  if (module_exists('text')) {
+    $field_info['text']['property_type'] = 'text';
+    $field_info['text']['property_callbacks'][] = 'entity_metadata_field_text_property_callback';
+    $field_info['text_long']['property_type'] = 'text';
+    $field_info['text_long']['property_callbacks'][] = 'entity_metadata_field_text_property_callback';
+    $field_info['text_with_summary']['property_type'] = 'text';
+    $field_info['text_with_summary']['property_callbacks'][] = 'entity_metadata_field_text_property_callback';
+  }
+  if (module_exists('list')) {
+    $field_info['list']['property_type'] = 'integer';
+    $field_info['list_boolean']['property_type'] = 'boolean';
+    $field_info['list_number']['property_type'] = 'decimal';
+    $field_info['list_text']['property_type'] = 'text';
+  }
+  if (module_exists('taxonomy')) {
+    $field_info['taxonomy_term_reference']['property_type'] = 'taxonomy_term';
+    $field_info['taxonomy_term_reference']['property_callbacks'][] = 'entity_metadata_field_term_reference_callback';
+  }
 }
 
 /**
@@ -322,8 +329,8 @@ function entity_metadata_entity_save($entity_type, &$entity) {
   if (isset($info['save callback'])) {
     $info['save callback']($entity);
   }
-  elseif (method_exists($entity, 'save')) {
-    $entity->save();
+  elseif (entity_metadata_entity_type_supports($entity_type, 'save')) {
+    entity_save($entity_type, $entity);
   }
   else {
     return FALSE;
@@ -333,24 +340,40 @@ function entity_metadata_entity_save($entity_type, &$entity) {
 /**
  * Permanently delete the given entity.
  *
+ * Note: This is no hook_entity_delete() implementation. See
+ * entity_metadata_module_implements_alter().
+ *
  * @param $entity_type
  *   The type of the entity.
  * @param $id
  *   The uniform identifier of the entity to delete.
  * @return
  *   FALSE, if there were no information how to delete the entity.
+ *
+ * @see entity_metadata_module_implements_alter()
  */
 function entity_metadata_entity_delete($entity_type, $id) {
   $info = entity_get_info($entity_type);
   if (isset($info['deletion callback'])) {
     $info['deletion callback']($id);
   }
-  elseif (isset($info['entity class']) && method_exists($info['entity class'], 'delete')) {
-    $entities = entity_load($entity_type, array($id));
-    reset($entities)->delete();
+  elseif (entity_metadata_entity_type_supports($entity_type, 'delete')) {
+    entity_delete($entity_type, $id);
   }
   else {
     return FALSE;
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ *
+ * Avoid an undesired implementations of hook_entity_delete() and
+ * hook_entity_view().
+ */
+function entity_metadata_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'entity_delete' || $hook == 'entity_view') {
+    unset($implementations['entity_metadata']);
   }
 }
 
@@ -371,14 +394,17 @@ function entity_metadata_entity_create($entity_type, $values = array()) {
   if (isset($info['creation callback'])) {
     return $info['creation callback']($values, $entity_type);
   }
-  elseif (in_array('EntityAPIControllerInterface', class_implements($info['controller class']))) {
-    return entity_get_controller($entity_type)->create($values);
+  elseif (entity_metadata_entity_type_supports($entity_type, 'create')) {
+    return entity_metadata_wrapper($entity_type, entity_create($entity_type, $values));
   }
   return FALSE;
 }
 
 /**
  * Generate an array for rendering the given entities.
+ *
+ * Note: This is no hook_entity_view() implementation. See
+ * entity_metadata_module_implements_alter().
  *
  * @param $entity_type
  *   The type of the entity.
@@ -394,16 +420,39 @@ function entity_metadata_entity_create($entity_type, $values = array()) {
  *   The renderable array or FALSE if there were no information how to view the
  *   entity.
  */
-function entity_metdata_entity_view($entity_type, $entities, $view_mode = 'full', $langcode = NULL) {
+function entity_metadata_entity_view($entity_type, $entities, $view_mode = 'full', $langcode = NULL) {
   $info = entity_get_info($entity_type);
   if (isset($info['view callback'])) {
     return $info['view callback']($entities, $view_mode, $langcode, $entity_type);
   }
-  elseif (in_array('EntityAPIControllerInterface', class_implements($info['controller class']))) {
-    return entity_get_controller($entity_type)->view($entities, $view_mode, $langcode);
+  elseif (entity_metadata_entity_type_supports($entity_type, 'view')) {
+    return entity_view($entity_type, $entities, $view_mode, $langcode);
   }
   return FALSE;
 }
+
+/**
+ * Determines whether for the given entity type a given operation is available.
+ *
+ * @param $entity_type
+ *   The type of the entity.
+ * @param $op
+ *   One of 'create', 'view', 'save', 'delete' or 'access.
+ */
+function entity_metadata_entity_type_supports($entity_type, $op) {
+  $info = entity_get_info($entity_type);
+  $keys = array(
+    'view' => 'view callback',
+    'create' => 'creation callback',
+    'delete' => 'deletion callback',
+    'save' => 'save callback',
+    'access' => 'access callback',
+  );
+  if (isset($info[$keys[$op]]) || in_array('EntityAPIControllerInterface', class_implements($info['controller class']))) {
+    return TRUE;
+  }
+}
+
 
 /**
  * Queries for entities having the given property value.
@@ -464,7 +513,7 @@ function entity_metadata_text_formatted_properties() {
       'raw getter callback' => 'entity_metadata_verbatim_get',
     ),
     'format' => array(
-      'type' => 'integer',
+      'type' => 'token',
       'label' => t('Text format'),
       'options list' => 'entity_metadata_field_text_formats',
       'getter callback' => 'entity_metadata_verbatim_get',
