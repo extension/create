@@ -1,5 +1,5 @@
 <?php
-// $Id: system.info.inc,v 1.1.2.5 2010/09/20 16:37:28 fago Exp $
+// $Id: system.info.inc,v 1.1.2.6 2010/11/18 10:41:44 fago Exp $
 
 /**
  * @file
@@ -32,12 +32,6 @@ function entity_metadata_system_entity_property_info() {
     'description' => t("The slogan of the site."),
     'getter callback' => 'entity_metadata_system_get_properties',
     'sanitize' => 'check_plain',
-  );
-  $properties['mission'] = array(
-    'label' => t("Mission"),
-    'description' => t("The optional 'mission' of the site."),
-    'getter callback' => 'entity_metadata_system_get_properties',
-    'sanitize' => 'filter_xss',
   );
   $properties['mail'] = array(
     'label' => t("Email"),

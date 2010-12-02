@@ -1,5 +1,5 @@
 <?php
-// $Id: field.info.inc,v 1.1.2.16 2010/09/20 16:37:28 fago Exp $
+// $Id: field.info.inc,v 1.1.2.17 2010/11/25 10:12:11 fago Exp $
 
 /**
  * @file
@@ -93,6 +93,10 @@ function entity_metadata_field_text_property_callback(&$info, $entity_type, $fie
  */
 function entity_metadata_field_term_reference_callback(&$info, $entity_type, $field, $instance, $field_type) {
   $property = &$info[$entity_type]['bundles'][$instance['bundle']]['properties'][$field['field_name']];
+  if (count($field['settings']['allowed_values']) == 1) {
+    $settings = reset($field['settings']['allowed_values']);
+    $property['bundle'] = $settings['vocabulary'];
+  }
   $property['options list'] = 'entity_metadata_field_options_list';
   unset($property['query callback']);
 }

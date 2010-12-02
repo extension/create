@@ -1,5 +1,5 @@
 <?php
-// $Id: callbacks.inc,v 1.1.2.41 2010/10/05 15:33:15 fago Exp $
+// $Id: callbacks.inc,v 1.1.2.44 2010/11/19 16:01:55 fago Exp $
 
 /**
  * @file
@@ -306,6 +306,9 @@ function entity_metadata_taxonomy_vocabulary_get_properties($vocabulary, array $
  */
 function entity_metadata_user_get_properties($account, array $options, $name, $entity_type) {
   switch ($name) {
+    case 'last-login':
+      return $account->login;
+
     case 'name':
       return ($account->uid == 0) ? variable_get('anonymous', t('Anonymous')) : $account->name;
 
@@ -363,7 +366,8 @@ function entity_metadata_field_property_get($entity, array $options, $name, $ent
       $values[$delta] = $data[$columns[0]];
     }
   }
-  return $field['cardinality'] == 1 ? reset($values) : $values;
+  // For an empty single-valued field, we have to return NULL.
+  return $field['cardinality'] == 1 ? ($values ? reset($values) : NULL) : $values;
 }
 
 /**
@@ -385,9 +389,15 @@ function entity_metadata_field_property_set($entity, $name, $value, $langcode, $
 /**
  * Callback returning the options list of a field.
  */
-function entity_metadata_field_options_list($name) {
-  $field = field_info_field($name);
-  return (array) module_invoke($field['module'], 'options_list', $field);
+function entity_metadata_field_options_list($name, $info) {
+  if (is_numeric($name) && isset($info['parent'])) {
+    // The options list is to be returned for a single item of a multiple field.
+    $field_property_info = $info['parent']->info();
+    $name = $field_property_info['name'];
+  }
+  if ($field = field_info_field($name)) {
+    return (array) module_invoke($field['module'], 'options_list', $field);
+  }
 }
 
 /**
