@@ -1,5 +1,5 @@
 <?php
-// $Id: views_plugin_style_table.inc,v 1.7.4.6 2010/10/17 10:42:44 dereine Exp $
+// $Id: views_plugin_style_table.inc,v 1.7.4.11 2010/11/27 21:46:36 dereine Exp $
 /**
  * @file
  * Contains the table style plugin.
@@ -196,11 +196,16 @@ class views_plugin_style_table extends views_plugin_style {
         $form['info'][$field]['sortable'] = array(
           '#type' => 'checkbox',
           '#default_value' => !empty($this->options['info'][$field]['sortable']),
-          '#states' => array(
-            'visible' => array(
-              ':input[id="' . $id . '"]' => array('value' => $field),
-            ),
-          ),
+          '#process' => array('form_process_checkbox', 'ctools_dependent_process'),
+          '#dependency' => array($id => array($field)),
+        );
+        $form['info'][$field]['default_sort_order'] = array(
+          '#type' => 'select',
+          '#options' => array('asc' => t('Ascending'), 'desc' => t('Descending')),
+          '#default_value' => !empty($this->options['info'][$field]['default_sort_order']) ? $this->options['info'][$field]['default_sort_order'] : 'asc',
+          '#process' => array('ctools_dependent_process'),
+          '#dependency_count' => 2,
+          '#dependency' => array($id => array($field), 'edit-style-options-info-' . $safe . '-sortable' => array(1)),
         );
         // Provide an ID so we can have such things.
         $radio_id = drupal_html_id('edit-default-' . $field);
@@ -212,11 +217,8 @@ class views_plugin_style_table extends views_plugin_style {
           // because 'radio' doesn't fully support '#id' =(
           '#attributes' => array('id' => $radio_id),
           '#default_value' => $default,
-          '#states' => array(
-            'visible' => array(
-              ':input[id="' . $id . '"]' => array('value' => $field),
-            ),
-          ),
+          '#process' => array('ctools_dependent_process'),
+          '#dependency' => array($id => array($field)),
         );
       }
       $form['info'][$field]['align'] = array(
@@ -228,12 +230,14 @@ class views_plugin_style_table extends views_plugin_style {
           'views-align-center' => t('Center'),
           'views-align-right' => t('Right'),
           ),
+        '#process' => array('form_process_select', 'ctools_dependent_process'),
         '#dependency' => array($id => array($field)),
       );
       $form['info'][$field]['separator'] = array(
         '#type' => 'textfield',
         '#size' => 10,
         '#default_value' => isset($this->options['info'][$field]['separator']) ? $this->options['info'][$field]['separator'] : '',
+        '#process' => array('ctools_dependent_process'),
         '#dependency' => array($id => array($field)),
       );
 

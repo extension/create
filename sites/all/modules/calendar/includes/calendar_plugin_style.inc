@@ -1,5 +1,5 @@
 <?php
-// $Id: calendar_plugin_style.inc,v 1.11 2010/11/10 13:26:58 karens Exp $
+// $Id: calendar_plugin_style.inc,v 1.12 2010/11/13 12:36:36 karens Exp $
 
 /**
  * @file
@@ -71,9 +71,6 @@ class calendar_plugin_style extends views_plugin_style {
   function validate() {
     $errors = parent::validate();
     
-    // @TODO Add validation back once view is working again.
-    return $errors;
-    
     if (empty($this->display->display_options['style_plugin'])) {
       return $errors;
     }
@@ -92,7 +89,7 @@ class calendar_plugin_style extends views_plugin_style {
       }
       $this->view->date_info->arg_missing_default = TRUE;
     }
-     
+         
     // Make sure date fields are not set up to 'Group multiple values' 
     // in the calendar style.
     if ($style == 'calendar_style') {

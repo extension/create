@@ -1,5 +1,5 @@
 <?php
-// $Id: views_plugin_display.inc,v 1.27.4.37 2010/10/16 08:51:10 dereine Exp $
+// $Id: views_plugin_display.inc,v 1.27.4.42 2010/12/01 20:05:06 dereine Exp $
 /**
  * @file
  * Contains the base display plugin.
@@ -98,7 +98,7 @@ class views_plugin_display extends views_plugin {
               'relationship' => 'none',
               'group_type' => 'group',
               'content' => $content,
-              'format' => !empty($format) ? $format : variable_get('filter_default_format', 1),
+              'format' => !empty($format) ? $format : filter_default_format(),
             );
 
             if ($area != 'empty' && $empty = $this->get_option($area . '_empty')) {
@@ -291,6 +291,13 @@ class views_plugin_display extends views_plugin {
       'arguments' => array('arguments'),
       'filters' => array('filters'),
     );
+
+    // If the display cannot use a pager, then we cannot default it.
+    if (empty($this->definition['use pager'])) {
+      unset($sections['pager']);
+      unset($sections['items_per_page']);
+    }
+
     if ($section) {
       if (!empty($sections[$section])) {
         return $sections[$section];
@@ -389,12 +396,12 @@ class views_plugin_display extends views_plugin {
       // and therefore need special handling.
       'access' => array(
         'contains' => array(
-          'type' => array('default' => 'none', 'export' => 'export_plugin'),
+          'type' => array('default' => 'none', 'export' => 'export_plugin', 'unpack_translatable' => 'unpack_plugin'),
          ),
       ),
       'cache' => array(
         'contains' => array(
-          'type' => array('default' => 'none', 'export' => 'export_plugin'),
+          'type' => array('default' => 'none', 'export' => 'export_plugin', 'unpack_translatable' => 'unpack_plugin'),
          ),
       ),
       'query' => array(
@@ -411,13 +418,13 @@ class views_plugin_display extends views_plugin {
       // should be copied.
       'exposed_form' => array(
         'contains' => array(
-          'type' => array('default' => 'basic', 'export' => 'export_plugin'),
+          'type' => array('default' => 'basic', 'export' => 'export_plugin', 'unpack_translatable' => 'unpack_plugin'),
           'options' => array('default' => array(), 'export' => FALSE),
          ),
       ),
       'pager' => array(
         'contains' => array(
-          'type' => array('default' => 'full', 'export' => 'export_plugin'),
+          'type' => array('default' => 'full', 'export' => 'export_plugin', 'unpack_translatable' => 'unpack_plugin'),
           'options' => array('default' => array(), 'export' => FALSE),
          ),
       ),
@@ -428,6 +435,7 @@ class views_plugin_display extends views_plugin {
       'style_plugin' => array(
         'default' => 'default',
         'export' => 'export_style',
+        'unpack_translatable' => 'unpack_style',
       ),
       'style_options' => array(
         'default' => array(),
@@ -436,6 +444,7 @@ class views_plugin_display extends views_plugin {
       'row_plugin' => array(
         'default' => 'fields',
         'export' => 'export_style',
+        'unpack_translatable' => 'unpack_style',
       ),
       'row_options' => array(
         'default' => array(),
@@ -449,14 +458,17 @@ class views_plugin_display extends views_plugin {
       'header' => array(
         'default' => array(),
         'export' => 'export_handler',
+        'unpack_translatable' => 'unpack_handler',
       ),
       'footer' => array(
         'default' => array(),
         'export' => 'export_handler',
+        'unpack_translatable' => 'unpack_handler',
       ),
       'empty' => array(
         'default' => array(),
         'export' => 'export_handler',
+        'unpack_translatable' => 'unpack_handler',
       ),
 
       // We want these to export last.
@@ -464,26 +476,38 @@ class views_plugin_display extends views_plugin {
       'relationships' => array(
         'default' => array(),
         'export' => 'export_handler',
+        'unpack_translatable' => 'unpack_handler',
+
       ),
       'fields' => array(
         'default' => array(),
         'export' => 'export_handler',
+        'unpack_translatable' => 'unpack_handler',
       ),
       'sorts' => array(
         'default' => array(),
         'export' => 'export_handler',
+        'unpack_translatable' => 'unpack_handler',
       ),
       'arguments' => array(
         'default' => array(),
         'export' => 'export_handler',
+        'unpack_translatable' => 'unpack_handler',
       ),
       'filters' => array(
         'default' => array(),
         'export' => 'export_handler',
+        'unpack_translatable' => 'unpack_handler',
       ),
-
-
     );
+
+    if (empty($this->definition['use pager'])) {
+      $options['defaults']['default']['use_pager'] = FALSE;
+      $options['defaults']['default']['items_per_page'] = FALSE;
+      $options['defaults']['default']['offset'] = FALSE;
+      $options['defaults']['default']['pager'] = FALSE;
+      $options['pager']['contains']['type']['default'] = 'some';
+    }
 
     if ($this->is_default_display()) {
       unset($options['defaults']);
@@ -631,6 +655,10 @@ class views_plugin_display extends views_plugin {
         $plugin->init($this->view, $this->display, $options);
       }
       else {
+        if (!isset($this->base_field)) {
+          $views_data = views_fetch_data($this->view->base_table);
+          $this->view->base_field = $views_data['table']['base']['field'];
+        }
         $plugin->init($this->view->base_table, $this->view->base_field, $options);
       }
       $cache[$type][$name] = $plugin;
@@ -868,22 +896,24 @@ class views_plugin_display extends views_plugin {
       );
     }
 
-    if (!empty($this->definition['use pager'])) {
+    $pager_plugin = $this->get_plugin('pager');
+    if (!$pager_plugin) {
+      // default to the no pager plugin.
+      $pager_plugin = views_get_plugin('pager', 'none');
+    }
 
-      $pager_plugin = $this->get_plugin('pager');
-      if (!$pager_plugin) {
-        // default to the no pager plugin.
-        $pager_plugin = views_get_plugin('pager', 'none');
-      }
+    $pager_str = $pager_plugin->summary_title();
 
-      $pager_str = $pager_plugin->summary_title();
+    $options['pager'] = array(
+      'category' => 'basic',
+      'title' => t('Use pager'),
+      'value' => $pager_str,
+      'desc' => t("Change this display's pager setting."),
+    );
 
-      $options['pager'] = array(
-        'category' => 'basic',
-        'title' => t('Use pager'),
-        'value' => $pager_str,
-        'desc' => t("Change this display's pager setting."),
-      );
+    // If pagers aren't allowed, change the text of the item:
+    if (empty($this->definition['use pager'])) {
+      $options['pager']['title'] = t('Items to display');
     }
 
     if (!empty($pager_plugin->definition['uses options'])) {
@@ -1235,7 +1265,7 @@ class views_plugin_display extends views_plugin {
               '#tree' => TRUE,
             ),
           );
-          
+
           $this->view->query->options_form($form['query']['options'], $form_state);
         }
         break;
@@ -1578,7 +1608,7 @@ class views_plugin_display extends views_plugin {
         $pager = $this->get_option('pager');
         $form['pager']['type'] =  array(
           '#type' => 'radios',
-          '#options' => views_fetch_plugin_names('pager'),
+          '#options' => views_fetch_plugin_names('pager', empty($this->definition['use pager']) ? 'basic' : NULL),
           '#default_value' => $pager['type'],
         );
 
@@ -2199,6 +2229,7 @@ class views_plugin_display extends views_plugin {
     return array(
       $delta => array(
         'info' => $desc,
+        'cache' => DRUPAL_NO_CACHE,
       )
     );
   }
@@ -2353,6 +2384,82 @@ class views_plugin_display extends views_plugin {
 
       // Pass off to the plugin to export itself.
       $output .= $plugin->export_options($indent, $new_prefix);
+    }
+
+    return $output;
+  }
+
+  function unpack_style($indent, $prefix, $storage, $option, $definition, $parents) {
+    $output = '';
+    $style_plugin = $this->get_plugin();
+    if ($option == 'style_plugin') {
+      $type = 'style';
+      $options_field = 'style_options';
+      $plugin = $style_plugin;
+    }
+    else {
+      if (!$style_plugin || !$style_plugin->uses_row_plugin()) {
+        return;
+      }
+
+      $type = 'row';
+      $options_field = 'row_options';
+      $plugin = $this->get_plugin('row');
+      // If the style plugin doesn't use row plugins, don't even bother.
+    }
+
+    if ($plugin) {
+      return $plugin->unpack_translatables($translatable, $parents);
+    }
+  }
+
+  /**
+   * Special handling for plugin unpacking.
+   */
+  function unpack_plugin(&$translatable, $storage, $option, $definition, $parents) {
+    $plugin_type = end($parents);
+    $plugin = $this->get_plugin($plugin_type);
+    if ($plugin) {
+      // Write which plugin to use.
+      return $plugin->unpack_translatables($translatable, $parents);
+    }
+  }
+
+    /**
+   * Special method to unpack items that have handlers.
+   *
+   * This method was specified in the option_definition() as the method to utilize to
+   * export fields, filters, sort criteria, relationships and arguments. This passes
+   * the export off to the individual handlers so that they can export themselves
+   * properly.
+   */
+  function unpack_handler(&$translatable, $storage, $option, $definition, $parents) {
+    $output = '';
+
+    // cut the 's' off because the data is stored as the plural form but we need
+    // the singular form. Who designed that anyway? Oh yeah, I did. :(
+    if ($option != 'header' && $option != 'footer' && $option != 'empty') {
+      $type = substr($option, 0, -1);
+    }
+    else {
+      $type = $option;
+    }
+    $types = views_object_types();
+    foreach ($storage[$option] as $id => $info) {
+      if (!empty($types[$type]['type'])) {
+        $handler_type = $types[$type]['type'];
+      }
+      else {
+        $handler_type = $type;
+      }
+      $handler = views_get_handler($info['table'], $info['field'], $handler_type);
+      if ($handler) {
+        $handler->init($this->view, $info);
+        $handler->unpack_translatables($translatable, array_merge($parents, array($handler_type, $info['table'], $info['field'])));
+      }
+
+      // Prevent reference problems.
+      unset($handler);
     }
 
     return $output;

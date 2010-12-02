@@ -1,5 +1,5 @@
 <?php
-// $Id: calendar.inc,v 1.17 2010/11/10 13:26:57 karens Exp $
+// $Id: calendar.inc,v 1.23 2010/11/29 11:00:49 karens Exp $
 
 /**
  * @file
@@ -100,7 +100,7 @@ function calendar_build_week(&$curday, $view, $items, $check_month = FALSE) {
   // If we're displaying the week number, add it as the
   // first cell in the week.
   if (!empty($view->date_info->style_with_weekno) && !in_array($view->date_info->granularity, array('day', 'week'))) {
-    $url = $view->get_path() . '/' . $view->date_info->year . '-W' . $week;
+    $url = date_real_url($view, NULL, $view->date_info->year .'-W'. $week);
     if (!empty($view->date_info->display_types['week'])) {
       $weekno = l($week, $url, array('query' => !empty($view->date_info->append) ? $view->date_info->append : ''));
     }
@@ -372,14 +372,30 @@ function calendar_build_nodes(&$view, &$items) {
       }
     }
     
+    // set the domain part of the id
+    $domain = check_plain($_SERVER['SERVER_NAME']);
+
     // If there are multiple date fields in this calendar we may get
     // duplicate items from the other date fields, so add a way to
     // make sure each individual date field only gets added to the
     // calendar one time.
     $processed = array();
+    $rrule_processed = array();
     foreach ($items as $pos => $item) {
       $delta = !empty($field['delta_field']) && !empty($item->{$field['delta_field']}) ? $item->{$field['delta_field']} : 0;
-      $id = 'calendar:' . $item->nid . ':' . $real_field . ':' . $delta;
+      $id = 'calendar.' . $item->nid . '.' . $real_field . '.' . $delta;
+      
+      // When creating iCal feeds for repeating dates we don't want all
+      // the multiple values, send only the first value.
+      if (strstr($view->current_display, '_ical')) {
+        if (!isset($rrule_processed[$item->nid])) {
+          $rrule_processed[$item->nid] = TRUE;
+        }
+        else {
+          continue;
+        }
+      }
+      
       if (!in_array($id, $processed) && isset($item->calendar_fields->$alias)) {
         
         // Create from and to date values for each item, adjusted to
@@ -471,7 +487,15 @@ function calendar_build_nodes(&$view, &$items) {
           $exceptions = array('format_interval', 'time ago');
           $node->label = $label;
           $node->format = $format;
-          $node->format_time = !in_array($node->format, $exceptions) ? date_limit_format($format, array('hour', 'minute', 'second')) : '';
+          if (!in_array($node->format, $exceptions)) {
+            if (!isset($formats[$format])) {
+              $formats[$format] = date_limit_format($format, array('hour', 'minute', 'second'));
+              $node->format_time = $formats[$format];
+            }
+          }
+          else {
+            $node->format_time = '';
+          }
           $node->url = calendar_get_node_link($node);
                               
           //$node->$fromto[0] = $values[0];
@@ -534,7 +558,8 @@ function calendar_build_nodes(&$view, &$items) {
           else {
             calendar_node_stripe($view, $node, $alias, $alias);
             calendar_node_taxonomy_stripe($view, $node, $alias, $alias);
-            $node->date_id = $id . ':' . $pos;
+            calendar_node_group_stripe($view, $node, $alias, $alias);
+            $node->date_id = $id . '.' . $pos;
 
             $nodes[] = $node;
             unset($node);

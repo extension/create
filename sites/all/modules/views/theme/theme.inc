@@ -1,5 +1,5 @@
 <?php
-// $Id: theme.inc,v 1.84.4.27 2010/10/12 21:31:52 merlinofchaos Exp $
+// $Id: theme.inc,v 1.84.4.32 2010/11/27 20:12:58 dereine Exp $
 
 /**
  * @file theme.inc
@@ -163,7 +163,7 @@ function template_preprocess_views_view_fields(&$vars) {
   $vars['fields'] = array(); // ensure it's at least an empty array.
   foreach ($view->field as $id => $field) {
     // render this even if set to exclude so it can be used elsewhere.
-    $field_output = $view->field[$id]->theme($vars['row']);
+    $field_output = $view->style_plugin->get_field($view->row_index, $id);
     $empty = $field_output !== 0 && empty($field_output);
     if (empty($field->options['exclude']) && (!$empty || (empty($field->options['hide_empty']) && empty($vars['options']['hide_empty'])))) {
       $object = new stdClass();
@@ -313,16 +313,7 @@ function template_preprocess_views_view_table(&$vars) {
 
   // Fields must be rendered in order as of Views 2.3, so we will pre-render
   // everything.
-  $renders = array();
-  $view->row_index = 0;
-  $keys = array_keys($view->field);
-  foreach ($result as $count => $row) {
-    foreach ($keys as $id) {
-      $renders[$count][$id] = $view->field[$id]->theme($row);
-    }
-    $view->row_index = $count;
-  }
-  unset($view->row_index);
+  $renders = $handler->render_fields($result);
 
   foreach ($columns as $field => $column) {
     // render the header labels
@@ -332,11 +323,10 @@ function template_preprocess_views_view_table(&$vars) {
         $vars['header'][$field] = $label;
       }
       else {
-        // @todo -- make this a setting
-        $initial = 'asc';
+        $initial = !empty($options['info'][$field]['default_sort_order']) ? $options['info'][$field]['default_sort_order'] : 'asc';
 
-        if ($active == $field && $order == 'asc') {
-          $initial = 'desc';
+        if ($active == $field) {
+          $initial = ($order == 'asc') ? 'desc' : 'asc';
         }
 
         $title = t('sort by @s', array('@s' => $label));
@@ -344,7 +334,7 @@ function template_preprocess_views_view_table(&$vars) {
           $label .= theme('tablesort_indicator', array('style' => $initial));
         }
 
-        $query['order'] = urlencode($field);
+        $query['order'] = $field;
         $query['sort'] = $initial;
         $link_options = array(
           'html' => TRUE,
@@ -400,12 +390,12 @@ function template_preprocess_views_view_table(&$vars) {
   $vars['row_classes'][0][] = 'views-row-first';
   $vars['row_classes'][count($vars['row_classes']) - 1][] = 'views-row-last';
 
-  $vars['class'] = array('views-table');
+  $vars['classes_array'] = array('views-table');
   if (!empty($options['sticky'])) {
     drupal_add_js('misc/tableheader.js');
-    $vars['class'][] = "sticky-enabled";
+    $vars['classes_array'][] = "sticky-enabled";
   }
-  $vars['class'][] = 'cols-'. count($vars['rows']);
+  $vars['classes_array'][] = 'cols-'. count($vars['rows']);
 }
 
 /**

@@ -1,5 +1,5 @@
 <?php
-// $Id: calendar_plugin_display_block.inc,v 1.7 2010/11/07 13:09:29 karens Exp $
+// $Id: calendar_plugin_display_block.inc,v 1.8 2010/11/13 12:36:36 karens Exp $
 
 /**
  * @file
@@ -25,9 +25,6 @@ class calendar_plugin_display_block extends views_plugin_display_block {
    */
   function validate() {
     $errors = parent::validate();
-    
-    // @TODO Add validation back once view is working again.
-    return;    
     
     $arguments = $this->display->handler->get_option('arguments');
     if (!in_array('date_argument', array_keys($arguments))) {
