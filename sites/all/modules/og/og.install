@@ -13,6 +13,8 @@
  * the field isn't known yet.
  */
 function og_enable() {
+  _field_info_collate_fields(TRUE);
+  _field_info_collate_types(TRUE);
   og_create_field(OG_AUDIENCE_FIELD, 'user', 'user');
 }
 
@@ -348,7 +350,7 @@ function _og_upgrade_group(&$sandbox) {
       // Make sure the created value wasn't altered already.
       if (($group = og_get_group('node', $nid, TRUE)) && $group->created != $created) {
         $group->created = $created;
-        og_save($group);
+        $group->save();
 
         // New group created, so add it to the total count.
         $sandbox['count'] += 1;
