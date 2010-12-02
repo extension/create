@@ -70,6 +70,7 @@ function exauth_user_login_form_alter(&$form, &$form_state){
   unset($form['name']);
   unset($form['pass']);
   unset($form['links']);
+  unset($form['#attached']['js']);
   $form['openid_links']['#items'][0]['data'] = '<a href=""></a>Log in with your eXtensionID';
   $form['name']['#size'] = $size;
   $form['openid_identifier']['#default_value'] = 'http://people.extension.org/';
