@@ -1,5 +1,5 @@
 <?php
-// $Id: calendar_plugin_display_attachment.inc,v 1.14 2010/11/21 12:55:57 karens Exp $
+// $Id: calendar_plugin_display_attachment.inc,v 1.11 2010/11/07 13:09:29 karens Exp $
 
 /**
  * @file
@@ -93,7 +93,10 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
    * Display validation.
    */
   function validate() {
-    $errors = parent::validate();  
+    $errors = parent::validate();
+    
+    // @TODO Add validation back once view is working again.
+    return;    
     
     $arguments = $this->display->handler->get_option('arguments');
     if (!in_array('date_argument', array_keys($arguments))) {
@@ -141,9 +144,7 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
     elseif (substr($display_id, 0, 9) == 'calendar_') {
       $this->view->date_info->calendar_colors = $this->view->display[$display_id]->handler->options['calendar_colors'];
       $this->view->date_info->calendar_colors_taxonomy = $this->view->display[$display_id]->handler->options['calendar_colors_taxonomy'];
-      $this->view->date_info->calendar_colors_group = $this->view->display[$display_id]->handler->options['calendar_colors_group'];
       $this->view->date_info->calendar_popup = $this->view->display[$display_id]->handler->options['calendar_popup'];
-      $this->view->date_info->calendar_date_link = $this->view->display[$display_id]->handler->options['calendar_date_link'];
     }  
     
     parent::attach_to($display_id);

@@ -1,5 +1,5 @@
 <?php
-// $Id: calendar-month-multiple-node.tpl.php,v 1.5 2010/11/21 13:19:16 karens Exp $
+// $Id: calendar-month-multiple-node.tpl.php,v 1.4 2010/08/22 02:23:48 karens Exp $
 /**
  * @file
  * Template to display a summary of the days items as a calendar month node.
@@ -9,7 +9,7 @@
  */
 ?>
 <div class="view-item view-item-<?php print $view->name ?>">
-  <div class="<?php print $curday; ?> calendar monthview">
+  <div class="calendar monthview" id="<?php print $curday ?>">
     <?php foreach ($types as $type): ?>
       <?php if ($view->date_info->style_max_items_behavior != 'more'): ?>
         <?php print theme('calendar_stripe_stripe', array('type' => $type)); ?>

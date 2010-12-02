@@ -308,8 +308,7 @@ function eximport_entry_create($atom_entry) {
   
   // default to article content-type
   $entry->type = 'article';
-  $entry->type = 'public_article';
-  
+    
   // create our tag array
   $categories = array();
   $entry->published = FALSE;
@@ -413,7 +412,6 @@ function eximport_import_from_file($filename) {
   $total = count($xml->entry);
   
   for ($i=0; $i < $total; $i++) {
-    set_time_limit(30);
     $atom_entry = $xml->entry[$i];
     // use an intermediate object to reduce complexity and aid debugging
     $entry = eximport_entry_create($atom_entry);
@@ -449,7 +447,6 @@ function eximport_rewrite_imported_urls() {
     $revisions = node_revision_list($fakenode);
     $total += count($revisions);
     foreach ($revisions as $vid => $rev) {
-      set_time_limit(30);
       $node = node_load($nid, $vid);
       $GLOBALS['eximport_nid'] = $node->nid;
       eximport_rewrite_urls($node);
@@ -623,13 +620,6 @@ function eximport_process_url(&$url) {
     $modified = TRUE;
   } elseif (preg_match('#^/learninglessons/(.*)#', $path, $matches)) {
     // our work is done, just need to update host below
-    $modified = TRUE;
-  } elseif (preg_match('#^/wiki/User\:(.*)#', $path, $matches)) {
-    $exuser = strtolower($matches[1]);
-    $url['scheme'] = 'https';
-    $url['host'] = 'people.extension.org';
-    unset($url['port']);
-    $path = '/' . $exuser;
     $modified = TRUE;
   } elseif (preg_match('#^/wiki/File\:.*#', $path)) {
     // zap it

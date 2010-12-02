@@ -1,5 +1,5 @@
 <?php
-// $Id: views_handler_filter_term_node_tid.inc,v 1.8.6.13 2010/11/27 20:53:28 dereine Exp $
+// $Id: views_handler_filter_term_node_tid.inc,v 1.8.6.9 2010/10/17 10:42:44 dereine Exp $
 
 /**
  * Filter by term id
@@ -9,7 +9,7 @@ class views_handler_filter_term_node_tid extends views_handler_filter_many_to_on
     parent::init($view, $options);
 
     // Convert legacy vid option to machine name vocabulary.
-    if (!empty($this->options['vid']) & empty($this->options['vocabulary'])) {
+    if (!empty($this->options['vid'])) {
       $vocabularies = taxonomy_get_vocabularies();
       $vid = $this->options['vid'];
       if (isset($vocabularies[$vid], $vocabularies[$vid]->machine_name)) {
@@ -73,8 +73,11 @@ class views_handler_filter_term_node_tid extends views_handler_filter_many_to_on
       '#type' => 'checkbox',
       '#title' => t('Show hierarchy in dropdown'),
       '#default_value' => !empty($this->options['hierarchy']),
-      '#process' => array('form_process_checkbox', 'ctools_dependent_process'),
-      '#dependency' => array('radio:options[type]' => array('select')),
+      '#states' => array(
+          'visible' => array(
+            'input[name="options[type]' => array('value' => 'select'),
+          ),
+        ),
     );
 
     $form['markup_end'] = array(
@@ -282,7 +285,7 @@ class views_handler_filter_term_node_tid extends views_handler_filter_many_to_on
     }
 
     $query = db_select('taxonomy_term_data', 'td');
-    $query->innerJoin('taxonomy_vocabulary', 'tv', 'td.vid = tv.vid');
+    $query->addJoin('taxonomy_vocabulary', 'tv', 'td.vid = tv.vid');
     $query->fields('td');
     $query->condition('td.name', $names);
     $query->condition('tv.machine_name', $this->options['vocabulary']);

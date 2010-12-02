@@ -1,5 +1,5 @@
 <?php
-// $Id: wysiwyg.module,v 1.47 2010/12/02 06:54:31 sun Exp $
+// $Id: wysiwyg.module,v 1.46 2010/10/18 21:57:48 sun Exp $
 
 /**
  * @file
@@ -560,7 +560,7 @@ function wysiwyg_get_css() {
 
   $files = array();
   foreach (drupal_add_css() as $filepath => $info) {
-    if ($info['group'] >= CSS_THEME && $info['media'] != 'print') {
+    if ($info['weight'] >= CSS_THEME && $info['media'] != 'print') {
       if (file_exists($filepath)) {
         $files[] = base_path() . $filepath;
       }

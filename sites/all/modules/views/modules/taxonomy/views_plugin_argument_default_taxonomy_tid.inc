@@ -1,5 +1,5 @@
 <?php
-// $Id: views_plugin_argument_default_taxonomy_tid.inc,v 1.1.2.8 2010/11/12 18:07:45 dereine Exp $
+// $Id: views_plugin_argument_default_taxonomy_tid.inc,v 1.1.2.6 2010/10/17 10:42:44 dereine Exp $
 /**
  * @file
  *   Taxonomy tid default argument.
@@ -47,10 +47,7 @@ class views_plugin_argument_default_taxonomy_tid extends views_plugin_argument_d
       '#type' => 'checkbox',
       '#title' => t('Limit terms by vocabulary'),
       '#default_value'=> $this->options['limit'],
-      '#process' => array('form_process_checkboxes', 'ctools_dependent_process'),
-      '#dependency' => array(
-        'edit-options-argument-default-taxonomy-tid-node' => array(1),
-      ),
+      '#process' => array('form_process_checkboxes'),
     );
 
     $options = array();
@@ -66,10 +63,11 @@ class views_plugin_argument_default_taxonomy_tid extends views_plugin_argument_d
       '#title' => t('Vocabularies'),
       '#options' => $options,
       '#default_value' => $this->options['vocabularies'],
-      '#process' => array('form_process_checkboxes', 'ctools_dependent_process'),
-      '#dependency' => array(
-        //'edit-options-argument-default-taxonomy-tid-limit' => array(1),
-        'edit-options-argument-default-taxonomy-tid-node' => array(1),
+      '#process' => array('form_process_checkboxes'),
+      '#states' => array(
+        'visible' => array(
+          ':input[name="options[argument_default][taxonomy_tid][limit]"]' => array('checked' => TRUE),
+        ),
       ),
     );
   }
@@ -104,7 +102,7 @@ class views_plugin_argument_default_taxonomy_tid extends views_plugin_argument_d
             $items = field_get_items('node', $node, $name);
             if (is_array($items)) {
               foreach ($items as $item) {
-                $taxonomy[$item['tid']] = $field_info['settings']['allowed_values'][0]['vocabulary'];
+                $taxonomy[$item['tid']] = $item['taxonomy_term'];
               }
             }
           }
@@ -112,8 +110,8 @@ class views_plugin_argument_default_taxonomy_tid extends views_plugin_argument_d
         if (!empty($this->options['limit'])) {
           $tids = array();
           // filter by vocabulary
-          foreach ($taxonomy as $tid => $vocab) {
-            if (!empty($this->options['vocabularies'][$vocab])) {
+          foreach ($taxonomy as $tid => $term) {
+            if (!empty($this->options['vocabularies'][$term->vocabulary_machine_name])) {
               $tids[] = $tid;
             }
           }

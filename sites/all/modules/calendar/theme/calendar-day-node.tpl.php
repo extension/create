@@ -1,5 +1,5 @@
 <?php
-// $Id: calendar-day-node.tpl.php,v 1.6 2010/11/21 13:19:16 karens Exp $
+// $Id: calendar-day-node.tpl.php,v 1.5 2010/08/22 02:23:48 karens Exp $
 /**
  * @file
  * Template to display a view item as a calendar day node.
@@ -39,10 +39,10 @@
  */
 ?>
 <div class="view-item view-item-<?php print $view->name ?>">
-  <div class="<?php print $node->date_id; ?> calendar dayview">
-    <?php print print theme('calendar_stripe_stripe', array('node' => $node)); ?>
+  <div class="calendar dayview" id="<?php print $node->date_id ?>">
+    <?php print theme('calendar_stripe_stripe', array('node' => $node)); ?>
     <?php foreach ($fields as $field): ?>
-      <div class="view-field view-data-<?php print $field['id']; ?> <?php print $field['id']; ?>">
+      <div id="<?php print $field['id']; ?>" class="view-field view-data-<?php print $field['id'] ?>">
         <?php if ($field['label']): ?>
           <div class="view-label-<?php print $field['id'] ?>"><?php print $field['label'] ?></div>
         <?php endif; ?>  
@@ -51,4 +51,3 @@
     <?php endforeach; ?>
   </div>    
 </div>
-

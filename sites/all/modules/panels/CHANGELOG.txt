@@ -1,2 +1,16 @@
 Panels 7.x-dev
 ==============
+
+#920266 by dereine: Typo in cache.inc caused wsods in rare circumstances.
+#879482 by mvc: Ensure Panels and CTools module files are loaded during update. Apparently could cause WSOD if not.
+#917614 by jskulski: IPE broken in IE.
+#906520: Improve CSS for rounded shadow boxes on IE7.
+#932632 by mikeytown2: Fix notice in .install file.
+#927840: Add clear-block to dashboard HTML to ensure themes do not do weird things to it.
+#869766: Fix occasional problem with flexible layout pushing the entire layout to the left in certain fixed-width only configurations.
+#949310: E_STRICT violation on declaration of render_pane() method of display renderers.
+#940002: Custom style modal was broken.
+#953484: Panes were not properly using classes array.
+#941532: panel nodes had some serious problems do to hook_node_*.
+#954324: Mini panels failed during uninstall.
+#827628: "Add content" dialog could lose content with the same title as other content.

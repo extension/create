@@ -1,5 +1,5 @@
 <?php
-// $Id: panels_mini.install,v 1.7 2010/10/11 22:56:02 sdboyer Exp $
+// $Id: panels_mini.install,v 1.8 2010/10/27 18:58:45 merlinofchaos Exp $
 
 /**
  * Implementation of hook_schema().
@@ -99,9 +99,11 @@ function panels_mini_schema_1() {
  * Implementation of hook_uninstall().
  */
 function panels_mini_uninstall() {
-  $result = db_query("SELECT * FROM {panels_mini}");
   $panels_exists = db_table_exists('panels_display');
-  while ($panel_mini = db_fetch_object($result)) {
+
+  $result = db_query("SELECT * FROM {panels_mini}");
+  $deltas = array();
+  foreach ($result as $panel_mini) {
     // Delete all associated displays.
     if (!function_exists('panels_delete_display')) {
       require_once drupal_get_path('module', 'panels') .'/panels.module';
@@ -110,8 +112,15 @@ function panels_mini_uninstall() {
       panels_delete_display($panel_mini->did);
     }
 
+    $deltas[] = $panel_mini->pid;
+  }
+
+  if ($deltas) {
     // Delete all configured blocks.
-    db_query("DELETE FROM {blocks} WHERE module = 'panels_mini' AND delta = %d", $panel_mini->pid);
+    db_delete('blocks')
+      ->condition('module', 'panels_mini')
+      ->condition('delta', $deltas)
+      ->execute();
   }
 }
 

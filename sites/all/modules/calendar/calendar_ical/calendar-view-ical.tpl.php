@@ -1,5 +1,5 @@
 <?php
-// $Id: calendar-view-ical.tpl.php,v 1.6 2010/11/21 12:44:43 karens Exp $
+// $Id: calendar-view-ical.tpl.php,v 1.4 2010/02/28 14:25:55 karens Exp $
 /**
  * $calname
  *   The name of the calendar.
@@ -27,28 +27,28 @@
 BEGIN:VCALENDAR
 VERSION:2.0
 METHOD:PUBLISH
-X-WR-CALNAME: <?php print $calname . "\r\n"; ?>
+X-WR-CALNAME: <?php print $calname ?> 
 PRODID:-//Drupal iCal API//EN
 <?php foreach($events as $event): ?>
 BEGIN:VEVENT
-UID:<?php print($event['uid'] . "\r\n") ?>
-SUMMARY:<?php print($event['summary'] . "\r\n") ?>
-DTSTAMP:<?php print($current_date . "Z\r\n") ?>
-DTSTART:<?php print($event['start'] . "Z\r\n") ?>
+UID:<?php print($event['uid'] . "\n") ?>
+SUMMARY:<?php print($event['summary'] . "\n") ?>
+DTSTAMP;TZID=<?php print $site_timezone ?>;VALUE=DATE-TIME:<?php print($current_date . "\n") ?>
+DTSTART;<?php print $event['timezone'] ?>VALUE=DATE-TIME:<?php print($event['start'] . "\n") ?>
 <?php if (!empty($event['end'])): ?>
-DTEND:<?php print($event['end'] . "Z\r\n") ?>
+DTEND;<?php print $event['timezone'] ?>VALUE=DATE-TIME:<?php print($event['end'] . "\n") ?>
 <?php endif; ?>
 <?php if (!empty($event['rrule'])) : ?>
-<?php print($event['rrule'] . "\r\n") ?>
+RRULE;<?php print($event['rrule'] . "\n") ?>
 <?php endif; ?>
 <?php if (!empty($event['url'])): ?>
-URL;VALUE=URI:<?php print($event['url'] . "\r\n") ?>
+URL;VALUE=URI:<?php print($event['url'] . "\n") ?>
 <?php endif; ?>
 <?php if (!empty($event['location'])): ?>
-LOCATION:<?php print($event['location'] . "\r\n") ?>
+LOCATION:<?php print($event['location'] . "\n") ?>
 <?php endif; ?>
 <?php if (!empty($event['description'])) : ?>
-DESCRIPTION:<?php print($event['description'] . "\r\n") ?>
+DESCRIPTION:<?php print($event['description'] . "\n") ?>
 <?php endif; ?>
 END:VEVENT
 <?php endforeach; ?>

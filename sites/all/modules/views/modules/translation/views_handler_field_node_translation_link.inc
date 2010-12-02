@@ -1,5 +1,5 @@
 <?php
-// $Id: views_handler_field_node_translation_link.inc,v 1.1.6.2 2010/11/30 20:36:01 merlinofchaos Exp $
+// $Id: views_handler_field_node_translation_link.inc,v 1.1 2008/09/30 22:07:15 merlinofchaos Exp $
 /**
  * Field handler to present a link to the node.
  */
@@ -18,10 +18,6 @@ class views_handler_field_node_translation_link extends views_handler_field {
   }
 
   function render($values) {
-    return $this->render_link(check_plain($values->{$this->aliases['tnid']}), $values);
-  }
-
-  function render_link($data, $values) {
     global $language;
     $tnid = $values->{$this->aliases['tnid']};
     // Only load translations if the node isn't in the current language.
@@ -32,9 +28,6 @@ class views_handler_field_node_translation_link extends views_handler_field {
         $values->{$this->aliases['title']} = $translations[$language->language]->title;
       }
     }
-
-    $this->options['alter']['make_link'] = TRUE;
-    $this->options['alter']['path'] = "node/" . $values->{$this->aliases['nid']};
-    return $values->{$this->aliases['title']}
+    return l($values->{$this->aliases['title']}, "node/" . $values->{$this->aliases['nid']});
   }
 }

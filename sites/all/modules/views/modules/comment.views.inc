@@ -1,5 +1,5 @@
 <?php
-// $Id: comment.views.inc,v 1.33.4.17 2010/11/25 20:56:40 dereine Exp $
+// $Id: comment.views.inc,v 1.33.4.15 2010/10/26 20:26:38 dereine Exp $
 /**
  * @file
  * Provide views data and handlers for comment.module
@@ -55,6 +55,19 @@ function comment_views_data() {
     ),
     'argument' => array(
       'handler' => 'views_handler_argument_string',
+    ),
+  );
+
+  // comment (the comment body)
+  $data['comment']['comment'] = array(
+    'title' => t('Body'),
+    'help' => t('The text of the comment.'),
+    'field' => array(
+      'handler' => 'views_handler_field_markup',
+      'format' => array('field' => 'format'),
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
     ),
   );
 
@@ -241,15 +254,15 @@ function comment_views_data() {
 
   // status (approved or not)
   $data['comment']['status'] = array(
-    'title' => t('Approved'),
-    'help' => t('Whether the comment is approved (or still in the moderation queue).'),
+    'title' => t('In moderation'),
+    'help' => t('Whether or not the comment is currently in the moderation queue.'),
     'field' => array(
       'handler' => 'views_handler_field_boolean',
       'click sortable' => TRUE,
     ),
     'filter' => array(
       'handler' => 'views_handler_filter_boolean_operator',
-      'label' => t('Approved comment'),
+      'label' => t('In the moderation queue'),
       'type' => 'yes-no',
     ),
     'sort' => array(

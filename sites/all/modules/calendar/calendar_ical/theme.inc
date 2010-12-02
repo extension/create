@@ -1,5 +1,5 @@
 <?php
-// $Id: theme.inc,v 1.9 2010/11/20 13:23:09 karens Exp $
+// $Id: theme.inc,v 1.7 2010/08/22 11:15:08 karens Exp $
 
 /**
  * @file
@@ -15,8 +15,8 @@ function template_preprocess_calendar_view_ical(&$vars) {
 
   $view     = &$vars['view'];
   $options  = &$vars['options'];
-  $items    = &$vars['items'];
-  
+  $items    = &$vars['rows'];
+
   $style    = &$view->style_plugin;
 
   // Figure out which display which has a path we're using for this feed. If there isn't
@@ -32,7 +32,7 @@ function template_preprocess_calendar_view_ical(&$vars) {
   $GLOBALS['devel_shutdown'] = FALSE;
 
   drupal_add_http_header('Content-Type', 'text/calendar; charset=utf-8');
-  drupal_add_http_header('Content-Disposition', 'attachment; filename="calendar.ics";');
+  drupal_add_http_header('Content-Disposition: attachment; filename="calendar.ics"; ');
 
   module_load_include('inc', 'date_api', 'date_api_ical');
   module_load_include('inc', 'date_api', 'theme/theme');
@@ -73,10 +73,6 @@ function template_preprocess_calendar_view_ical(&$vars) {
     $event['uid'] = !empty($node->date_id) ? $node->date_id : $event['url'];
     $event['rrule'] = !empty($rrule_field) && !empty($node->$rrule_field) ? $node->$rrule_field : '';
     $events[$event['uid']] = $event;
-
-    /* force UTC timezone */
-    $event['start']->setTimeZone(new DateTimeZone("UTC"));
-    $event['end']->setTimeZone(new DateTimeZone("UTC"));
   }
 
   $headertitle = filter_xss_admin($view->get_title());

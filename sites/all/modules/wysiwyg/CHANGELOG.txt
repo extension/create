@@ -1,8 +1,7 @@
-// $Id: CHANGELOG.txt,v 1.225 2010/12/02 06:54:31 sun Exp $
+// $Id: CHANGELOG.txt,v 1.224 2010/11/13 19:46:47 sun Exp $
 
 Wysiwyg 7.x-2.x, xxxx-xx-xx
 ---------------------------
-#974604 by CrookedNumber, Gábor Hojtsy: Fixed theme CSS not loaded in editors.
 #931374 by TwoD, ksenzee: Updated for text format schema change.
 #826914 by catch, sun: Added database cache for wysiwyg_profile_load().
 #941230 by sun: Fixed missing Configuration link on Modules page.

@@ -1,5 +1,5 @@
 <?php
-// $Id: flexible.inc,v 1.4 2010/10/11 22:56:00 sdboyer Exp $
+// $Id: flexible.inc,v 1.5 2010/10/22 18:23:51 merlinofchaos Exp $
 
 /**
  * Implementation of hook_panels_layouts()
@@ -882,19 +882,23 @@ function panels_flexible_get_css_group(&$css, $renderer, $list, $owner_id, $type
     // If there is any total remaining, we need to offset the splitter
     // by this much too.
     if ($left_total) {
+      // Add this even if it's 0 so we can handle removals.
+      $css["$owner_id-inside"]['padding-left'] = '0px';
       if ($renderer->admin || count($middle)) {
         $css["$owner_id-middle"]['margin-left'] = $left_total . 'px';
         // IE hack
         $css["* html $owner_id-left"]['left'] = $left_total . "px";
+        // Make this one very specific to the admin CSS so that preview
+        // does not stomp it.
+        $css[".panel-flexible-admin $owner_id-inside"]['padding-left'] = '0px';
       }
       else {
         $css["$owner_id-inside"]['margin-left'] = '-' . $left_total . 'px';
+        $css["$owner_id-inside"]['padding-left'] = $left_total . 'px';
         // IE hack
         $css["* html $owner_id-inside"]['left'] = $left_total . "px";
       }
     }
-    // Add this even if it's 0 so we can handle removals.
-    $css["$owner_id-inside"]['padding-left'] = '0px';
     if ($right_total) {
       $css["$owner_id-middle"]['margin-right'] = $right_total . 'px';
     }
