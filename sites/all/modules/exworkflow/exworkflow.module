@@ -550,3 +550,59 @@ function get_workflow_events() {
   );
 }
 
+///////////// TEST AREA /////////////////////
+
+/**
+ * Implements hook_theme().
+ */
+function exworkflow_theme() {
+  return array(
+    'exworkflow_draft' => array(
+      'template' => 'exworkflow_draft'
+     )
+  );
+}
+
+
+// Implementing hook_menu for the AaE list views
+function exworkflow_menu() {
+  $items = array();
+  $items['listviews/draft'] = array(
+    'title' => 'Draft Content',
+    'description' => 'List view of draft content',
+    'page callback' => 'exworkflow_draft',
+    'access callback' => 'menu_permissions',
+  );
+    
+  return $items;
+}
+
+function menu_permissions() {
+  global $user;
+  
+  if($user != NULL && $user->uid != NULL) { return true; }
+  else { return false; }
+}
+
+function exworkflow_draft() {
+  $draft_query = db_select('node', 'n')->extend('PagerDefault');
+  $draft_query->join('node_workflow', 'nw', 'nw.node_id = n.nid');
+  $draft_query->fields('n')
+              ->condition('nw.status', 1) 
+              ->limit(15) 
+              ->orderBy('n.created');    
+  $draft_records = $draft_query->execute();
+  
+  return theme('exworkflow_draft', array('draft_nodes' => $draft_records, 'pager' => theme('pager')));
+}
+
+///////////////////////////////////////////
+
+
+
+
+
+
+
+
+
