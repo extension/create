@@ -307,7 +307,8 @@ function eximport_entry_create($atom_entry) {
   $entry = new stdClass();
   
   // default to article content-type
-  $entry->type = 'article';
+  // $entry->type = 'article';
+  $entry->type = 'public_article';
     
   // create our tag array
   $categories = array();
@@ -412,6 +413,7 @@ function eximport_import_from_file($filename) {
   $total = count($xml->entry);
   
   for ($i=0; $i < $total; $i++) {
+    set_time_limit(30);
     $atom_entry = $xml->entry[$i];
     // use an intermediate object to reduce complexity and aid debugging
     $entry = eximport_entry_create($atom_entry);
@@ -447,6 +449,7 @@ function eximport_rewrite_imported_urls() {
     $revisions = node_revision_list($fakenode);
     $total += count($revisions);
     foreach ($revisions as $vid => $rev) {
+      set_time_limit(30);
       $node = node_load($nid, $vid);
       $GLOBALS['eximport_nid'] = $node->nid;
       eximport_rewrite_urls($node);
@@ -521,28 +524,22 @@ function eximport_rewrite_urls(&$node) {
  * @return N/A
  */
 function eximport_process_element($element) {
-  if (! in_array($element->tag, array('a', 'img'))) {
-   return;
-  }
-  
   $orig_url = '';
   
-  if ($element->tag == 'a') {
-    // only anchors, and not the nautical kind
-    
-    // not the label kind neither
-    if ( empty($element->href) ) {
+  switch ($element->tag) {
+    case 'a':
+      if ( empty($element->href) ) {
+        return;
+      }
+      $orig_url = $element->href;
+      break;
+    case 'img':
+      $orig_url = $element->src;
+      break;
+    default:
       return;
-    }
-    
-    $orig_url &= $element->href;
   }
-  
-  if ($element->tag == 'img') {
-    // don't forget those images
-    $orig_url &= $element->src;
-  }
-  
+
   $url = parse_url($orig_url);
   
   // parseable URL?  note, didn't say valid
@@ -558,9 +555,17 @@ function eximport_process_element($element) {
     // need to zap it
     $element->outertext = $element->innertext;
   } else {
-    $orig_url = $url;
+    $orig_url = http_build_url($url);
   }
-  
+
+  switch ($element->tag) {
+    case 'a':
+      $element->href = $orig_url;
+      break;
+    case 'img':
+      $element->src = $orig_url;
+      break;
+  }
   return;
 }
 
@@ -571,6 +576,12 @@ function eximport_process_element($element) {
  * @return N/A
  */
 function eximport_process_url(&$url) {
+  dvm($url);
+  // at this point we have full URLs, let's see what to do with them
+  if (! isset($url['path'])) {
+    return;
+  }
+  
   // get the old URL for the current node
   $current_node_path = path_load($GLOBALS['eximport_nid']);
   $current_node_url = $current_node_path['alias'];
@@ -591,10 +602,7 @@ function eximport_process_url(&$url) {
     $url = $new_url;
   }
   
-  // at this point we have full URLs, let's see what to do with them
-  
   $path = $url['path'];
-  
   $matches = array();
   $modified = FALSE;
   if (preg_match('#^/wiki/Category\:(.+)#', $path, $matches)) {
@@ -615,6 +623,13 @@ function eximport_process_url(&$url) {
     $modified = TRUE;
   } elseif (preg_match('#^/learninglessons/(.*)#', $path, $matches)) {
     // our work is done, just need to update host below
+    $modified = TRUE;
+  } elseif (preg_match('#^/wiki/User\:(.*)#', $path, $matches)) {
+    $exuser = strtolower($matches[1]);
+    $url['scheme'] = 'https';
+    $url['host'] = 'people.extension.org';
+    unset($url['port']);
+    $path = '/' . $exuser;
     $modified = TRUE;
   } elseif (preg_match('#^/wiki/File\:.*#', $path)) {
     // zap it
@@ -643,6 +658,7 @@ function eximport_process_url(&$url) {
       $url['port'] = $my_url['port'];
     }
   }
+  dvm($url);
   
   return;
 }
