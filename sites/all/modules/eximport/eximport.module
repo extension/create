@@ -39,6 +39,11 @@ require_once 'http_build_url.php';
  * 5. article metadata
  *    a. ???
  */
+ /*
+  check filter weights and config
+  zap Calendar pages and links
+  
+ */
 
 // TODO handle publishing flag
 // TODO metadata?
@@ -554,10 +559,11 @@ function eximport_process_element($element) {
   if ( empty($url) ) {
     // need to zap it
     $element->outertext = $element->innertext;
+    return;
   } else {
     $orig_url = http_build_url($url);
   }
-
+  
   switch ($element->tag) {
     case 'a':
       $element->href = $orig_url;
@@ -577,6 +583,7 @@ function eximport_process_element($element) {
  */
 function eximport_process_url(&$url) {
   dvm($url);
+  
   // at this point we have full URLs, let's see what to do with them
   if (! isset($url['path'])) {
     return;
@@ -630,7 +637,6 @@ function eximport_process_url(&$url) {
     $url['host'] = 'people.extension.org';
     unset($url['port']);
     $path = '/' . $exuser;
-    $modified = TRUE;
   } elseif (preg_match('#^/wiki/File\:.*#', $path)) {
     // zap it
     $url = NULL;
@@ -641,7 +647,7 @@ function eximport_process_url(&$url) {
     return;
   } else {
     // see if it is something we imported, zap the fragment
-    $uri = http_build_url($url, array('fragment' => ''));
+    $uri = http_build_url($url, array(), HTTP_URL_STRIP_FRAGMENT);
     $new_path = path_load(array('alias' => $uri));
     if ($new_path) {
       $nid = $new_path['source'];
@@ -658,7 +664,8 @@ function eximport_process_url(&$url) {
       $url['port'] = $my_url['port'];
     }
   }
-  dvm($url);
   
+  dvm("modified url");
+  dvm($url);
   return;
 }
