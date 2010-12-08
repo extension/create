@@ -647,7 +647,7 @@ function eximport_process_url(&$url) {
     $url['host'] = 'people.extension.org';
     unset($url['port']);
     $path = '/' . $exuser;
-  } elseif (preg_match('#^/wiki/(File|Image|Calendars)\:.*#', $path)) {
+  } elseif (preg_match('#^/wiki/(File|Image|Calendars|Talk)\:.*#', $path)) {
     // zap it
     $url = NULL;
     return;
