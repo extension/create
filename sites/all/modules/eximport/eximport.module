@@ -623,11 +623,15 @@ function eximport_process_url(&$url) {
   $modified = FALSE;
   if (preg_match('#^/wiki/Category\:(.+)#', $path, $matches)) {
     $tag = $matches[1];
+    $tag = str_replace('_', ' ', $tag);
     // map to taxonomy/tag URL - need term id
-    $term = taxonomy_get_term_by_name($tag);
-    if ($term) {
-      $path = '/taxonomy/term/' . $term[0]->tid;
-      $modified = TRUE;
+    $terms = taxonomy_get_term_by_name($tag);
+    if ($terms) {
+      $term = array_shift($terms);
+      if ($term) {
+        $path = '/taxonomy/term/' . $term->tid;
+        $modified = TRUE;
+      }
     } else {
       // not found, zap link
       $url = NULL;
