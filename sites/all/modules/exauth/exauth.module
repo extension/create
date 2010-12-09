@@ -24,7 +24,7 @@ function accessing_protected_page($node_type)
 
 //check to see if the user is viewing the home page / landing page
 function accessing_home_page(){
-  if (current_path() == "node" || current_path() == "/"){
+  if (current_path() == "node" || current_path() == "/" || current_path() == "frontpage"){
     return TRUE;
   }
   return FALSE;
