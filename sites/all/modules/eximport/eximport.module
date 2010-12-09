@@ -333,13 +333,26 @@ function eximport_entry_create($atom_entry) {
       // if it is news, change content-type
       $entry->type = 'news';
     }
+    
     if ($cat['term'] == 'published') {
        $entry->published = TRUE;
        continue;
     }
+    
+    $tid = 'autocreate';
+    $term_name = (string)$cat['term'];
+    $terms = taxonomy_get_term_by_name($term_name);
+    
+    if ($terms) {
+      $term = array_shift($terms);
+      if ($term) {
+        $tid = $term->tid;
+      }
+    }
+    
     $cat_entry = array('vid' => '1',
-                       'tid' => 'autocreate',
-                       'name' => (string)$cat['term']);
+                       'tid' => $tid,
+                       'name' => $term_name);
     $categories[] = $cat_entry;
   }
   
