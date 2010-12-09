@@ -212,6 +212,7 @@ function eximport_admin_form_submit($form, &$form_state) {
       case 'Import':
       $filename = $form_state['values']['filename'];
       list($total, $added, $errors) = eximport_import_from_file($filename);
+      $cmd = "$filename Import";
       break;
     case 'Update URLs':
       list($total, $added, $errors) = eximport_rewrite_imported_urls();
@@ -221,13 +222,15 @@ function eximport_admin_form_submit($form, &$form_state) {
   }
   
   if ($errors) {
-    drupal_set_message(t($cmd . ' failed: ' 
+    $str = check_plain($cmd . ' failed: ' 
                          . $errors . ' errors out of ' 
-                         . $total . ' revisions.'), 'error');
+                         . $total . ' revisions.');
+    drupal_set_message($str, 'error');
   } else {
-    drupal_set_message(t($cmd . ' successful. ' 
+    $str = check_plain($cmd . ' successful. ' 
                          . $added . ' out of ' 
-                         . $total . ' revisions.'));
+                         . $total . ' revisions.');
+    drupal_set_message($str);
   }
 
   return;
