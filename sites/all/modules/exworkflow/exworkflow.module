@@ -82,8 +82,10 @@ function exworkflow_form($form, &$form_state) {
   $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
   
   // if no workflow to be found yet, start it at a draft state
+  // and provide every option but to set it as draft
   if($node_workflow == false) {
-    $initial_workflow_value = 1;
+    $initial_workflow_value = NULL;
+    unset($workflow_list[1]);
   }
   else { 
     // if draft_status is null and it's published, set the initial workflow state to published
@@ -198,12 +200,19 @@ function exworkflow_form_submit($form, &$form_state) {
   // the unpublish value was not selected, receive workflow form input
   else {
     $current_state = $form_state['values']['wf_state'];
-    
+      
     // handle review counts if no node workflow was found
     if($node_workflow == false) {
       // if a review event occured, we need to set the number of reviews
       if($workflow_list[$current_state] == 'Reviewed') { $reviews = 1; }
       else { $reviews = 0; }
+    }
+    // node workflow was found, check to make sure selected state is not the 
+    // same as the current state unless it's being reviewed (state = 3)
+    else {
+      if($current_state == $node_workflow->draft_status && $current_state != 3) {
+        return;
+      }
     }
       
     if($workflow_list[$current_state] == 'Published') {
@@ -221,7 +230,8 @@ function exworkflow_form_submit($form, &$form_state) {
   // if no node workflow was found, create a new workflow record
   if($node_workflow == false) {    
     // if no workflow record exists and the current state is greater than 1, record a new workflow. 
-    // if the current state is 1, we do not record anything as everything starts out as draft
+    // if the current state is 1, we do not record anything as everything starts out as draft 
+    // (this should not happen b/c draft state (1) isn't allowed on dropdown selection for nodes that do not have a workflow yet)
     // if we're in an unpublishing state, this should never happen but it is handled, if something needs to be unpublished, 
     // there should be a workflow record for it in the db.)
     if($current_state > 1) {
@@ -237,6 +247,9 @@ function exworkflow_form_submit($form, &$form_state) {
                 'created' => REQUEST_TIME, 
                 'changed' => REQUEST_TIME) + $additional_fields;
       $workflow_id = db_insert('node_workflow')->fields($fields)->execute();
+    }
+    else {
+      return;
     }
   
   }
