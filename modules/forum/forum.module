@@ -894,8 +894,8 @@ function forum_get_topics($tid, $sortby, $forum_per_page) {
   foreach ($result as $record) {
     $nids[] = $record->nid;
   }
-  if ($nids) {
-    $result = db_query("SELECT n.title, n.nid, n.type, n.sticky, n.created, n.uid, n.comment AS comment_mode, ncs.*, f.tid AS forum_tid, u.name, CASE ncs.last_comment_uid WHEN 0 THEN ncs.last_comment_name ELSE u2.name END AS last_comment_name FROM {node} n INNER JOIN {node_comment_statistics} ncs ON n.nid = ncs.nid INNER JOIN {forum} f ON n.vid = f.vid INNER JOIN {users} u ON n.uid = u.uid INNER JOIN {users} u2 ON ncs.last_comment_uid = u2.uid WHERE n.nid IN (:nids)", array(':nids' => $nids));
+  if ($nids) {    
+    $result = db_query("SELECT n.title, n.nid, n.type, n.sticky, n.created, n.uid, n.comment AS comment_mode, ncs.*, f.tid AS forum_tid, u.name, CASE ncs.last_comment_uid WHEN 0 THEN ncs.last_comment_name ELSE u2.name END AS last_comment_name FROM {node} n INNER JOIN {node_comment_statistics} ncs ON n.nid = ncs.nid INNER JOIN {forum} f ON n.vid = f.vid INNER JOIN {users} u ON n.uid = u.uid INNER JOIN {users} u2 ON ncs.last_comment_uid = u2.uid WHERE n.nid IN (:nids)", array(':nids' => $nids))->fetchAllAssoc('nid');
   }
   else {
     $result = array();
@@ -903,8 +903,9 @@ function forum_get_topics($tid, $sortby, $forum_per_page) {
 
   $topics = array();
   $first_new_found = FALSE;
-  foreach ($result as $topic) {
-    if ($user->uid) {
+  foreach ($nids as $nid) {
+      $topic = $result[$nid];
+      if ($user->uid) {
       // folder is new if topic is new or there are new comments since last visit
       if ($topic->forum_tid != $tid) {
         $topic->new = 0;
