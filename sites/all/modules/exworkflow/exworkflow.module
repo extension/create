@@ -585,15 +585,51 @@ function menu_permissions() {
 }
 
 function exworkflow_draft() {
+  $order_by = 'n.created';
+  $order_direction = 'desc';
+  
+  if((isset($_GET['order'])) && (trim($_GET['order']) != '') && (isset($_GET['field'])) && (trim($_GET['field']) != '')) {
+    $order_direction = $_GET['order'];
+    $order_field = $_GET['field'];
+    
+    if($order_field == 'nid') {
+      $order_by = 'n.nid';
+    }
+    else {
+      $order_by = 'n.created';
+    }
+    
+    if($order_direction == 'asc') {
+      $order_direction = 'ASC';
+      $next_sort_direction = array('order' => 'desc');
+    }
+    else {
+      $order_direction = 'DESC';
+      $next_sort_direction = array('order' => 'asc');
+    }
+  }
+  
+  else { 
+    $next_sort_direction = array('order' => 'asc');
+  }
+  
   $draft_query = db_select('node', 'n')->extend('PagerDefault');
-  $draft_query->join('node_workflow', 'nw', 'nw.node_id = n.nid');
+  $draft_query->leftjoin('node_workflow', 'nw', 'nw.node_id = n.nid');
   $draft_query->fields('n')
-              ->condition('nw.status', 1) 
+              ->condition(db_or()->condition('nw.status', 1)->condition('nw.nwid', NULL))
+              ->condition(db_or()->condition('n.type', 'article')->condition('n.type', 'faq')->condition('n.type', 'event'))
               ->limit(15) 
-              ->orderBy('n.created');    
+              ->orderBy($order_by, $order_direction);    
   $draft_records = $draft_query->execute();
   
-  return theme('exworkflow_draft', array('draft_nodes' => $draft_records, 'pager' => theme('pager')));
+  if(isset($_GET['page'])) {
+    $page_number = array('page' => $_GET['page']);
+  }
+  else {
+    $page_number = array();
+  }
+  
+  return theme('exworkflow_draft', array('draft_nodes' => $draft_records, 'sort_direction' => $next_sort_direction, 'page_number' => $page_number, 'pager' => theme('pager')));
 }
 
 ///////////////////////////////////////////
