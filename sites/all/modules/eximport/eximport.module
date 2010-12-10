@@ -15,19 +15,36 @@
 require_once 'simplehtmldom/simple_html_dom.php';
 require_once 'http_build_url.php';
 
+ /**
+  Prior to running import the following pieces should be in place.
+  
+  1. Devel module enabled for debug output, if desired
+     a. confirm devel module perms for admin
+  2. Be sure content types exist and are configured properly
+     a. news (cop)
+     b. article (cop)
+     c. public_article (about)
+  3. check filter weights and configuration at /admin/config/content/formats
+     a. see screenshot -
+https://skitch.com/jerobins/rdsqe/text-formats-extension-content-management-system
+     b. confirm Full HTML is not filtering or modifying content -
+https://skitch.com/jerobins/rdsqu/full-html-extension-content-management-system
+  
+ */
+ 
 /**
  *
  * Import Plan
  *
  * 1. export all revisions of all articles from MW
- *    a. create XML files with about 250 articles in each
+ *    a. create XML files with about 10000 articles in each
  *    b. Format as valid Atom 1.0 feed
- *    c. will have approx 1200 files after export
+ *    c. will have approx 4 files after export for about, many more for cop
  *
  * 2. import revisions
  *    a. use DrupalBot as the user for publishing events
- *    b. mark all published revisions as such
- *    c. when import complete, mark all unpublished articles as draft
+ *    b. TODO mark all published revisions as such
+ *    c. TODO when import complete, mark all unpublished articles as draft
  *    d. import 'news' articles as content-type news, all others as articles
  *
  * 3. import images? Nope
@@ -37,13 +54,10 @@ require_once 'http_build_url.php';
  *    b. rewrite wiki href's
  *
  * 5. article metadata
- *    a. ???
+ *    a. TODO will be a post process task once plan in place
  */
 
-// TODO handle publishing flag
-// TODO metadata?
-
-// confirm access to node methods
+// confirm access to needed methods
 module_load_include('inc', 'node', 'node.pages', 'path', 'filter'); 
 
 /**
@@ -198,6 +212,7 @@ function eximport_admin_form_submit($form, &$form_state) {
       case 'Import':
       $filename = $form_state['values']['filename'];
       list($total, $added, $errors) = eximport_import_from_file($filename);
+      $cmd = "$filename Import";
       break;
     case 'Update URLs':
       list($total, $added, $errors) = eximport_rewrite_imported_urls();
@@ -207,13 +222,15 @@ function eximport_admin_form_submit($form, &$form_state) {
   }
   
   if ($errors) {
-    drupal_set_message(t($cmd . ' failed: ' 
+    $str = check_plain($cmd . ' failed: ' 
                          . $errors . ' errors out of ' 
-                         . $total . ' revisions.'), 'error');
+                         . $total . ' revisions.');
+    drupal_set_message($str, 'error');
   } else {
-    drupal_set_message(t($cmd . ' successful. ' 
+    $str = check_plain($cmd . ' successful. ' 
                          . $added . ' out of ' 
-                         . $total . ' revisions.'));
+                         . $total . ' revisions.');
+    drupal_set_message($str);
   }
 
   return;
@@ -288,7 +305,7 @@ function eximport_node_create($entry) {
 function eximport_save_old_link($nid, $old_link) {
   $path = array('alias' => $old_link, 'source' => "$nid");
   
-  $exists = path_load("$nid");
+  $exists = path_load(array('source' => $nid));
   if ($exists) {
     $path['pid'] = $exists['pid'];
   }
@@ -319,13 +336,26 @@ function eximport_entry_create($atom_entry) {
       // if it is news, change content-type
       $entry->type = 'news';
     }
+    
     if ($cat['term'] == 'published') {
        $entry->published = TRUE;
        continue;
     }
+    
+    $tid = 'autocreate';
+    $term_name = (string)$cat['term'];
+    $terms = taxonomy_get_term_by_name($term_name);
+    
+    if ($terms) {
+      $term = array_shift($terms);
+      if ($term) {
+        $tid = $term->tid;
+      }
+    }
+    
     $cat_entry = array('vid' => '1',
-                       'tid' => 'autocreate',
-                       'name' => (string)$cat['term']);
+                       'tid' => $tid,
+                       'name' => $term_name);
     $categories[] = $cat_entry;
   }
   
@@ -554,10 +584,11 @@ function eximport_process_element($element) {
   if ( empty($url) ) {
     // need to zap it
     $element->outertext = $element->innertext;
+    return;
   } else {
     $orig_url = http_build_url($url);
   }
-
+  
   switch ($element->tag) {
     case 'a':
       $element->href = $orig_url;
@@ -576,14 +607,15 @@ function eximport_process_element($element) {
  * @return N/A
  */
 function eximport_process_url(&$url) {
-  dvm($url);
   // at this point we have full URLs, let's see what to do with them
   if (! isset($url['path'])) {
     return;
   }
   
+  // dvm(array("original url", $url));
+  
   // get the old URL for the current node
-  $current_node_path = path_load($GLOBALS['eximport_nid']);
+  $current_node_path = path_load(array('source' => $GLOBALS['eximport_nid']));
   $current_node_url = $current_node_path['alias'];
   
   // tells us where we are running
@@ -607,41 +639,41 @@ function eximport_process_url(&$url) {
   $modified = FALSE;
   if (preg_match('#^/wiki/Category\:(.+)#', $path, $matches)) {
     $tag = $matches[1];
+    $tag = str_replace('_', ' ', $tag);
     // map to taxonomy/tag URL - need term id
-    $term = taxonomy_get_term_by_name($tag);
-    if ($term) {
-      $path = '/taxonomy/term/' . $term[0]->tid;
-      $modified = TRUE;
+    $terms = taxonomy_get_term_by_name($tag);
+    if ($terms) {
+      $term = array_shift($terms);
+      if ($term) {
+        $path = '/taxonomy/term/' . $term->tid;
+        $modified = TRUE;
+      }
     } else {
       // not found, zap link
       $url = NULL;
       return;
     }
-  } elseif (preg_match('#^/mediawiki/(.*)#', $path, $matches)) {
+  } elseif (preg_match('#^/mediawiki/files/(.*)#', $path, $matches)) {
     // replace 'mediawiki/files' w/ 'sites/default/files/w'
     $path = '/sites/default/files/w/' . $matches[1];
     $modified = TRUE;
   } elseif (preg_match('#^/learninglessons/(.*)#', $path, $matches)) {
     // our work is done, just need to update host below
-    $modified = TRUE;
+    $url['host'] = 'www.extension.org';
+    unset($url['port']);
   } elseif (preg_match('#^/wiki/User\:(.*)#', $path, $matches)) {
     $exuser = strtolower($matches[1]);
     $url['scheme'] = 'https';
     $url['host'] = 'people.extension.org';
     unset($url['port']);
     $path = '/' . $exuser;
-    $modified = TRUE;
-  } elseif (preg_match('#^/wiki/File\:.*#', $path)) {
-    // zap it
-    $url = NULL;
-    return;
-  } elseif (preg_match('#^/wiki/Image\:.*#', $path)) {
+  } elseif (preg_match('#^/wiki/(File|Image|Calendars|Talk)\:.*#', $path)) {
     // zap it
     $url = NULL;
     return;
   } else {
-    // see if it is something we imported, zap the fragment
-    $uri = http_build_url($url, array('fragment' => ''));
+    // see if it is something we imported, zap the fragment for compare
+    $uri = http_build_url($url, array(), HTTP_URL_STRIP_FRAGMENT);
     $new_path = path_load(array('alias' => $uri));
     if ($new_path) {
       $nid = $new_path['source'];
@@ -658,7 +690,7 @@ function eximport_process_url(&$url) {
       $url['port'] = $my_url['port'];
     }
   }
-  dvm($url);
   
+  // dvm(array("modified url", $url));
   return;
 }

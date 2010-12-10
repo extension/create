@@ -64,7 +64,11 @@
 				foreach ($keys as $key)
 				{
 					if (isset($parts[$key]))
-						$parse_url[$key] = $parts[$key];
+						if (empty($parts[$key])) {
+							unset($parse_url[$key]);
+						} else {
+							$parse_url[$key] = $parts[$key];
+						}
 				}
 			}
 			else
