@@ -31,6 +31,8 @@ class Notifications_Subscription extends Notifications_Entity {
   const STATUS_INACTIVE = 2;
   // Disabled because the subscription type is disabled
   const STATUS_DISABLED = -1;
+  // Disabled because sending method is disabled, send failed,
+  const STATUS_NOSEND = -2;
 
   // Scheduled notification only, special send interval
   const SEND_SCHEDULED = -1;
@@ -116,18 +118,11 @@ class Notifications_Subscription extends Notifications_Entity {
   }
   /**
    * Load multiple from db
+   * 
+   * @see select_subscriptions
    */
-  public static function load_multiple($conditions, $fields = array()) {
-    // First, fitch sids
-    $query = db_select('notifications_subscription', 's')->fields('s', array('sid'));
-    foreach ($conditions as $key => $value) {
-      $query->condition('s.' . $key, $value);
-    }
-    foreach ($fields as $field) {
-      $alias = $query->join('notifications_subscription_fields');
-      $query->condition($field->get_query_condition($alias));
-    }
-    // Then build entities
+  public static function load_multiple($conditions, $fields = array(), $limit = FALSE) {
+    $query = self::select_subscriptions($conditions, $fields, $limit);
     if ($sids = $query->execute()->fetchCol()) {
       return entity_load('notifications_subscription', $sids);
     }
@@ -135,6 +130,7 @@ class Notifications_Subscription extends Notifications_Entity {
       return array();
     }
   }
+  
   /**
    * Get all existing instances form the db
    */
@@ -339,8 +335,8 @@ class Notifications_Subscription extends Notifications_Entity {
    * Validate form
    */
   public function form_validate($form, &$form_state) {
-    $this->set_properties_from_submission($form, &$form_state);
-    return $this->validate_submission($form, &$form_state);
+    $this->set_properties_from_submission($form, $form_state);
+    return $this->validate_submission($form, $form_state);
   }
   /**
    * Process form submission
@@ -352,7 +348,7 @@ class Notifications_Subscription extends Notifications_Entity {
     }
     else {
       $operation = $form_state['values']['operation'];
-      $this->set_properties_from_submission($form, &$form_state);
+      $this->set_properties_from_submission($form, $form_state);
     }
     return $this->form_operation($operation, $form, $form_state);
   }
@@ -580,7 +576,7 @@ class Notifications_Subscription extends Notifications_Entity {
     // Process regular values and validate
     $this->set_properties_from_values($form_state['values'], TRUE);
     // There may be optional fields to add
-    if ($fields = $this->build_fields_from_submission($form, &$form_state)) {
+    if ($fields = $this->build_fields_from_submission($form, $form_state)) {
       $this->set_fields($fields); 
     }
     return $this;
@@ -753,30 +749,53 @@ class Notifications_Subscription extends Notifications_Entity {
    *   Number of deleted subscriptions
    */
   public static function delete_multiple($conditions, $field_conditions = array(), $limit = FALSE) {
-    $query = db_select('notifications_subscription', 's')->fields('s', array('sid'));
-    foreach ($conditions as $field => $value) {
-      $query->condition($field, $value);
-    }
-    // For exact condition fields we add one more main condition.
-    if ($limit) {
-      $query->condition('conditions', count($field_conditions));
-    }
-    if ($field_conditions) {
-      foreach ($field_conditions as $type => $value) {
-        $alias = $query->join('notifications_subscription_fields');
-        $query->condition($alias . '.type', $type);
-        $query->condition($alias . '.value', $value);
-      }
-    }
+    $query = self::select_subscriptions($conditions, $field_conditions, $limit);
     if ($sids = $query->execute()->fetchCol()) {
       return self::delete_subscription($sids);
     }
   }
 
   /**
-   * Delete subscription and clean up related data, included the static cache
+   * Query for selecting multiple subscriptions
    * 
-   * Was: notifications_delte_subscription ($sid)
+   * @param array $conditions
+   *   Array of multiple conditions in the notifications table to delete subscriptions
+   * @param array $field_conditions
+   *   Array of field objects or multiple (type => value) conditions in the notifications_fields table to delete subscriptions
+   * @param $limit
+   *   Whether to limit the result to subscriptions with exactly that condition fields
+   */
+  public static function select_subscriptions($conditions, $field_conditions = array(), $limit = FALSE) {
+    $query = db_select('notifications_subscription', 's')->fields('s', array('sid'));
+    foreach ($conditions as $field => $value) {
+      if (is_object($value)) {
+        $query->condition($value);
+      }
+      else {
+        // This is a field => value pair
+        $query->condition('s.' . $field, $value);
+      }
+    }
+    // For exact condition fields we add one more main condition.
+    if ($limit) {
+      $query->condition('conditions', count($field_conditions));
+    }
+    if ($field_conditions) {
+      foreach ($field_conditions as $type => $field) {
+        $alias = $query->join('notifications_subscription_fields');
+        if (is_object($field)) {
+          $query->condition($field->get_query_condition($alias));
+        }
+        else {
+          $query->condition($alias . '.type', $type);
+          $query->condition($alias . '.value', $field);
+        }
+      }
+    }
+    return $query;
+  }
+  /**
+   * Delete subscription and clean up related data, included the static cache
    * It also removes pending notifications related to that subscription 
    * 
    * @param $sid
@@ -1008,7 +1027,7 @@ class Notifications_Subscription extends Notifications_Entity {
   function check_access($account = NULL) {
     $account = $account ? $account : $this->get_account();
     // @todo check access to all subscription fields
-    
+    return TRUE;
   }
   /**
    * Create destination for this subscription

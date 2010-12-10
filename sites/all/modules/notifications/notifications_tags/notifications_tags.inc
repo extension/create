@@ -222,7 +222,7 @@ class Notifications_Content_Type_Term_Subscription extends Notifications_Taxonom
     if (isset($this->name)) {
       return $this->name;
     }
-    elseif ($term = $this->get_field('term:tid') && $type == $this->get_field('node:type')) {
+    elseif (($term = $this->get_field('term:tid')) && ($type = $this->get_field('node:type'))) {
       return t('@type posts tagged with @term', array('@type' => $type->get_name(), '@term' => $term->get_name()));
     }
     else {
@@ -244,7 +244,7 @@ class Notifications_Taxonomy_Term_Multiple_Subscription extends Notifications_Su
     }
     elseif ($terms = $this->get_fields()) {
       foreach ($terms as $term_field) {
-        $names = $term_field->get_name();
+        $names[] = $term_field->get_name();
       }
       return t('Content tagged with @terms', array('@terms' => implode(', ', $names)));
     }

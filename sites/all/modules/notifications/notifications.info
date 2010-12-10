@@ -4,6 +4,7 @@ description = The basic notifications framework
 package = "Notifications"
 version = VERSION
 core = 7.x
+php = 5.3
 dependencies[] = messaging
 dependencies[] = trigger
 files[] = 'notifications.object.inc'

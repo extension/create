@@ -49,7 +49,7 @@ class Notifications_Subscription_List implements Iterator {
       elseif (is_a($items, 'Notifications_Subscription')) {
         $this->add_subscription($items);
       }
-    }
+    } 
   }
   /**
    * Get number of subscriptions
@@ -193,29 +193,82 @@ class Notifications_Subscription_List implements Iterator {
     }
     return $result;
   }
+  
+  /**
+   * Check access for current user to manage multiple subscriptions
+   */
+  public function check_access($account = NULL) {
+    $account = $account ? $account : $GLOBALS['user'];
+    if (user_access('administer notifications', $account) || user_access('manage all subscriptions', $account)) {
+      return TRUE;
+    }
+    else {
+      // Check all subscriptions belong to the user
+      foreach ($this->get_subscriptions() as $subscription) {
+        if (isset($subscription->uid) && $subscription->uid != $account->uid) {
+          return FALSE;
+        }
+      }
+      return TRUE;
+    }
+  }
+
   /**
    * Get options form
    */
   public function get_form($type, $form, &$form_state) {
-    $form['type'] = array('#type' => 'value', '#value' => $this);
-    $form['operation'] = array('#type' => 'value', '#value' => 'update');
+    $form['type'] = array('#type' => 'value', '#value' => $type);
     $form['subscription_list'] = array('#type' => 'value', '#value' => $this);
-    $form['subscriptions'] = $this->get_elements($type);
-    $form['save'] = array('#type' => 'submit', '#value' => t('Update'));
+    switch ($type) {
+      case 'checkboxes':
+        // List of subscribe/unsubscribe checkboxes
+        $form['operation'] = array('#type' => 'value', '#value' => 'update');
+        $form['subscriptions'] = $this->element_checkboxes();
+        $form['save'] = array('#type' => 'submit', '#value' => t('Update'));
+        $destination = $_GET['q'];
+        break;
+      case 'unsubscribe':
+      case 'delete':
+        // Unsubscribe confirm form
+        $form['operation'] = array('#type' => 'value', '#value' => 'unsubscribe');
+        $form['subscriptions'] = $this->element_items();
+        return confirm_form($form,
+                      t('Are you sure you want to delete these subscriptions?'),
+                      variable_get('notifications_frontpage', variable_get('site_frontpage', 'node')), 
+                      t('This action cannot be undone.'),
+                      t('Delete all'), t('Cancel'));
+        break;
+    }
+    // Set destination depending on operation, 
+    if (!isset($_REQUEST['destination'])) {
+      $form['#redirect'] = isset($destination) ? $destination : variable_get('notifications_frontpage', variable_get('site_frontpage', 'node'));
+    }
     return $form;
   }
   /**
    * Build subscription list instance from object or array of subscriptions
    */
   public static function build_list($items) {
-    if (is_a($items, 'Notifications_Subscription_List')) {
+    // PHP 5.3.0 only, we may want to construct another class extending this one
+    $class = get_called_class();
+    if (is_a($items, $class)) {
       return $items;
     }
     else {
-      $list = new Notifications_Subscription_List();
+      $list = new $class();
       $list->add($items);
       return $list;
     }
+  }
+  /**
+   * Build subscription list from array of sids
+   */
+  public static function build_sids($sids) {
+    // PHP 5.3.0 only, we may want to construct another class extending this one
+    $class = get_called_class();
+    $list = new $class();
+    $list->load_multiple($sids);
+    return $list;
   }
   /**
    * Build subscription list instance from form submission
@@ -256,7 +309,7 @@ class Notifications_Subscription_List implements Iterator {
         $options = $form_state['values']['subscriptions'];
         $subscribe = array_filter($options);
         $created = $deleted = 0;
-        foreach ($this->subscriptions as $index => $subscription) {
+        foreach ($this->get_subscriptions() as $index => $subscription) {
           $status = in_array($index, $subscribe);
           if (!$subscription->is_stored() && $status) {
             $subscription->save();
@@ -271,6 +324,15 @@ class Notifications_Subscription_List implements Iterator {
           drupal_set_message(t('The subscriptions have been updated: created @created, deleted @deleted.', array('@created' => $created, '@deleted' => $deleted)));
         }
         break;
+      case 'unsubscribe':
+      case 'delete':
+        $count = 0;
+        foreach ($this->get_instances() as $subscription) {
+          $subscription->delete();
+          $count++;
+        }
+        drupal_set_message(format_plural($count, 'A subscription has been deleted.', '@count subscriptions have been deleted.'));
+        break;
     }
   }
   /**
@@ -278,6 +340,8 @@ class Notifications_Subscription_List implements Iterator {
    */
   public function get_elements($type) {
     switch ($type) {
+      case 'items':
+        return $this->element_items();
       case 'checkboxes':
       default:
         return $this->element_checkboxes();
@@ -309,7 +373,6 @@ class Notifications_Subscription_List implements Iterator {
     return $form;
   }
 
-  
   /**
    * Build fieldset with subscription options
    * 
@@ -331,7 +394,19 @@ class Notifications_Subscription_List implements Iterator {
       '#default_value' => $defaults,
     );
   }
-
+  /**
+   * Build fieldset with subscription names
+   */
+  function element_items($element = array()) {
+    foreach ($this->get_instances() as $index => $subscription) {
+      $items[] = $subscription->get_name();
+    }
+    return $element + array(
+      '#title' => t('Subscription list'),
+      '#theme' => 'item_list',
+      '#items' => $items,
+    );
+  }
   /**
    * Implementation of iterator interface
    */
@@ -383,12 +458,18 @@ class Notifications_Subscription_Table extends Notifications_Subscription_List {
    * Produce a select table with all these subscriptions
    */
   function table_select() {
+    return array('#type' => 'tableselect') + $this->table_list();
+  }
+  /**
+   * Produce simple table with all these subscriptions
+   */
+  function table_list() {
     $options = array();
     foreach ($this->get_subscriptions() as $subscription) {
       $options[$subscription->sid] = $this->subscription_fields($subscription);
     }
     return array(
-      '#type' => 'tableselect',
+      '#type' => 'table',
       '#header' => $this->get_header(),
       '#options' => $options,
       '#empty' => t('No subscriptions available.'),
@@ -398,11 +479,9 @@ class Notifications_Subscription_Table extends Notifications_Subscription_List {
    * Fill in fields for a subscription
    */
   function subscription_fields($subs) {
-    
-    
     $send_methods = messaging_method_info(NULL, 'name');
     $send_intervals = notifications_send_intervals();
-
+    $send_intervals[-1] = t('Scheduled');
     $fields = array(); 
     foreach (array_keys($this->header) as $index) {
       switch ($index) {
@@ -435,13 +514,79 @@ class Notifications_Subscription_Table extends Notifications_Subscription_List {
         case 'uid': // User
           $value = theme('username', array('account' => $subs));
           break;
+        case 'operations':
+          $value = $this->field_operations($subs);
+          break;
+        case 'send_method':
+          $value = isset($send_methods[$subs->send_method]) ? $send_methods[$subs->send_method] : $subs->send_method;
+          break;
+        case 'send_interval':
+          $value = isset($send_intervals[$subs->send_interval]) ? $send_intervals[$subs->send_interval] : $subs->send_interval;
+          break;
         default:
-          $value = isset($subs->index) ? check_plain($subs->index) : '--';
+          $value = isset($subs->$index) ? check_plain($subs->$index) : '--';
           break;
       }
       $fields[$index] = $value;
     }
     return $fields;
+  }
+  /**
+   * Print username or destination for anonymous users
+   * 
+   * @todo Check the part for 
+   */
+  function field_destination($subs) {
+    if ($user = $subs->get_user()) {
+      $username = theme('username', array('account' => $user));
+    }
+    else {
+      // Anonymous subscription, print destination instead
+      $dest = $sub->get_destination();
+      $username = $dest->address_name() . ' ' . l($dest->format_address(FALSE), 'notifications/destination/' . $sub->mdid . '/manage') ;
+    }    
+  }
+  /**
+   * Field operations
+   */
+  function field_operations($subs) {
+    $destination = drupal_get_destination();
+    // Build a list of all the accessible operations for the current subscription.
+    $operations = array();
+    $operations['edit'] = array(
+      'title' => t('edit'),
+      'href' =>  $this->base_path . '/' . $subs->sid . '/edit',
+      'query' => $destination,
+    );
+  
+    $operations['delete'] = array(
+      'title' => t('delete'),
+      'href' => $this->base_path . '/' . $subs->sid . '/delete',
+      'query' => $destination,
+    );
+
+    if (count($operations) > 1) {
+      // Render an unordered list of operations links.
+      return array(
+        'data' => array(
+          '#theme' => 'links',
+          '#links' => $operations,
+          '#attributes' => array('class' => array('links', 'inline')),
+        ),
+      );
+    }
+    elseif (!empty($operations)) {
+      // Render the first and only operation as a link.
+      $link = reset($operations);
+      return array(
+        'data' => array(
+          '#type' => 'link',
+          '#title' => $link['title'],
+          '#href' => $link['href'],
+          '#options' => array('query' => $link['query']),
+        ),
+      );
+    }     
   }
   /**
    * Get query for selection

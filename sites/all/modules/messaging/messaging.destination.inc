@@ -30,6 +30,8 @@ class Messaging_Destination extends Messaging_Object {
   public $sent = 0;
   // Status
   public $status = 0;
+  // Tokens for text replacement
+  public $tokens;
 
   /**
    * Get address type name for display
@@ -45,14 +47,8 @@ class Messaging_Destination extends Messaging_Object {
     if (isset($this->name)) {
       return $this->name;
     }
-    elseif (isset($this->uid) && ($user = user_load($this->uid))) {
-      return $user->name;
-    }
-    elseif (is_string($this->address)) {
-      return $this->address;
-    }
     else {
-      return ''; // Should it be 'none' ?
+      return $this->get_user()->name;
     }
   }
 
@@ -67,9 +63,22 @@ class Messaging_Destination extends Messaging_Object {
    * Get user account
    */
   function get_user() {
-    return isset($this->uid) ? user_load($this->uid) : NULL;
+    $user = isset($this->uid) ? user_load($this->uid) : NULL;
+    if (!$user) {
+      $user = drupal_anonymous_user();
+      $user->name = t('User');
+    }
+    return $user;
   }
-
+  /**
+   * Get destination tokens for bulk messages
+   */
+  function get_tokens() {
+    if (!isset($this->tokens)) {
+      $this->tokens = $this->invoke_all('tokens');
+    }
+    return $this->tokens;
+  }
   /**
    * Set user for this destination
    */
@@ -396,6 +405,14 @@ class Messaging_Destination extends Messaging_Object {
       return self::cache_get("$type:$address");
     }
   }
+
+  /**
+   * Run module_invoke_all('notifications_subscription') with this object
+   */
+  protected function invoke_all($op, $param = NULL) {
+    return module_invoke_all('messaging_destination', $op, $this, $param);    
+  }
+
   /**
    * Invoke static method on address type.
    * 

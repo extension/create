@@ -1,0 +1,193 @@
+<?php
+// $Id: styles.install,v 1.1.2.2.2.8 2010/10/26 19:36:46 aaron Exp $
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Styles module.
+ */
+
+/**
+ * Implement hook_install().
+ */
+function styles_install() {
+  return array();
+}
+
+/**
+ * Implement hook_uninstall().
+ */
+function styles_uninstall() {
+  foreach (styles_variable_default() as $variable => $value) {
+    styles_variable_del($variable);
+  }
+  return array(array('success' => TRUE, 'query' => "Deleted all variables in the Styles namespace."));
+}
+
+/**
+ * Implement hook_schema().
+ */
+function styles_schema() {
+  $schema = array();
+
+  $schema['cache_styles'] = drupal_get_schema_unprocessed('system', 'cache');
+  $schema['cache_styles']['description'] = 'Cache table used to store information display manipulations that are in-progress.';
+
+  $schema['styles'] = array(
+    'description' => 'Stores configuration options for styles.',
+    'fields' => array(
+      'sid' => array(
+        'description' => 'The primary identifier for a style.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'field_type' => array(
+        'description' => 'The field type.',
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'The style name.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'description' => array(
+        'description' => 'The style description.',
+        'type' => 'text',
+        'not null' => TRUE,
+        'size' => 'big',
+      ),
+    ),
+    'primary key' => array('sid'),
+    'indexes' => array(
+      'field_type' => array('field_type'),
+      'name' => array('name'),
+      'label' => array('label'),
+    ),
+  );
+
+  $schema['style_effects'] = array(
+    'description' => 'Stores configuration options for style effects.',
+    'fields' => array(
+      'seid' => array(
+        'description' => 'The primary identifier for a style effect.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'sid' => array(
+        'description' => 'The {styles}.sid for a style.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'weight' => array(
+        'description' => 'The weight of the effect in the style.',
+        'type' => 'int',
+        'unsigned' => FALSE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'name' => array(
+        'description' => 'The unique name of the effect to be executed.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'data' => array(
+        'description' => 'The configuration data for the effect.',
+        'type' => 'text',
+        'not null' => TRUE,
+        'size' => 'big',
+        'serialize' => TRUE,
+      ),
+    ),
+    'primary key' => array('seid'),
+    'indexes' => array(
+      'sid' => array('sid'),
+      'weight' => array('weight'),
+    ),
+    'foreign keys' => array(
+      'sid' => array('styles' => 'sid'),
+    ),
+  );
+
+  return $schema;
+}
+
+/**
+ * Add new theme functions.
+ */
+function styles_update_7200() {
+  drupal_theme_rebuild();
+  return array();
+}
+
+/**
+ * Clear old cache table of any styles data.
+ */
+function styles_update_7201() {
+  cache_clear_all('styles_', 'cache', TRUE);
+  return array();
+}
+
+/**
+ * Add the field_type column to the {styles} table.
+ */
+function styles_update_7202() {
+  db_add_field('styles', 'field_type', array(
+    'description' => 'The field type.',
+    'type' => 'varchar',
+    'length' => 128,
+    'not null' => TRUE,
+  ));
+  db_add_index('styles', 'field_type', array('field_type'));
+}
+
+/**
+ * Add the label & description columns to the {styles} table.
+ */
+function styles_update_7204() {
+  db_add_field('styles', 'label', array(
+    'description' => 'The human readable label for the style.',
+    'type' => 'varchar',
+    'length' => 255,
+    'not null' => TRUE,
+    'default' => '',
+  ));
+  db_add_field('styles', 'description', array(
+    'description' => 'The style description.',
+    'type' => 'varchar',
+    'length' => 255,
+    'not null' => TRUE,
+    'default' => '',
+  ));
+  db_add_index('styles', 'label', array('label'));
+}
+
+/**
+ * Drop the label column from the {styles} table; alter the description column.
+ */
+function styles_update_7206() {
+  db_drop_field('styles', 'label');
+  db_drop_index('styles', 'label');
+  db_change_field('styles', 'description', 'description',
+    array(
+      'description' => 'The style description.',
+      'type' => 'text',
+      'not null' => TRUE,
+      'size' => 'big',
+    )
+  );
+}
+
+/**
+ * Clear style and preset caches.
+ */
+function styles_update_7208() {
+  styles_style_flush();
+  return array();
+}

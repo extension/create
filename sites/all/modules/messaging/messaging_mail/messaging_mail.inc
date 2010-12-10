@@ -39,7 +39,7 @@ class Messaging_Mail_Method extends Messaging_Send_Method {
   function render_body($text) {
     $body = array();
     foreach (element_children($text) as $key) {
-      $body[$key] = $this->render_text($text[$key], array('#type' => 'messaging_text', '#separator' => "\n"));
+      $body[$key] = drupal_render($text[$key], array('#type' => 'messaging_text', '#separator' => "\n"));
     }
     return $body;
   }
@@ -96,7 +96,6 @@ class Messaging_Mail_Method extends Messaging_Send_Method {
    */
   protected function mail_build($address, $message) {
     $params = $this->message_params($message);
-  
     // Bundle up the variables into a structured array for altering.
     $mail = array(
       'headers' => $this->mail_headers($message, $params),
@@ -108,7 +107,7 @@ class Messaging_Mail_Method extends Messaging_Send_Method {
       'language' => $message->get_language(),
       'params'   => $params,
       'subject'  => $message->get_subject(),
-      'body'     => $message->get_body(),
+      'body'     => $this->render_body($message->get_text()->build_body()),
       'attachments' => $message->get_files(),
     );
   

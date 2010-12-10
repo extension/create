@@ -1,0 +1,16 @@
+; $Id: entity_test.info,v 1.1.2.5 2010/11/19 13:16:05 fago Exp $
+name = Entity CRUD test module
+description = Provides entity types based upon the CRUD API.
+version = VERSION
+core = 7.x
+files[] = entity_test.module
+files[] = entity_test.install
+dependencies[] = entity
+hidden = TRUE
+
+; Information added by drupal.org packaging script on 2010-12-02
+version = "7.x-1.0-beta3"
+core = "7.x"
+project = "entity"
+datestamp = "1291297865"
+

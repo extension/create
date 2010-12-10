@@ -170,7 +170,9 @@ function messaging_admin_test_post_form_submit($form, $form_state) {
   $message = messaging_message_build(array(
     'type' => 'test',
     'subject' => $form_state['values']['subject'],
-    'body' => $body,
+    'header' => $body['header'],
+    'content' => $body['content'],
+    'footer' => $body['footer'],
     'method' => $method,
     'priority' => 1, // So it won't be queued
   ));
@@ -333,11 +335,4 @@ function theme_messaging_admin_settings_table($variables) {
   }
   $output .= drupal_render_children($elements);
   return $output;  
-}
-
-/**
- * Temporary log facility
- */
-function messaging_debug_log($text, $variables) {
-  debug($variables, $text);
 }

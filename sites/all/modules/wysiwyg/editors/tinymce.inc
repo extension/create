@@ -1,5 +1,5 @@
 <?php
-// $Id: tinymce.inc,v 1.44 2010/10/18 19:56:44 sun Exp $
+// $Id: tinymce.inc,v 1.45 2010/11/13 18:31:21 sun Exp $
 
 /**
  * @file
@@ -199,11 +199,10 @@ function wysiwyg_tinymce_settings($editor, $config, $theme) {
   // Find the enabled buttons and the button row they belong on.
   // Also map the plugin metadata for each button.
   // @todo What follows is a pain; needs a rewrite.
+  // $settings['buttons'] are stacked into $settings['theme_advanced_buttons1']
+  // later.
+  $settings['buttons'] = array();
   if (!empty($config['buttons']) && is_array($config['buttons'])) {
-    // $settings['buttons'] are stacked into
-    // $settings['theme_advanced_buttons1'] later.
-    // @todo Add a toolbar designer based on jQuery UI.
-    $settings['buttons'] = array();
     // Only array keys in $settings['extensions'] matter; added to
     // $settings['plugins'] later.
     $settings['extensions'] = array();

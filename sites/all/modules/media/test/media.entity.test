@@ -1,0 +1,83 @@
+<?php 
+//$ Id;
+
+/**
+ * @file
+ * Tests for media entity controllers.
+ */
+
+/**
+ * Test media type creation and management.
+ */
+class MediaEntityTest extends DrupalWebTestCase {
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Media entity',
+      'description' => 'Tests media entity handling',
+      'group' => 'Media',
+    );
+  }
+
+  function setUp() {
+    parent::setUp('media');
+    // Nice, TDD FTW.  #totalsarcasm
+    variable_set('simpletest_verbose', TRUE);
+  }
+  
+  function createMedia($filename = NULL) {
+    if (!$filename) {
+      $filename = uniqid() . '.jpg';
+    }
+    //file_save_data()
+    $values = array(
+      'type' => 'image',
+      'uid' => 1,
+      'filename' => $filename,
+      'uri' => 'temporary://' . $filename,
+      'filemime' => 'image/jpeg',
+      'filesize' => 12345,
+      'status' 	 => 1,
+      'timestamp'=> time(),
+    );
+    
+    $m = new Media($values);
+    $m->save();
+    return $m;
+  }
+  
+  function testCreateMedia() {
+    $m = $this->createMedia('blah.jpg');
+    $loaded = entity_get_controller('media')->load(array($m->fid));
+    $media = current($loaded);
+    $this->assertEqual($media->filename, 'blah.jpg');
+  }
+
+  /**
+   * Test the ability to create and query media items.
+   */
+  function testQueryMedia() {
+    $this->createMedia('blah.jpg');
+    $this->createMedia('blah2.jpg');
+    
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'media');
+    $query->propertyCondition('uri', 'temporary://%', 'LIKE');
+    $result = $query->execute();
+    $this->assertEqual(count($result['media']), 2, "Returned two results as expected for like % condition");
+    
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'media');
+    $query->propertyCondition('uri', 'temporary://blah.jpg');
+    $result = $query->execute();
+    $this->assertEqual(count($result['media']), 1, "Got one result for equality query");
+
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'media');
+    $query->propertyCondition('uri', 'http://%', 'LIKE');
+    $result = $query->execute();
+    $this->assertEqual(count($result), 0, "Got no results for http scheme uris");
+  }
+}
+
+?>

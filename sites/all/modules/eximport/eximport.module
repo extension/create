@@ -12,38 +12,52 @@
 // require 'includes/bootstrap.inc';
 // drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
 
+require_once 'simplehtmldom/simple_html_dom.php';
+require_once 'http_build_url.php';
+
+ /**
+  Prior to running import the following pieces should be in place.
+  
+  1. Devel module enabled for debug output, if desired
+     a. confirm devel module perms for admin
+  2. Be sure content types exist and are configured properly
+     a. news (cop)
+     b. article (cop)
+     c. public_article (about)
+  3. check filter weights and configuration at /admin/config/content/formats
+     a. see screenshot -
+https://skitch.com/jerobins/rdsqe/text-formats-extension-content-management-system
+     b. confirm Full HTML is not filtering or modifying content -
+https://skitch.com/jerobins/rdsqu/full-html-extension-content-management-system
+  
+ */
+ 
 /**
  *
  * Import Plan
  *
  * 1. export all revisions of all articles from MW
- *    a. create XML files with about 250 articles in each
+ *    a. create XML files with about 10000 articles in each
  *    b. Format as valid Atom 1.0 feed
- *    c. will have approx 1200 files after export
+ *    c. will have approx 4 files after export for about, many more for cop
  *
  * 2. import revisions
  *    a. use DrupalBot as the user for publishing events
- *    b. mark all published revisions as such
- *    c. when import complete, mark all unpublished articles as draft
+ *    b. TODO mark all published revisions as such
+ *    c. TODO when import complete, mark all unpublished articles as draft
  *    d. import 'news' articles as content-type news, all others as articles
  *
- * 3. import images?
- *    a. image search?
- *    b. metadata? - only if we use a 3rd party module
- *    c. mgmt - admins could delete files
+ * 3. import images? Nope
  *
  * 4. rewrite URLs
  *    a. rewrite img src's
  *    b. rewrite wiki href's
  *
  * 5. article metadata
- *    a. ???
+ *    a. TODO will be a post process task once plan in place
  */
 
-// TODO handle publishing flag
-// TODO metadata?
-
-// confirm access to node methods
+// confirm access to needed methods
 module_load_include('inc', 'node', 'node.pages', 'path', 'filter'); 
 
 /**
@@ -121,10 +135,12 @@ function eximport_admin_form($form, &$form_state) {
     '#size' => 40,
     '#maxlength' => 80,
     '#description' => t("Filename of default import file."),
-    '#required' => TRUE,
+    '#required' => FALSE,
   );
   
   $form['submit'] = array('#type' => 'submit', '#value' => t('Import'));
+  
+  $form['rewrite'] = array('#type' => 'submit', '#value' => t('Update URLs'));
   
   return $form;
 }
@@ -138,12 +154,23 @@ function eximport_admin_form($form, &$form_state) {
  * @see _form_validate
  */
 function eximport_admin_form_validate($form, &$form_state) {
-  $filename = $form_state['values']['filename'];
-  if ( ! preg_match('/\.(xml|atom)$/i', $filename)) {
-    form_set_error('', t('A valid filename is required.'));
-  } elseif ( ! eximport_verify_filename($filename) ) {
-    form_set_error('', t('File must exist in import directory.'));
+  
+  switch ($form_state['values']['op']) {
+    case 'Import':
+      $filename = $form_state['values']['filename'];
+      if ( ! preg_match('/\.(xml|atom)$/i', $filename)) {
+        form_set_error('', t('A valid filename is required.'));
+      } elseif ( ! eximport_verify_filename($filename) ) {
+        form_set_error('', t('File must exist in import directory.'));
+      }
+      break;
+    case 'Update URLs':
+      break;
+    default:
+      form_set_error('', t('Invalid button pushed.'));
   }
+
+  return;
 }
 
 /**
@@ -178,18 +205,32 @@ function eximport_verify_filename($filename) {
  * @see form_execute_handlers
  */
 function eximport_admin_form_submit($form, &$form_state) {
-  $filename = $form_state['values']['filename'];
   
-  list($total, $added, $errors) = eximport_import_from_file($filename);
+  $cmd = $form_state['values']['op'];
+  
+  switch ($cmd) {
+      case 'Import':
+      $filename = $form_state['values']['filename'];
+      list($total, $added, $errors) = eximport_import_from_file($filename);
+      $cmd = "$filename Import";
+      break;
+    case 'Update URLs':
+      list($total, $added, $errors) = eximport_rewrite_imported_urls();
+      break;
+    default:
+      form_set_error('', t('Invalid button pushed.'));
+  }
   
   if ($errors) {
-    drupal_set_message(t('Import failed: ' 
+    $str = check_plain($cmd . ' failed: ' 
                          . $errors . ' errors out of ' 
-                         . $total . ' revisions.'), 'error');
+                         . $total . ' revisions.');
+    drupal_set_message($str, 'error');
   } else {
-    drupal_set_message(t('Import successful. ' 
+    $str = check_plain($cmd . ' successful. ' 
                          . $added . ' out of ' 
-                         . $total . ' revisions imported.'));
+                         . $total . ' revisions.');
+    drupal_set_message($str);
   }
 
   return;
@@ -248,7 +289,6 @@ function eximport_node_create($entry) {
     $rc = TRUE;
   }
   
-  dvm($node);
   unset($node);
   unset($entry);
   
@@ -265,7 +305,7 @@ function eximport_node_create($entry) {
 function eximport_save_old_link($nid, $old_link) {
   $path = array('alias' => $old_link, 'source' => "$nid");
   
-  $exists = path_load("$nid");
+  $exists = path_load(array('source' => $nid));
   if ($exists) {
     $path['pid'] = $exists['pid'];
   }
@@ -284,18 +324,38 @@ function eximport_entry_create($atom_entry) {
   $entry = new stdClass();
   
   // default to article content-type
-  $entry->type = 'article';
+  // $entry->type = 'article';
+  $entry->type = 'public_article';
     
   // create our tag array
   $categories = array();
+  $entry->published = FALSE;
+  
   foreach ($atom_entry->category as $cat) {
     if ($cat['term'] == 'news') {
       // if it is news, change content-type
       $entry->type = 'news';
     }
+    
+    if ($cat['term'] == 'published') {
+       $entry->published = TRUE;
+       continue;
+    }
+    
+    $tid = 'autocreate';
+    $term_name = (string)$cat['term'];
+    $terms = taxonomy_get_term_by_name($term_name);
+    
+    if ($terms) {
+      $term = array_shift($terms);
+      if ($term) {
+        $tid = $term->tid;
+      }
+    }
+    
     $cat_entry = array('vid' => '1',
-                       'tid' => 'autocreate',
-                       'name' => (string)$cat['term']);
+                       'tid' => $tid,
+                       'name' => $term_name);
     $categories[] = $cat_entry;
   }
   
@@ -383,6 +443,7 @@ function eximport_import_from_file($filename) {
   $total = count($xml->entry);
   
   for ($i=0; $i < $total; $i++) {
+    set_time_limit(30);
     $atom_entry = $xml->entry[$i];
     // use an intermediate object to reduce complexity and aid debugging
     $entry = eximport_entry_create($atom_entry);
@@ -395,4 +456,241 @@ function eximport_import_from_file($filename) {
   }
   
   return array($total, $added, $errors);
+}
+
+/**
+ * Process all revisions of imported nodes.
+ *
+ * @return array Total number, number added, number errors.
+ * @see SimpleXML
+ */
+function eximport_rewrite_imported_urls() {
+  // get imported node list (list of nids)
+  $nids = eximport_load_imported_node_list();
+  
+  $total = 0;
+  $processed = 0;
+  $errors = 0;
+  // loop thru all nodes and get all revisions
+  foreach ($nids as $nid) {
+    // create fake node to load revision list
+    $fakenode = new stdClass();
+    $fakenode->nid = $nid;
+    $revisions = node_revision_list($fakenode);
+    $total += count($revisions);
+    foreach ($revisions as $vid => $rev) {
+      set_time_limit(30);
+      $node = node_load($nid, $vid);
+      $GLOBALS['eximport_nid'] = $node->nid;
+      eximport_rewrite_urls($node);
+      eximport_node_update_revision($node);
+      $processed++;
+    }
+  }
+  return array($total, $processed, $errors);
+}
+
+function eximport_load_imported_node_list() {
+  return db_query("SELECT source 
+             FROM url_alias 
+             WHERE source RLIKE '^[[:digit:]]+$'")->fetchCol();
+}
+
+/**
+ * Update the modified body and summary of a node.
+ * WARNING: not using API, direct DB update.
+ *
+ * @param object $node Reference to a node object
+ * @return N/A
+ */
+function eximport_node_update_revision(&$node) {
+  $fields = array(
+    'body_value' => $node->body[LANGUAGE_NONE][0]['value'],
+    'body_summary' => $node->body[LANGUAGE_NONE][0]['summary']
+  );
+  
+  // update in the revision history
+  db_update('field_revision_body')
+    ->fields($fields)
+    ->condition('revision_id', $node->vid)
+    ->execute();
+  
+  // also update latest version
+  db_update('field_data_body')
+    ->fields($fields)
+    ->condition('revision_id', $node->vid)
+    ->execute();
+  
+  return;
+}
+
+/**
+ * Rewrite the URLs in the body and summary of a node.
+ *
+ * @param object $node Reference to a node object
+ * @return N/A
+ */
+function eximport_rewrite_urls(&$node) {
+  $html = new simple_html_dom();
+  $html->set_callback('eximport_process_element');
+  
+  // first, the body html
+  // using outertext() instead of save() to trigger callback
+  $html->load($node->body[LANGUAGE_NONE][0]['value']);
+  $node->body[LANGUAGE_NONE][0]['value'] = $html->root->outertext();
+  
+  // then the summary/teaser html
+  $html->load($node->body[LANGUAGE_NONE][0]['summary']);
+  $node->body[LANGUAGE_NONE][0]['summary'] = $html->root->outertext();
+  
+  unset($html);
+  return;
+}
+
+/**
+ * Rewrite the URLs in an anchor element.
+ *
+ * @param object $element Reference to an DOM element object
+ * @return N/A
+ */
+function eximport_process_element($element) {
+  $orig_url = '';
+  
+  switch ($element->tag) {
+    case 'a':
+      if ( empty($element->href) ) {
+        return;
+      }
+      $orig_url = $element->href;
+      break;
+    case 'img':
+      $orig_url = $element->src;
+      break;
+    default:
+      return;
+  }
+
+  $url = parse_url($orig_url);
+  
+  // parseable URL?  note, didn't say valid
+  if ($url === FALSE) {
+    // bogus, zap the element, leaving the innards
+    $element->outertext = $element->innertext;
+    return;
+  }
+  
+  eximport_process_url($url);
+  
+  if ( empty($url) ) {
+    // need to zap it
+    $element->outertext = $element->innertext;
+    return;
+  } else {
+    $orig_url = http_build_url($url);
+  }
+  
+  switch ($element->tag) {
+    case 'a':
+      $element->href = $orig_url;
+      break;
+    case 'img':
+      $element->src = $orig_url;
+      break;
+  }
+  return;
+}
+
+/**
+ * Rewrite the URLs.
+ *
+ * @param array $url Reference to an array for an URL via parse_url
+ * @return N/A
+ */
+function eximport_process_url(&$url) {
+  // at this point we have full URLs, let's see what to do with them
+  if (! isset($url['path'])) {
+    return;
+  }
+  
+  // dvm(array("original url", $url));
+  
+  // get the old URL for the current node
+  $current_node_path = path_load(array('source' => $GLOBALS['eximport_nid']));
+  $current_node_url = $current_node_path['alias'];
+  
+  // tells us where we are running
+  $my_url = parse_url(http_build_url());
+  
+  if (! empty($url['scheme'])) {
+    // only interested in http
+    if ($url['scheme'] != 'http') {
+      return;
+    }
+  } else {
+    $new_url = array();
+    // handle the relative URLs by fully specifying them
+    // using the scheme/host/port from the old URL for this node
+    http_build_url($current_node_url, $url, HTTP_URL_REPLACE, $new_url);
+    $url = $new_url;
+  }
+  
+  $path = $url['path'];
+  $matches = array();
+  $modified = FALSE;
+  if (preg_match('#^/wiki/Category\:(.+)#', $path, $matches)) {
+    $tag = $matches[1];
+    $tag = str_replace('_', ' ', $tag);
+    // map to taxonomy/tag URL - need term id
+    $terms = taxonomy_get_term_by_name($tag);
+    if ($terms) {
+      $term = array_shift($terms);
+      if ($term) {
+        $path = '/taxonomy/term/' . $term->tid;
+        $modified = TRUE;
+      }
+    } else {
+      // not found, zap link
+      $url = NULL;
+      return;
+    }
+  } elseif (preg_match('#^/mediawiki/files/(.*)#', $path, $matches)) {
+    // replace 'mediawiki/files' w/ 'sites/default/files/w'
+    $path = '/sites/default/files/w/' . $matches[1];
+    $modified = TRUE;
+  } elseif (preg_match('#^/learninglessons/(.*)#', $path, $matches)) {
+    // our work is done, just need to update host below
+    $url['host'] = 'www.extension.org';
+    unset($url['port']);
+  } elseif (preg_match('#^/wiki/User\:(.*)#', $path, $matches)) {
+    $exuser = strtolower($matches[1]);
+    $url['scheme'] = 'https';
+    $url['host'] = 'people.extension.org';
+    unset($url['port']);
+    $path = '/' . $exuser;
+  } elseif (preg_match('#^/wiki/(File|Image|Calendars|Talk)\:.*#', $path)) {
+    // zap it
+    $url = NULL;
+    return;
+  } else {
+    // see if it is something we imported, zap the fragment for compare
+    $uri = http_build_url($url, array(), HTTP_URL_STRIP_FRAGMENT);
+    $new_path = path_load(array('alias' => $uri));
+    if ($new_path) {
+      $nid = $new_path['source'];
+      $path = '/node/' . $nid;
+      $modified = TRUE;
+    }
+  }
+  
+  $url['path'] = $path;
+  
+  if ($modified) {
+    $url['host'] = $my_url['host'];
+    if (isset($my_url['port'])) {
+      $url['port'] = $my_url['port'];
+    }
+  }
+  
+  // dvm(array("modified url", $url));
+  return;
 }

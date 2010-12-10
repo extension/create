@@ -6,29 +6,44 @@
  */
 
 /**
- * Message text template
+ * Message text class.
+ * 
+ * A Text is a container for renderable elements. Renderable elements can be:
+ * - An array for drupal_render()
+ * - A simple string
+ * - Other Text objects (Texts can be nested)
  */
 class Messaging_Text {
-  protected $text = array();
-  protected $build;
-  protected $render;
+  // Pre-built elements, needs to be built before render
+  public $text = array();
+  // Current template elements, renderable array
+  public $elements;
+  // Parent text
+  protected $textparent;
+  // Text format
   public $format = MESSAGING_FORMAT_PLAIN;
   
   /**
    * Construct from array of text parts
    */
-  function __construct($elements = array()) {
-    $this->text = $elements;
+  function __construct($elements = array(), $type = 'messaging_text') {
+    $this->text = array('#type' => $type);
+    foreach ($elements as $key => $item) {
+      $this->add_item($key, $item);
+    }
   }
   /**
    * Add item of unknown type
    */
   function add_item($name, $value) {
     if (is_string($value)) {
-      $this->add_string($name, $value);
+      return $this->add_string($name, $value);
     }
-    elseif (is_object($value) || is_array($value)) {
-      $this->add_element($name, $value);
+    elseif (is_object($value)) {
+      return $this->add_text($name, $value);
+    }
+    elseif (is_array($value)) {
+      return $this->add_element($name, $value);
     }
   }
   /**
@@ -36,74 +51,113 @@ class Messaging_Text {
    */
   function add_element($name, $element) {
     $this->text[$name] = $element;
+    return $this;
   }
   /**
    * Add string
    */
   function add_string($name, $string) {
     $element = array('#markup' => $string);
-    return $this->add_element($name, $selement);
+    return $this->add_element($name, $element);
   }
   /**
    * Add text object
    */
-  function add_text($name, $text = NULL) {
-    $text = isset($text) ? $text : new Messaging_Text();
-    
+  function add_text($name, $text) {
+    $text->set_parent($this);
+    return $this->add_element($name, $text);
   }
   /**
-   * Render into text
+   * Create text object and add. Return created object
    */
-  function render() {
-    return $this->render_text($this->text);
-  }
-  /**
-   * Build into array for drupal_render()
-   */
-  function build() {
-    
-  }
-  /**
-   * Render text recursively
-   */
-  function render_text(&$text) {
-    foreach (element_children($text) as $key) {
-      if (is_object($text[$key])) {
-        $text[$key] = $value->render();
-      }
-      else {
-        $text[$key] = $this->render_text($text[$key]);
-      }
-    }
-    return drupal_render($text);
+  function create_text($name) {
+    $text = new Messaging_Text();
+    $this->add_text($name, $text);
+    return $text;
   }
 
+  /**
+   * Get text element from this template
+   */
+  function get_text($type, $options = array()) {
+    if (isset($this->text[$type])) {
+      return $this->text[$type];
+    }
+    else {
+      return NULL;
+    }
+  }
+
+  /**
+   * Set parent text
+   */
+  function set_parent($template) {
+    $this->textparent = $template;
+    return $this;
+  }
+  /**
+   * Render this as text
+   */
+  public function render($parts = NULL, $options = array()) {
+    $elements = $this->build($parts, $options);
+    return drupal_render($elements);
+  }
+  /**
+   * Reset built elements
+   */
+  public function reset() {
+    unset($this->elements);
+  }
+  /**
+   * Build all elements, return array
+   */
+  public function build($parts = NULL, $options = array()) {
+    $parts = $parts ? $parts : array_keys($this->text);
+    $build = array();
+    foreach ($parts as $key) {
+      if (isset($this->elements[$key])) {
+        $build[$key] = $this->elements[$key];
+      }
+      elseif($text = $this->get_text($key)) {
+        $build[$key] = $this->elements[$key] = $this->text_build($text);
+      }
+    }
+    return $build;
+  }
+  
+  /**
+   * Build a message text element
+   */
+  protected function text_build($element, $options = array()) {
+    if (is_object($element)) {
+      return $element->build($options);
+    }
+    elseif (is_string($element)) {
+      return array(
+        '#markup' => $element,
+      );
+    }
+    elseif (is_array($element)) {
+      return $this->element_build($element, $options);
+    }  
+  }
+  /**
+   * Build a message element, recursive
+   */
+  protected function element_build($element, $options = array()) {
+    foreach (element_children($element) as $key) {
+      $element[$key] = $this->text_build($element[$key], $options);
+    }
+    return $element;
+  }
   /**
    * Converts strings to plain utf-8 single line
    */
   static function check_subject($text) {
-    $text = messaging_text_check_plain($text, NULL);
+    $text = check_plain($text);
     // taken from _sanitizeHeaders() in PEAR mail() : http://pear.php.net/package/Mail
     $text = preg_replace('=((0x0A/%0A|0x0D/%0D|\\n|\\r)\S).*=i', NULL, $text);
     return $text;
-  }
-  
-  /**
-   * Composes message from different parts, recursively and applies filter
-   * 
-   * Filter is applied now only once
-   * 
-   * @param $text
-   *   Simple string or array of message parts
-   *   It may have named elements like #prefix and #text
-   *   or it may be single strings to render straight forward
-   * @param $glue
-   *   Text to glue all lines together
-   * @param $filter
-   *   Input format to apply to the results
-   */
-  static function text_render($text, $glue = '', $format = NULL, $filter = NULL) {
-    return messaging_text_render($text, $glue, $format, $filter);
   }
   
   /**
@@ -115,304 +169,292 @@ class Messaging_Text {
    *   Optional string to be used as line ending
    */
   static function text_clean($text, $newline = NULL) {
-    return messaging_text_clean($text, $newline);
+    // HTML entities to plain text conversion.
+    $text = decode_entities($text);  
+    // Filters out all remaining HTML tags
+    $text = filter_xss($text, array());
+    // Optionally, replace new lines
+    if (!is_null($newline)) {
+      $text = str_replace("\n", $newline, $text);
+    }
+    // Trim out remaining beginning/ending spaces
+    $text = trim($text);
+    return $text;
   }
   
   /**
    * Truncate messages to given length.  Adapted from node_teaser() in node.module
    */
   static function text_truncate($text, $length) {
-    return messaging_text_truncate($text, $length);
-  }
-}
-
-/**
- * HTML to text simple filtering.
- * - Replace some tags with line endings: p, br, hr, li, h1, h2, h3, h4
- * Strip out all HTML tags and decode entities
- * 
- * @param $text
- *   Text to clean up
- * @param $break
- *   Optional character to replace tags for line breaks
- * @param $list
- *   Optional item list marker, may be a dash '-' or an asterisk '*'
- */
-function messaging_text_check_plain($text, $break = "\n", $list = '- ') {
-  // This have to be done before the filtering because tag markers may have been previously parsed with check_plain
-  $text = str_replace(array('&lt;', '&gt;'), array('<', '>'), $text);
-  // Clean up the HTML and replace some tags with line endings
-  if (isset($break)) {
-    $text = _filter_htmlcorrector($text);
-    $text = str_replace(array('</p>', '<br />', '<hr />', '</li>', '</h1>', '</h2>', '</h3>', '</h4>'), $break, $text);
-    if (isset($list)) {
-      $text = str_replace('<li>', $list, $text);
-    }
-  }
-  // Final text clean up
-  return messaging_text_clean($text);
-}
-
-
-/**
- * Clean text of HTML stuff and optionally of line endings
- * 
- * @param $text
- *   Dirty HTML text to be filtered
- * @param $newline
- *   Optional string to be used as line ending
- */
-function messaging_text_clean($text, $newline= NULL) {
-  // HTML entities to plain text conversion.
-  $text = decode_entities($text);  
-  // Filters out all remaining HTML tags
-  $text = filter_xss($text, array());
-  // Optionally, replace new lines
-  if (!is_null($newline)) {
-    $text = str_replace("\n", $newline, $text);
-  }
-  // Trim out remaining beginning/ending spaces
-  $text = trim($text);
-  return $text;
-}
-
-/**
- * Apply filter to message text
- */
-function messaging_text_filter($text, $filter) {
-  if (!$filter) {
-    // Not filtering for this method
-    return $text;
-  }
-  elseif ($function = messaging_text_filter_info($filter, 'filter callback')) {
-    return $function($text);
-  }
-  else {
-    // Filter not valid or not available anymore. Apply plaintext filter.
-    return messaging_text_check_plain($text);
-  }
-}
-
-/**
- * Get information of available filters for message texts
- */
-function messaging_text_filter_info($name = NULL, $property = NULL) {
-  $info = messaging_info('text filters');
-  return messaging_array_info($info, $name, $property);
-}
-
-/**
- * Get built in filters info, will be provided on messaging_messaging('filter info')
- */
-function _messaging_text_filter_info() {
-  $filters['messaging_plaintext'] = array(
-    'name' => t('Plain text'),
-    'description' => t('Filters out all HTML tags and replaces HTML entities by characters, respects HTML line breaks.'),
-    'filter callback' => 'messaging_text_check_plain',
-  );
-  $filters['messaging_html'] = array(
-    'name' => t('Safe HTML'),
-    'description' => t('Filters out dangerous HTML tags, fixes faulty HTML, converts line breaks into HTML, and turns web and e-mail addresses into clickable links.'),
-    'filter callback' => 'messaging_text_format_html',
-  );
-  $filters['messaging_htmlfast'] = array(
-    'name' => t('Fast HTML'),
-    'description' => t('Converts line breaks into HTML. Use this one in case your templates are already formatted and filtered and you are possitive you don\'t need further filtering.'),
-    'filter callback' => 'messaging_text_format_htmlfast',
-  ); 
-  $filters['drupal_html2text'] = array(
-    'name' => t('HTML to text'),
-    'description' => t('Replaces HTML tags and entities with plain text formatting, moving links at the end. This one is only advised for plain text emails.'),
-    'filter callback' => 'drupal_html_to_text',
-  );
-     
-  return $filters;  
-}
-
-/**
- * Default html filter. 
- * 
- * We use a fake 'messaging' format so all variables affecting this filtering can be overridden
- * - filter_html_messaging = FILTER_HTML_STRIP || FILTER_HTML_ESCAPE
- * - allowed_html_messaging, defaults to '<a> <em> <strong> <cite> <code> <ul> <ol> <li> <dl> <dt> <dd>'
- * - filter_url_length_messaging, defaults to 72
- */
-function messaging_text_format_html($text, $format = 'messaging') {
-  // Turn URLs into links
-  $text = _filter_url($text, $format);
-  // Filter out dangerous HTML.
-  $text = _filter_html($text, $format);
-  // Convert line breaks
-  $text = _filter_autop($text);
-  // Fix faulty HTML
-  $text = _filter_htmlcorrector($text);
-  return $text;
-}
-
-/**
- * HTML quick filter
- * 
- * This one only fixes line endings when everything else is already formatted and filtered. 
- */
-function messaging_text_format_htmlfast($text) {
-  // Convert line breaks
-  return _filter_autop($text);
-}
-
-/**
- * Composes message from different parts, recursively and applies filter
- * 
- * Filter is applied now only once
- * 
- * @param $text
- *   Simple string or array of message parts
- *   It may have named elements like #prefix and #text
- *   or it may be single strings to render straight forward
- * @param $glue
- *   Text to glue all lines together
- * @param $filter
- *   Input format to apply to the results
- */
-function messaging_text_render($text, $glue = '', $format = NULL, $filter = NULL) {
-  $output = '';
-
-  if (is_array($text)) {
-    if (isset($text['#prefix'])) {
-      $output .= $text['#prefix'].$glue;
-      unset($text['#prefix']);
-    }
-    if (isset($text['#text'])) {
-      $output .= $text['#text'];
-      return $output;
-    }
-    foreach (element_children($text) as $key) {
-      // The filter is not passed along
-      $text[$key] = messaging_text_render($text[$key], $glue);
-    }
-    $output .= implode($glue, $text);
-  } else {
-    $output .= $text;
-  }
-  
-  // The format and the final filter are applied now only once
-  if (isset($format)) {
-    $output = messaging_text_check_markup($output, $format);
-  }
-  if (isset($filter)) {
-    $output = messaging_text_filter($output, $filter);
-  }
-  return $output;
-}
-
-/**
- * Truncate messages to given length.  Adapted from node_teaser() in node.module
- */
-function messaging_text_truncate($text, $length) {
-  // If we have a short message, return the message
-  if (drupal_strlen($text) < $length) {
-    return $text;
-  }  
-  // Initial slice.
-  $teaser = truncate_utf8($text, $length);
-  $position = 0;
-  // Cache the reverse of the message.
-  $reversed = strrev($teaser); 
-  // split at paragraph boundaries.
-  $breakpoints = array('</p>' => 0, '<br />' => 6, '<br>' => 4, "\n" => 1);
-  // We use strpos on the reversed needle and haystack for speed.
-  foreach ($breakpoints as $point => $offset) {
-    $length = strpos($reversed, strrev($point));
-    if ($length !== FALSE) {
-      $position = - $length - $offset;
-      return ($position == 0) ? $teaser : substr($teaser, 0, $position);
-    }
-  } 
-  // When even the first paragraph is too long, we try to split at the end of
-  // the last full sentence.
-  $breakpoints = array('. ' => 1, '! ' => 1, '? ' => 1, ' ' => 0);
-  $min_length = strlen($reversed);
-  foreach ($breakpoints as $point => $offset) {
-    $length = strpos($reversed, strrev($point));
-    if ($length !== FALSE) {
-      $min_length = min($length, $min_length);
-      $position = 0 - $length - $offset;
-    }
-  }
-  return ($position == 0) ? $teaser : substr($teaser, 0, $position);
-}
-
-/**
- * This is a fast version of check_markup
- * 
- * The differences with regular check_markup are:
- * - It uses a static cache instead of querying the database
- * - It doesn't check for permissions
- * 
- * @see check_markup()
- * 
- * @param $text
- * @param $format
- */
-function messaging_text_check_markup($text, $format = FILTER_FORMAT_DEFAULT) {
-  $cache = &drupal_static(__FUNCTION__);
-  // When $check = TRUE, do an access check on $format.
-  if (isset($text)) {
-    $format = filter_resolve_format($format);
-
-    // Check for a cached version of this piece of text.
-    $cache_id = $format .':'. md5($text);
-
-    if (!isset($cache[$cache_id])) {
-      // Convert all Windows and Mac newlines to a single newline,
-      // so filters only need to deal with one possibility.
-      $text = str_replace(array("\r\n", "\r"), "\n", $text);
-  
-      // Get a complete list of filters, ordered properly.
-      $filters = filter_list_format($format);
-  
-      // Give filters the chance to escape HTML-like data such as code or formulas.
-      foreach ($filters as $filter) {
-        $text = module_invoke($filter->module, 'filter', 'prepare', $filter->delta, $format, $text, $cache_id);
+    // If we have a short message, return the message
+    if (drupal_strlen($text) < $length) {
+      return $text;
+    }  
+    // Initial slice.
+    $teaser = truncate_utf8($text, $length);
+    $position = 0;
+    // Cache the reverse of the message.
+    $reversed = strrev($teaser); 
+    // split at paragraph boundaries.
+    $breakpoints = array('</p>' => 0, '<br />' => 6, '<br>' => 4, "\n" => 1);
+    // We use strpos on the reversed needle and haystack for speed.
+    foreach ($breakpoints as $point => $offset) {
+      $length = strpos($reversed, strrev($point));
+      if ($length !== FALSE) {
+        $position = - $length - $offset;
+        return ($position == 0) ? $teaser : substr($teaser, 0, $position);
       }
-  
-      // Perform filtering.
-      foreach ($filters as $filter) {
-        $text = module_invoke($filter->module, 'filter', 'process', $filter->delta, $format, $text, $cache_id);
+    } 
+    // When even the first paragraph is too long, we try to split at the end of
+    // the last full sentence.
+    $breakpoints = array('. ' => 1, '! ' => 1, '? ' => 1, ' ' => 0);
+    $min_length = strlen($reversed);
+    foreach ($breakpoints as $point => $offset) {
+      $length = strpos($reversed, strrev($point));
+      if ($length !== FALSE) {
+        $min_length = min($length, $min_length);
+        $position = 0 - $length - $offset;
       }
-  
-      $cache[$cache_id] = $text;
     }
-
-    return $cache[$cache_id];
+    return ($position == 0) ? $teaser : substr($teaser, 0, $position);   
   }
-  else {
-    $text = t('n/a');
+}
+
+/**
+ * Base template class
+ * 
+ * A template is a text object that has associated objects and can do token replacement.
+ * 
+ * These templates have some known parts: subject, header, content, footer
+ */
+class Messaging_Template extends Messaging_Text {
+  // Store multiple objects for token replacement
+  protected $objects;
+  // Options for string building and text replacement
+  protected $options;
+  /**
+   * Construct from array of text parts
+   */
+  function __construct($elements = array(), $type = 'messaging_message') {
+    parent::__construct($elements, $type);
+  }
+  /**
+   * Get known template parts
+   */
+  protected function get_parts() {
+    return array();
+  }
+  /**
+   * Add object to the list
+   */
+  function add_object($type, $object) {
+    $this->objects[$type] = $object;
+    return $this;
+  }
+  /**
+   * Get objects from this template (include parent's ones)
+   */
+  function get_objects() {
+    $objects = isset($this->objects) ? $this->objects : array();
+    if (isset($this->textparent)) {
+      $objects += $this->textparent->get_objects();
+    }
+    return $objects;
+  }
+  /**
+   * Set known template elements
+   */
+  public function set_elements($options = array()) {
+    foreach ($this->get_parts() as $key) {
+      if (!isset($this->text[$key])) {
+        $this->text[$key] = $this->get_text($key, $options);
+      }
+    }
+    return $this;
+  }
+  /**
+   * Get element from elements or default texts
+   */
+  function get_element($type, $options = array()) {
+    if (isset($this->elements[$type])) {
+      return $this->elements[$type];
+    }
+    else {
+      return $this->get_text($type, $options);
+    }
   }
 
-  return $text;
+  /**
+   * Build all elements, return array
+   */
+  public function build($parts = NULL, $options = array()) {
+    if (!isset($this->elements)) {
+      $this->set_elements($options);
+    }
+    return parent::build($parts, $options);
+  }
+  /**
+   * Get text element from this template
+   */
+  public function get_text($type, $options = array()) {
+    if (isset($this->text[$type])) {
+      return $this->text[$type];
+    }
+    else {
+      $options += $this->get_options();
+      return $this->default_text($type, $options);
+    }
+  }
+  /**
+   * Get options for texts, translations, etc
+   */
+  function get_options() {
+    if (!isset($this->options)) {
+      $this->set_language(language_default());
+    }
+    return $this->options;
+  }
+  /**
+   * Set language
+   */
+  function set_language($language) {
+    $this->set_option('language', $language);
+    $this->set_option('langcode', $language->language);
+    $this->reset();
+    return $this;
+  }
+  /**
+   * Set options
+   */
+  function set_option($name, $value = TRUE) {
+    $this->options[$name] = $value;
+    return $this;
+  }
+  /**
+   * Set user (and reset built elements)
+   */
+  function set_user($user) {
+    $this->add_object('user', $user);
+    $this->reset();
+    return $this;
+  }
+  
+  /**
+   * Build a message element with optional text replacement
+   */
+  protected function element_build($element, $options = array()) {
+    $element = parent::element_build($element, $options);
+    if (!empty($element['#tokens']) && (!isset($options['replace']) || $options['replace'])) {
+      $element = $this->element_replace($element, $options);
+    }
+    return $element;
+  }
+  /**
+   * Perform token replace within an element
+   */
+  protected function element_replace($element, $options = array()) {
+    if (!empty($element['#markup'])) {
+      $element['#markup'] = $this->token_replace($element['#markup'], $options);
+    }
+    foreach (element_children($element) as $key) {
+      $element[$key] = $this->element_replace($element[$key], $options);
+    }
+    return $element;
+  }
+
+  /**
+   * Do token replacement with this template's objects
+   */
+  protected function token_replace($text, $options = array()) {
+    return token_replace($text, $this->get_objects(), $options + $this->get_options());
+  }
+  /**
+   * Default texts for this template, may need token replacement
+   */
+  protected function default_text($type, $options) {
+    // Text not found, something went wrong with our template processing
+    return t('Template text not found: @type.', array('@type' => $type), $options);
+  }
 }
 
-// Some other function wrappers, for backwards compatibility with old sending methods
-
 /**
- * HTML to text simple filtering.
+ * Template for a full message (subject, body, etc..)
  */
-function messaging_check_plain($text, $break = NULL) {
-  return messaging_text_check_plain($text, $break);
-}
+class Messaging_Message_Template extends Messaging_Template {
+  /**
+   * Set message elements
+   */
+  protected function get_parts() {
+    return array('title', 'subject', 'header', 'content', 'footer');
+  }
+  /**
+   * Build subject as array
+   */
+  function build_subject($options = array()) {
+    return $this->build(array('title', 'subject'), $options) + array('#type' => 'messaging_subject');
+  }
+  /**
+   * Message subject as string
+   */
+  public function get_subject($options = array()) {
+    return drupal_render($this->build_subject($options));
+  }
+  /**
+   * Build message body
+   */
+  public function build_body($options = array()) {
+    return $this->build(array('header', 'content', 'footer'), $options) + array('#type' => 'messaging_body');
+  }
+  /**
+   * Message body as string
+   */
+  public function get_body($options = array()) {
+    return drupal_render($this->build_body($options));
+  }
+  /**
+   * Message content, without header or footer
+   */
+  public function build_content($options = array()) {
+    return $this->build(array('content'), $options) + array('#type' => 'messaging_text');
+  }
 
-/**
- * Converts strings to plain utf-8 single line
- */
-function messaging_check_subject($text) {
-  return Messaging_Method::check_subject($text);
-}
+  /**
+   * Get Message_Object with this template linked
+   */
+  public function build_message($options = array()) {
+    $message = new Messaging_Message();
+    $message->set_template($this);
+    return $message;
+  }
 
-/**
- * Build a simple text with message subject and body
- */
-function messaging_text_build($message, $glue = ' ') {
-  return $message->get_text($glue);
+  /**
+   * Set destination (and reset built elements)
+   */
+  function set_destination($destination) {
+    $this->add_object('destination', $destination);
+    return $this->set_user($destination->get_user());
+  }
+
+  /**
+   * Default texts for this template, may need token replacement
+   */
+  protected function default_text($type, $options) {
+    switch ($type) {
+      case 'title':
+        return array(
+          '#markup' => variable_get('site_name', 'Drupal'),
+          '#prefix' => '[', '#suffix' => '] ',
+        );
+      case 'footer':
+        return array(
+          '#type' => 'link',
+          '#title' => t('Message from @site_name.', array('@site_name' => variable_get('site_name', 'Drupal')), $options),
+          '#href' => url('', array('absolute' => TRUE) + $options),
+        );
+      default:
+        return parent::default_text($type, $options);
+    }
+  }
 }
 
 /**

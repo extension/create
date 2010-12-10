@@ -13,15 +13,13 @@ function exauth_help($path, $arg) {
   return $output;
 }
 
-//check to see if the user is accessing a page which does not need to trigger the openid login process to start
-//logout by default seems to be redirecting back to /, so something will need to be figured out for a custom redirect for logout
-function accessing_unprotected_page()
+//check to see if the user is accessing a cop-created "article". these are the only pages currently classified as "protected"
+function accessing_protected_page($node_type)
 {
- if ( $_SERVER['REMOTE_ADDR']!='127.0.0.1' && strpos($_SERVER['REQUEST_URI'], "openid")=== FALSE && strpos($_SERVER['REQUEST_URI'], "logout")=== FALSE && strpos($_SERVER['REQUEST_URI'], "atomfeed") === FALSE && strpos($_SERVER['REQUEST_URI'], "cron.php") === FALSE && strpos($_SERVER['REQUEST_URI'], "loggedout") === FALSE && strpos($_SERVER['REQUEST_URI'], "taxonomy/term/85/feed") === FALSE && strpos($_SERVER['REQUEST_URI'], "rss.xml") === FALSE && strpos($_SERVER['REQUEST_URI'], "/blog/feed") === FALSE )
-  {
-    return FALSE;
+  if ($node_type == 'article' || $node_type == 'faq' ){
+    return TRUE;
   }
-  return TRUE;
+  return FALSE;
 }
 
 //maintenance mode check
@@ -37,18 +35,70 @@ function maintenance_mode()
   }
 }
 
-
-// if the user is not logged in and is not trying to access an unprotected url, then start the openid login process
-function exauth_init()
-{
-  global $base_url;
-  $default_openidreturn = $base_url . '/openid/authenticate?destination=' . ltrim(request_uri(), "/");
-
-  $myopenid_return = variable_get('extension_openid_return',$default_openidreturn);
-  if(!user_is_logged_in() && !accessing_unprotected_page() && !maintenance_mode()) 
+/**
+ * implements hook_node_view()
+ * before a node is rendered for the user, check to make sure that the user is logged in before viewing a "protected" page.
+ * if the user is not logged in and trying to access a protected page, then force an openid login and direct them back to that page after they authenticate.
+ */
+function exauth_node_view($node, $view_mode, $langcode){
+  $node_type = $node->type;
+  if(!user_is_logged_in() && accessing_protected_page($node_type) && !maintenance_mode() && !drupal_is_front_page()) 
   {
+    global $base_url;
+    $default_openidreturn = $base_url . '/openid/authenticate?destination=' . ltrim(request_uri(), "/");
+    $myopenid_return = variable_get('extension_openid_return',$default_openidreturn);
     //syslog(LOG_WARNING, "openid login start");
     openid_begin("https://people.extension.org/", $myopenid_return);
   }
+}
 
+/**
+ *implements hook_form_alter()
+ *removes the username and password fields from login forms.
+ *reset form['name]['#size'] because the OpenID module expects it to exist, and it seems to load after the exauth module does. (causes errors if it doesnt exist)
+ */
+function exauth_user_login_form_alter(&$form, &$form_state){
+  $size = $form['name']['#size'];
+  unset($form['name']);
+  unset($form['pass']);
+  unset($form['links']);
+  unset($form['#attached']['js']);
+  $form['openid_links']['#items'][0]['data'] = '<a href=""></a>Log in with your eXtensionID';
+  $form['name']['#size'] = $size;
+  $form['openid_identifier']['#default_value'] = 'http://people.extension.org/';
+  $form['openid_identifier']['#type']= 'hidden';
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function exauth_form_user_login_block_alter(&$form, &$form_state) {
+  exauth_user_login_form_alter($form, $form_state);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function exauth_form_user_login_alter(&$form, &$form_state) {
+  exauth_user_login_form_alter($form, $form_state);
+}
+
+/**
+ *implements hook_form_alter()
+ *removes the users ability to edit their email address or password via the drupal user edit interface.
+ */
+function exauth_form_alter(&$form, &$form_state, $form_id){
+  switch ($form_id) {
+      case 'user_profile_form':
+        unset($form['account']['name']);
+        $form['account']['mail']['#attributes']['readonly'] = 'readonly';
+        $form['account']['pass']['#type']= 'hidden';
+        unset($form['account']['current_pass']);
+        break;
+      case 'user_pass':
+        $form['mail']['#markup'] = 'Password reset intentionally disabled'; // inform user that password reset when visiting /user/password
+        $form['name']['#attributes']['readonly'] = 'readonly'; // make the text field uneditable for anonymous users.
+        unset($form['actions']['submit']); // remove submit button from /user/login
+        break;        
+  }
 }

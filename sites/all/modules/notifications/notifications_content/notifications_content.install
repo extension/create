@@ -6,15 +6,14 @@
  */
 function notifications_content_install() {
   // Set two actions for triggers
-  notifications_content_install_trigger_action('node_insert', 'notifications_content_node_post_action');
-  notifications_content_install_trigger_action('node_update', 'notifications_content_node_post_action');
+  notifications_content_install_trigger_action('node_publish', 'notifications_content_node_post_action');
   notifications_content_install_trigger_action('node_update', 'notifications_content_node_update_action');
   // Commented out for D7, not sure it is needed anymore
   // Module weight. It must run after most modules, to make sure they've done
   // their work before we add the notifications queries.
   //db_query("UPDATE {system} SET weight = 100 WHERE name = 'notifications_content' AND type = 'module'");
   // Enable the most common subscription types
-  //variable_set('notifications_content_type', array('thread' => 'thread', 'nodetype' => 'nodetype', 'author' => 'author'));
+  //variable_set('notifications_content_type', array('thread' => 'thread', 'node_type' => 'node_type', 'author' => 'author'));
 }
 
 /**
