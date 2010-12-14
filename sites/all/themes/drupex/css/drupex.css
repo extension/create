@@ -10,3 +10,56 @@
 #extensionNav a {padding: 0 .4em; color: #c8d3eb; text-decoration: none;}
 #extensionNav ul {display:inline; font-size:inherit;}
 #extensionNav a:hover { text-decoration: underline;}
+a{
+	color:#194A86; 
+}
+body, #site-slogan, .ui-widgetz{
+	font-family:Arial, Helvetica, sans-serif;
+}
+.views-field-title{
+	font-family:Arial, Helvetica, sans-serif;
+	font-size:1.15em;
+	margin-top: 15px;
+}
+.field-items img{
+	float: left;
+	margin: 2px 8px 2px 0;
+	border: 1px solid #ccc;
+}
+.views-row{
+	clear: both;
+}
+.pane-title{
+	font-family:Arial, Helvetica, sans-serif;
+	font-size: 1.4em;
+	color: #999;
+	border-bottom: 1px solid #ccc;
+	margin: 20px 0 4px 0;
+	padding-top: 20px;
+	clear: both;
+}
+.title{
+	font-family:Arial, Helvetica, sans-serif;
+	font-size: 1.6em;
+	color: #999;
+	border-bottom: 1px solid #ccc;
+}
+.views-field-timestamp{
+	float:right;
+	text-align: right;
+	font-family:Arial, Helvetica, sans-serif;
+	font-size: 0.8em;
+}
+.marker{
+	color:#CC9;
+}
+.more-link{
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 0.9em;
+}
+.pane-top-links{
+	text-align:right;
+	font-size: 0.9em;
+	font-family:Arial, Helvetica, sans-serif;
+	margin-top: -15px;
+}
