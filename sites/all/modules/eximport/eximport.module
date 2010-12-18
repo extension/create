@@ -42,7 +42,7 @@ https://skitch.com/jerobins/rdsqu/full-html-extension-content-management-system
  *    c. will have approx 4 files after export for about, many more for cop
  *
  * 2. import revisions
- *    a. use DrupalBot as the user for publishing events
+ *    a. use eXtension as the user for publishing events
  *    b. TODO mark all published revisions as such
  *    c. TODO when import complete, mark all unpublished articles as draft
  *    d. import 'news' articles as content-type news, all others as articles
@@ -270,7 +270,7 @@ function eximport_node_create($entry) {
     $node->created = $entry->created;
   }
   
-  $node->uid = $entry->uid;
+  $node->uid = $entry->user->uid;
   $node->title = $entry->title;
   
   $node->changed = $entry->created;
@@ -278,7 +278,13 @@ function eximport_node_create($entry) {
   $node->body = $entry->body;
   
   $node->field_tags = $entry->field_tags;
+  
+  $saved_user = $GLOBALS['user'];
+  drupal_save_session(FALSE);
+  $GLOBALS['user'] = $entry->user;
   node_save($node);
+  $GLOBALS['user'] = $saved_user;
+  drupal_save_session(TRUE);
   
   $nid = $node->nid;
   
@@ -362,7 +368,11 @@ function eximport_entry_create($atom_entry) {
   $entry->field_tags = array(LANGUAGE_NONE => $categories);
   
   // author
-  $entry->uid = eximport_find_author((string)$atom_entry->author->name[0]);
+  $entry->user = user_load_by_name((string)$atom_entry->author->name[0]);
+  
+  if (! $entry->user) {
+    $entry->user = user_load_by_name('eXtension');
+  }
   
   // duh
   $entry->title = (string)$atom_entry->title;
@@ -405,24 +415,6 @@ function eximport_get_teaser($content) {
   }
   
   return $summary;
-}
-
-/**
- * Find Drupal uid given eXtensionID.
- *
- * @param string $exid eXtension ID string.
- * @return integer Drupal uid if exists, 0 otherwise
- * @see user_load_multiple
- */
-function eximport_find_author($exid) {
-  $id = 0;
-  $account = user_load_by_name($exid);
-
-  if ($account) {
-    $id = $account->uid;
-  }
-  
-  return $id;
 }
 
 /**
