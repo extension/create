@@ -10,3 +10,80 @@
 #extensionNav a {padding: 0 .4em; color: #c8d3eb; text-decoration: none;}
 #extensionNav ul {display:inline; font-size:inherit;}
 #extensionNav a:hover { text-decoration: underline;}
+a{
+	color:#1F4F82; 
+}
+body, #site-slogan, .ui-widgetz{
+	font-family:Arial, Helmet, Freescans, sans-serif;
+}
+.views-field-title{
+	font-size:1.15em;
+	margin-top: 15px;
+}
+.field-items img{
+	float: left;
+	margin: 2px 8px 2px 0;
+	border: 1px solid #ccc;
+}
+.views-row{
+	clear: both;
+}
+.pane-title{
+	font-size: 1.4em;
+	color: #999;
+	border-bottom: 1px solid #ccc;
+	margin: 20px 0 4px 0;
+	padding-top: 20px;
+	clear: both;
+}
+.title{
+	font-size: 1.6em;
+	color: #999;
+	border-bottom: 1px solid #ccc;
+}
+.views-field-timestamp{
+	float:right;
+	text-align: right;
+	font-size: 0.8em;
+}
+.marker{
+	color:#CC9;
+}
+.more-link{
+	font-size: 0.9em;
+}
+.pane-top-links{
+	text-align:right;
+	font-size: 0.9em;
+	margin-top: -15px;
+}
+.topstory{
+	padding-bottom: 10px;
+	border-bottom: 1px solid #ccc;
+	min-height: 217px;
+}
+.topstory .views-field-title{
+	font-size: 1.8em;
+	font-weight: bold;
+}
+.views-field-entity-id{
+	font-size: 0.95em;
+	color: #505050;
+}
+.second-story{
+	min-height: 120px;
+	border-bottom:1px solid #ccc;
+}
+.fourth-frame{
+	width: 146px;
+	margin-right: 35px;
+	float: left;
+}
+.fourth-frame-last{
+	margin-right: 0;
+}
+
+.fourth-frame .pane-title{
+	border-top: 1px solid #ccc;
+	padding-top: 2px;
+}
