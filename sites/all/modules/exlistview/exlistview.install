@@ -1,0 +1,62 @@
+<?php
+
+/**
+ * Implements hook_schema().
+*/
+function exlistview_schema() {
+  $schema['tag_preferences'] = array(
+  'description' => 'Table for storing user defined tag preferences for filtering information like content listviews.',
+  'fields' => array(  
+    'tpid' => array(
+      'description' => 'Unique identifier for the tag preference.',
+      'type' => 'serial',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+    ),
+    
+    'user_id' => array(
+      'description' => 'Id of the user who selected this tag preference.',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+    ),
+    
+    'tag_filter' => array(
+      'description' => 'The list of tags to filter by.',
+      'type' => 'text',
+      'size' => 'medium',
+      'not null' => TRUE,
+    ),
+  
+    'created' => array(
+      'description' => 'The Unix timestamp when the tag filter was set.',
+      'type' => 'int',
+      'not null' => TRUE,
+    ),
+    
+    'changed' => array(
+      'description' => 'The Unix timestamp when the tag filter was most recently updated.',
+      'type' => 'int',
+      'not null' => TRUE,
+    ),  
+  
+  ),
+  
+  'primary key' => array('tpid'),
+
+  'unique keys' => array(
+    'user_id' => array('user_id'),
+  ),
+
+  'foreign keys' => array(
+    'users' => array(
+    'table' => 'users',
+    'columns' => array('user_id' => 'uid'),
+    ),
+  ),
+  
+  );
+  
+  return $schema;
+
+}

@@ -1,3 +1,10 @@
+<?php print drupal_render($tag_form) ?>
+
+
+<?php if (count($draft_nodes) == 0): ?>
+<p>No content available with specified tags.</p>
+<?php else: ?>
+
 <?php print $pager; ?>
 
 <table>
@@ -30,3 +37,4 @@
 
 
 <?php print $pager; ?>
+<?php endif; ?>

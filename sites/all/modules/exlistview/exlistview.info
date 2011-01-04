@@ -1,0 +1,8 @@
+; $Id$
+name = eXtension List Views
+description = "Adds various list views of content to the site."
+core = 7.x
+package = eXtension
+files[] = exlistview.module
+files[] = exlistview.install
+files[] = exlistview_show.tpl.php
