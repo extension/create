@@ -28,7 +28,35 @@ function exlistview_menu() {
     'page callback' => 'exlistview_show',
     'access callback' => 'menu_permissions',
   );
-    
+  
+  $items['listviews/ready for review'] = array(
+    'title' => 'Ready for Review Content',
+    'description' => 'List view of ready for review content',
+    'page callback' => 'exlistview_show',
+    'access callback' => 'menu_permissions',
+  );
+  
+  $items['listviews/reviewed'] = array(
+    'title' => 'Reviewed Content',
+    'description' => 'List view of reviewed content',
+    'page callback' => 'exlistview_show',
+    'access callback' => 'menu_permissions',
+  );
+  
+  $items['listviews/copy edited'] = array(
+    'title' => 'Copy Edited Content',
+    'description' => 'List view of copy edited content',
+    'page callback' => 'exlistview_show',
+    'access callback' => 'menu_permissions',
+  );
+  
+  $items['listviews/published'] = array(
+    'title' => 'Published Content',
+    'description' => 'List view of published content',
+    'page callback' => 'exlistview_show',
+    'access callback' => 'menu_permissions',
+  );
+  
   return $items;
 }
 
@@ -42,6 +70,29 @@ function menu_permissions() {
 function exlistview_show() {
   // get current user
   global $user;
+  
+  // get the workflow state passed in
+  // defaults to draft
+  switch (arg(1)) {
+      case 'draft':
+          $workflow_state = 1;
+          break;
+      case 'ready for review':
+          $workflow_state = 2;
+          break;
+      case 'reviewed':
+          $workflow_state = 3;
+          break;
+      case 'copy edited':
+          $workflow_state = 4;
+          break;
+      case 'published':
+          $workflow_state = 5;
+          break;
+      default:
+          $workflow_state = 1;
+  
+  }
   
   // find user preference for tag filtering if it exists
   $tag_preference = db_query('SELECT * FROM {tag_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
@@ -99,18 +150,29 @@ function exlistview_show() {
       $next_sort_direction = array('order' => 'asc');
     }
   
-    $draft_query = db_select('node', 'n')->extend('PagerDefault');
-    $draft_query->leftjoin('node_workflow', 'nw', 'nw.node_id = n.nid');
-    $draft_query->fields('n');
+    $listview_query = db_select('node', 'n')->extend('PagerDefault');
+    $listview_query->fields('n');
     // if we have tag filtering going on here
     if(isset($node_id_array)) {
-      $draft_query->condition('n.nid', $node_id_array, 'IN');
+      $listview_query->condition('n.nid', $node_id_array, 'IN');
     }
-    $draft_query->condition(db_or()->condition('nw.status', 1)->condition('nw.nwid', NULL))
-                ->condition(db_or()->condition('n.type', 'article')->condition('n.type', 'faq')->condition('n.type', 'event'))
-                ->limit(15) 
-                ->orderBy($order_by, $order_direction);    
-    $draft_records = $draft_query->execute();
+    
+    // if the selected listview is draft content, return content that's in draft workflow status 
+    // or have no status at all, which would imply draft
+    if($workflow_state == 1) {
+      $listview_query->leftjoin('node_workflow', 'nw', 'nw.node_id = n.nid');
+      $listview_query->condition(db_or()->condition('nw.status', $workflow_state)->condition('nw.nwid', NULL));
+    }
+    else {
+      $listview_query->join('node_workflow', 'nw', 'nw.node_id = n.nid');
+      $listview_query->condition('nw.status', $workflow_state);
+    }
+    
+    $listview_query->condition(db_or()->condition('n.type', 'article')->condition('n.type', 'faq')->condition('n.type', 'event'))
+                   ->limit(15) 
+                   ->orderBy($order_by, $order_direction);   
+    
+    $listview_records = $listview_query->execute();
     
     if(isset($_GET['page'])) {
       $page_number = array('page' => $_GET['page']);
@@ -121,11 +183,11 @@ function exlistview_show() {
   }
   // else we have no node records b/c the tag filter filtered them all out
   else {
-    $draft_records = array();
-    return theme('exlistview_show', array('draft_nodes' => $draft_records, 'tag_form' => drupal_get_form('exlistview_tag_form')));
+    $listview_records = array();
+    return theme('exlistview_show', array('listview_nodes' => $listview_records, 'tag_form' => drupal_get_form('exlistview_tag_form')));
   }
-     
-  return theme('exlistview_show', array('draft_nodes' => $draft_records, 'sort_direction' => $next_sort_direction, 'page_number' => $page_number, 'pager' => theme('pager'), 'tag_form' => drupal_get_form('exlistview_tag_form')));
+ 
+  return theme('exlistview_show', array('listview_nodes' => $listview_records, 'sort_direction' => $next_sort_direction, 'page_number' => $page_number, 'pager' => theme('pager'), 'tag_form' => drupal_get_form('exlistview_tag_form')));
 }
 
 // build the tag filter form
