@@ -27,6 +27,7 @@ function exlistview_menu() {
     'description' => 'List view of draft content',
     'page callback' => 'exlistview_show',
     'access callback' => 'menu_permissions',
+    'weight' => 1,
   );
   
   $items['listviews/ready for review'] = array(
@@ -34,6 +35,7 @@ function exlistview_menu() {
     'description' => 'List view of ready for review content',
     'page callback' => 'exlistview_show',
     'access callback' => 'menu_permissions',
+    'weight' => 2,
   );
   
   $items['listviews/reviewed'] = array(
@@ -41,6 +43,7 @@ function exlistview_menu() {
     'description' => 'List view of reviewed content',
     'page callback' => 'exlistview_show',
     'access callback' => 'menu_permissions',
+    'weight' => 3,
   );
   
   $items['listviews/copy edited'] = array(
@@ -48,6 +51,7 @@ function exlistview_menu() {
     'description' => 'List view of copy edited content',
     'page callback' => 'exlistview_show',
     'access callback' => 'menu_permissions',
+    'weight' => 4,
   );
   
   $items['listviews/published'] = array(
@@ -55,6 +59,7 @@ function exlistview_menu() {
     'description' => 'List view of published content',
     'page callback' => 'exlistview_show',
     'access callback' => 'menu_permissions',
+    'weight' => 5,
   );
   
   return $items;
