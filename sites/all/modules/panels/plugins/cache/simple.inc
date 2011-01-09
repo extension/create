@@ -1,5 +1,5 @@
 <?php
-// $Id: simple.inc,v 1.4 2010/10/18 17:54:31 merlinofchaos Exp $
+// $Id: simple.inc,v 1.3 2010/09/07 09:42:11 sdboyer Exp $
 
 /**
  * @file
@@ -118,7 +118,7 @@ function panels_simple_cache_settings_form($conf, $display, $pid) {
 
   $form['granularity'] = array(
     '#title' => t('Granularity'),
-    '#type' => 'select',
+    '#type' => t('select'),
     '#options' => array(
       'args' => t('Arguments'),
       'context' => t('Context'),
