@@ -1,5 +1,5 @@
 <?php
-// $Id: file_styles.install,v 1.1.2.2 2010/09/02 15:49:04 JacobSingh Exp $
+// $Id: file_styles.install,v 1.1.2.2.2.2 2011/01/05 15:51:48 aaron Exp $
 
 /**
  * @file
@@ -103,4 +103,12 @@ function file_styles_schema() {
   );
 
   return $schema;
+}
+
+/**
+ * Rebuild themes and catch included file_styles.styles.inc.
+ */
+function file_styles_update_7201() {
+  drupal_theme_rebuild();
+  return array();
 }

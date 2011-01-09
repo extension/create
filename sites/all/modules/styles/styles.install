@@ -1,5 +1,5 @@
 <?php
-// $Id: styles.install,v 1.1.2.2.2.8 2010/10/26 19:36:46 aaron Exp $
+// $Id: styles.install,v 1.1.2.2.2.10 2011/01/05 15:40:07 aaron Exp $
 
 /**
  * @file
@@ -64,7 +64,6 @@ function styles_schema() {
     'indexes' => array(
       'field_type' => array('field_type'),
       'name' => array('name'),
-      'label' => array('label'),
     ),
   );
 
@@ -189,5 +188,13 @@ function styles_update_7206() {
  */
 function styles_update_7208() {
   styles_style_flush();
+  return array();
+}
+
+/**
+ * Ensure we catch included file Styles.inc.
+ */
+function styles_update_7209() {
+  cache_clear_all();
   return array();
 }
