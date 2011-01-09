@@ -1,5 +1,5 @@
 <?php
-// $Id: drupal_web_test_case.php,v 1.253 2010/11/30 19:31:46 dries Exp $
+// $Id: drupal_web_test_case.php,v 1.257 2011/01/02 23:54:05 webchick Exp $
 
 /**
  * Global variable that holds information about the tests being run.
@@ -577,6 +577,55 @@ abstract class DrupalTestCase {
       $str .= chr($values[mt_rand(0, $max)]);
     }
     return $str;
+  }
+
+  /**
+   * Converts a list of possible parameters into a stack of permutations.
+   *
+   * Takes a list of parameters containing possible values, and converts all of
+   * them into a list of items containing every possible permutation.
+   *
+   * Example:
+   * @code
+   * $parameters = array(
+   *   'one' => array(0, 1),
+   *   'two' => array(2, 3),
+   * );
+   * $permutations = $this->permute($parameters);
+   * // Result:
+   * $permutations == array(
+   *   array('one' => 0, 'two' => 2),
+   *   array('one' => 1, 'two' => 2),
+   *   array('one' => 0, 'two' => 3),
+   *   array('one' => 1, 'two' => 3),
+   * )
+   * @endcode
+   *
+   * @param $parameters
+   *   An associative array of parameters, keyed by parameter name, and whose
+   *   values are arrays of parameter values.
+   *
+   * @return
+   *   A list of permutations, which is an array of arrays. Each inner array
+   *   contains the full list of parameters that have been passed, but with a
+   *   single value only.
+   */
+  public static function generatePermutations($parameters) {
+    $all_permutations = array(array());
+    foreach ($parameters as $parameter => $values) {
+      $new_permutations = array();
+      // Iterate over all values of the parameter.
+      foreach ($values as $value) {
+        // Iterate over all existing permutations.
+        foreach ($all_permutations as $permutation) {
+          // Add the new parameter value to existing permutations.
+          $new_permutations[] = $permutation + array($parameter => $value);
+        }
+      }
+      // Replace the old permutations with the new permutations.
+      $all_permutations = $new_permutations;
+    }
+    return $all_permutations;
   }
 }
 
@@ -1313,9 +1362,32 @@ class DrupalWebTestCase extends DrupalTestCase {
    * set up a clean environment for the current test run.
    */
   protected function preloadRegistry() {
+    // Use two separate queries, each with their own connections: copy the
+    // {registry} and {registry_file} tables over from the parent installation
+    // to the child installation.
     $original_connection = Database::getConnection('default', 'simpletest_original_default');
-    db_query('INSERT INTO {registry} SELECT * FROM ' . $original_connection->prefixTables('{registry}'));
-    db_query('INSERT INTO {registry_file} SELECT * FROM ' . $original_connection->prefixTables('{registry_file}'));
+    $test_connection = Database::getConnection();
+
+    foreach (array('registry', 'registry_file') as $table) {
+      // Find the records from the parent database.
+      $source_query = $original_connection
+        ->select($table, array(), array('fetch' => PDO::FETCH_ASSOC))
+        ->fields($table);
+
+      $dest_query = $test_connection->insert($table);
+
+      $first = TRUE;
+      foreach ($source_query->execute() as $row) {
+        if ($first) {
+          $dest_query->fields(array_keys($row));
+          $first = FALSE;
+        }
+        // Insert the records into the child database.
+        $dest_query->values($row);
+      }
+
+      $dest_query->execute();
+    }
   }
 
   /**
@@ -1326,16 +1398,22 @@ class DrupalWebTestCase extends DrupalTestCase {
    * are enabled later.
    */
   protected function resetAll() {
-    // Rebuild caches.
+    // Reset all static variables.
     drupal_static_reset();
+    // Reset the list of enabled modules.
+    module_list(TRUE);
+
+    // Reset cached schema for new database prefix. This must be done before
+    // drupal_flush_all_caches() so rebuilds can make use of the schema of
+    // modules enabled on the cURL side.
+    drupal_get_schema(NULL, TRUE);
+
+    // Perform rebuilds and flush remaining caches.
     drupal_flush_all_caches();
 
     // Reload global $conf array and permissions.
     $this->refreshVariables();
     $this->checkPermissions(array(), TRUE);
-
-    // Reset statically cached schema for new database prefix.
-    drupal_get_schema(NULL, TRUE);
   }
 
   /**
@@ -1748,7 +1826,7 @@ class DrupalWebTestCase extends DrupalTestCase {
         $post = array();
         $upload = array();
         $submit_matches = $this->handleForm($post, $edit, $upload, $ajax ? NULL : $submit, $form);
-        $action = isset($form['action']) ? $this->getAbsoluteUrl($form['action']) : $this->getUrl();
+        $action = isset($form['action']) ? $this->getAbsoluteUrl((string) $form['action']) : $this->getUrl();
         if ($ajax) {
           $action = $this->getAbsoluteUrl(!empty($submit['path']) ? $submit['path'] : 'system/ajax');
           // AJAX callbacks verify the triggering element if necessary, so while

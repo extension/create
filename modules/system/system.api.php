@@ -1,5 +1,5 @@
 <?php
-// $Id: system.api.php,v 1.218 2010/12/01 00:23:36 webchick Exp $
+// $Id: system.api.php,v 1.225 2011/01/04 00:58:30 webchick Exp $
 
 /**
  * @file
@@ -88,10 +88,15 @@ function hook_hook_info_alter(&$hooks) {
  *     uri elements of the entity, e.g. 'path' and 'options'. The actual entity
  *     uri can be constructed by passing these elements to url().
  *   - label callback: (optional) A function taking an entity as argument and
- *     returning the label of the entity; e.g., $node->title or
- *     $comment->subject. A callback should be specified when the label is the
- *     result of complex logic. Otherwise, the 'label' property of the
- *     'entity keys' the property should be used.
+ *     returning the label of the entity. The entity label is the main string
+ *     associated with an entity; for example, the title of a node or the
+ *     subject of a comment. If there is an entity object property that defines
+ *     the label, use the 'label' element of the 'entity keys' return
+ *     value component to provide this information (see below). If more complex
+ *     logic is needed to determine the label of an entity, you can instead
+ *     specify a callback function here, which will be called to determine the
+ *     entity label. See also the entity_label() function, which implements this
+ *     logic.
  *   - fieldable: Set to TRUE if you want your entity type to be fieldable.
  *   - translation: An associative array of modules registered as field
  *     translation handlers. Array keys are the module names, array values
@@ -112,11 +117,11 @@ function hook_hook_info_alter(&$hooks) {
  *       omitted if this entity type exposes a single bundle (all entities have
  *       the same collection of fields). The name of this single bundle will be
  *       the same as the entity type.
- *     - label: The property name of the entity that contains the label. For
+ *     - label: The name of the property that contains the entity label. For
  *       example, if the entity's label is located in $entity->subject, then
- *       'subect' should be specified here. In case complex logic is required to
- *       build the label, a 'label callback' should be implemented instead. See
- *       entity_label() for details.
+ *       'subject' should be specified here. If complex logic is required to
+ *       build the label, a 'label callback' should be defined instead (see
+ *       the 'label callback' section above for details).
  *   - bundle keys: An array describing how the Field API can extract the
  *     information it needs from the bundle objects for this type (e.g
  *     $vocabulary objects for terms; not applicable for nodes). This entry can
@@ -273,6 +278,18 @@ function hook_entity_load($entities, $type) {
   foreach ($entities as $entity) {
     $entity->foo = mymodule_add_something($entity, $type);
   }
+}
+
+/**
+ * Act on an entity before it is about to be created or updated.
+ *
+ * @param $entity
+ *   The entity object.
+ * @param $type
+ *   The type of entity being saved (i.e. node, user, comment).
+ */
+function hook_entity_presave($entity, $type) {
+  $entity->changed = REQUEST_TIME;
 }
 
 /**
@@ -1002,21 +1019,22 @@ function hook_menu_get_item_alter(&$router_item, $path, $original_map) {
  * $items['admin/config/foo'] = array(
  *   'title' => 'Foo settings',
  *   'type' => MENU_NORMAL_ITEM,
- *   // page callback, etc. need to be added here
+ *   // Page callback, etc. need to be added here.
  * );
  * // Make "Global settings" the main tab on the "Foo settings" page
  * $items['admin/config/foo/global'] = array(
  *   'title' => 'Global settings',
  *   'type' => MENU_DEFAULT_LOCAL_TASK,
- *   // access callback, page callback, and theme callback will be inherited
- *   // from 'admin/config/foo', if not specified here to override
+ *   // Access callback, page callback, and theme callback will be inherited
+ *   // from 'admin/config/foo', if not specified here to override.
  * );
  * // Make an additional tab called "Node settings" on "Foo settings"
  * $items['admin/config/foo/node'] = array(
  *   'title' => 'Node settings',
  *   'type' => MENU_LOCAL_TASK,
- *   // access callback, page callback, and theme callback will be inherited
- *   // from 'admin/config/foo', if not specified here to override
+ *   // Page callback and theme callback will be inherited from
+ *   // 'admin/config/foo', if not specified here to override.
+ *   // Need to add access callback or access arguments.
  * );
  * @endcode
  *
@@ -1045,9 +1063,14 @@ function hook_menu_get_item_alter(&$router_item, $path, $original_map) {
  *     rights to this menu item, and FALSE if not. It can also be a boolean
  *     constant instead of a function, and you can also use numeric values
  *     (will be cast to boolean). Defaults to user_access() unless a value is
- *     inherited from a parent menu item.
+ *     inherited from the parent menu item; only MENU_DEFAULT_LOCAL_TASK items
+ *     can inherit access callbacks. To use the user_access() default callback,
+ *     you must specify the permission to check as 'access arguments' (see
+ *     below).
  *   - "access arguments": An array of arguments to pass to the access callback
- *     function, with path component substitution as described above.
+ *     function, with path component substitution as described above. If the
+ *     access callback is inherited (see above), the access arguments will be
+ *     inherited with it, unless overridden in the child menu item.
  *   - "theme callback": (optional) A function returning the machine-readable
  *     name of the theme that will be used to render the page. If not provided,
  *     the value will be inherited from a parent menu item. If there is no
@@ -1712,7 +1735,11 @@ function hook_boot() {
  * implement this hook, but declare these files in their .info file.
  */
 function hook_init() {
-  drupal_add_css(drupal_get_path('module', 'book') . '/book.css');
+  // Since this file should only be loaded on the front page, it cannot be
+  // declared in the info file.
+  if (drupal_is_front_page()) {
+    drupal_add_css(drupal_get_path('module', 'foo') . '/foo.css');
+  }
 }
 
 /**
@@ -2534,7 +2561,7 @@ function hook_file_validate(&$file) {
 }
 
 /**
- * Respond to a file being added.
+ * Act on a file being inserted or updated.
  *
  * This hook is called when a file has been added to the database. The hook
  * doesn't distinguish between files created as a result of a copy or those
@@ -2542,6 +2569,23 @@ function hook_file_validate(&$file) {
  *
  * @param $file
  *   The file that has just been created.
+ *
+ * @see file_save()
+ */
+function hook_file_presave($file) {
+  // Change the file timestamp to an hour prior.
+  $file->timestamp -= 3600;
+}
+
+/**
+ * Respond to a file being added.
+ *
+ * This hook is called before a file has been added to the database. The hook
+ * doesn't distinguish between files created as a result of a copy or those
+ * created by an upload.
+ *
+ * @param $file
+ *   The file that is about to be saved.
  *
  * @see file_save()
  */
@@ -3670,24 +3714,38 @@ function hook_archiver_info_alter(&$info) {
 }
 
 /**
- * Defines additional date types.
+ * Define additional date types.
  *
  * Next to the 'long', 'medium' and 'short' date types defined in core, any
- * module can define additional types that can be used when displaying dates. A
- * date type is a key which can be passed to format_date() to return a date in
- * the configured display format.
+ * module can define additional types that can be used when displaying dates,
+ * by implementing this hook. A date type is basically just a name for a date
+ * format.
+ *
+ * Date types are used in the administration interface: a user can assign
+ * date format types defined in hook_date_formats() to date types defined in
+ * this hook. Once a format has been assigned by a user, the machine name of a
+ * type can be used in the format_date() function to format a date using the
+ * chosen formatting.
+ *
+ * To define a date type in a module and make sure a format has been assigned to
+ * it, without requiring a user to visit the administrative interface, use
+ * @code variable_set('date_format_' . $type, $format); @endcode
+ * where $type is the machine-readable name defined here, and $format is a PHP
+ * date format string.
  *
  * To avoid namespace collisions with date types defined by other modules, it is
  * recommended that each date type starts with the module name. A date type
  * can consist of letters, numbers and underscores.
  *
  * @return
- *   A list of date types in 'key' => 'label' format.
+ *   An array of date types where the keys are the machine-readable names and
+ *   the values are the human-readable labels.
  *
  * @see hook_date_formats()
  * @see format_date()
  */
 function hook_date_format_types() {
+  // Define the core date format types.
   return array(
     'long' => t('Long'),
     'medium' => t('Medium'),
@@ -3696,72 +3754,67 @@ function hook_date_format_types() {
 }
 
 /**
- * Modify existing date format types.
+ * Modify existing date types.
  *
- * Allows other modules to modify existing date types like 'long'. Called
- * by _system_date_format_types_build(). For instance, A module may use this
- * hook to apply settings across all date format types, such as locking all
- * date format types so they appear to be provided by the system.
+ * Allows other modules to modify existing date types like 'long'. Called by
+ * _system_date_format_types_build(). For instance, A module may use this hook
+ * to apply settings across all date types, such as locking all date types so
+ * they appear to be provided by the system.
  *
  * @param $types
- *   An associative array of date format types containing:
- *   - types:  An array of date format types including configuration settings
- *     for each type:
- *     - is_new: Set to FALSE to override previous settings.
- *     - module: The name of the module that created the date format type.
- *     - type: The date type name.
- *     - title: The title of the date type.
- *     - locked: Specifies that the date type is system-provided.
+ *   A list of date types. Each date type is keyed by the machine-readable name
+ *   and the values are associative arrays containing:
+ *   - is_new: Set to FALSE to override previous settings.
+ *   - module: The name of the module that created the date type.
+ *   - type: The machine-readable date type name.
+ *   - title: The human-readable date type name.
+ *   - locked: Specifies that the date type is system-provided.
  */
 function hook_date_format_types_alter(&$types) {
-  foreach ($types as $type_name => $type) {
-    $types[$type_name]['locked'] = 1;
+  foreach ($types as $name => $type) {
+    $types[$name]['locked'] = 1;
   }
 }
 
 /**
- * Defines additional date formats.
+ * Define additional date formats.
  *
- * Next to the 'long', 'medium' and 'short' date types defined in core, any
- * module can define additional types that can be used when displaying dates. A
- * date type is a key which can be passed to format_date() to return a date in
- * the configured displayed format. A date format is a string defining the date
- * and time elements to use. For example, a date type could be
- * 'mymodule_extra_long', while a date format is like 'Y-m-d'.
+ * This hook is used to define the PHP date format strings that can be assigned
+ * to date types in the administrative interface. A module can provide date
+ * format strings for the core-provided date types ('long', 'medium', and
+ * 'short'), or for date types defined in hook_date_format_types() by itself
+ * or another module.
  *
- * New date types must first be declared using hook_date_format_types(). It is
- * then possible to define one or more date formats for each.
+ * Since date formats can be locale-specific, you can specify the locales that
+ * each date format string applies to. There may be more than one locale for a
+ * format. There may also be more than one format for the same locale. For
+ * example d/m/Y and Y/m/d work equally well in some locales. You may wish to
+ * define some additional date formats that aren't specific to any one locale,
+ * for example, "Y m". For these cases, the 'locales' component of the return
+ * value should be omitted.
  *
- * A module may also extend the list date formats defined for a date type
- * provided by another module.
- *
- * There may be more than one format for the same locale. For example d/m/Y and
- * Y/m/d work equally well in some locales. It may also be necessary to define
- * multiple versions of the same date format, for example, one using AM, one
- * with PM and one without the time at all.
- *
- * However at the same time you may wish to define some additional date formats
- * that aren't specific to any one locale, for example, "Y m". For these cases
- * the locales field should be omitted.
+ * Providing a date format here does not normally assign the format to be
+ * used with the associated date type -- a user has to choose a format for each
+ * date type in the administrative interface. There is one exception: locale
+ * initialization chooses a locale-specific format for the three core-provided
+ * types (see locale_get_localized_date_format() for details). If your module
+ * needs to ensure that a date type it defines has a format associated with it,
+ * call @code variable_set('date_format_' . $type, $format); @endcode
+ * where $type is the machine-readable name defined in hook_date_format_types(),
+ * and $format is a PHP date format string.
  *
  * @return
- *   A list of date formats. Each date format is a keyed array
- *   consisting of three elements:
- *   - 'type': the date type is a key used to identify which date format to
- *     display. It consists of letters, numbers and underscores, e.g. 'long',
- *     'short', 'mymodule_extra_long'. It must first be declared in
- *     hook_date_format_types() unless extending a type provided by another
- *     module.
- *   - 'format': a string defining the date and time elements to use. It
+ *   A list of date formats to offer as choices in the administrative
+ *   interface. Each date format is a keyed array consisting of three elements:
+ *   - 'type': The date type name that this format can be used with, as
+ *     declared in an implementation of hook_date_format_types().
+ *   - 'format': A PHP date format string to use when formatting dates. It
  *     can contain any of the formatting options described at
  *     http://php.net/manual/en/function.date.php
- *   - 'locales': (optional) an array of 2 and 5 character language codes, for
- *     example, 'en', 'en-us'. The language codes are used to determine which
- *     date format to display for the user's current language. If more than one
- *     date format is suggested for the same date type and locale, then the
- *     first one will be used unless overridden via
- *     admin/config/regional/date-time/locale. If your date format is not
- *     language specific, leave this field empty.
+ *   - 'locales': (optional) An array of 2 and 5 character locale codes,
+ *     defining which locales this format applies to (for example, 'en',
+ *     'en-us', etc.). If your date format is not language-specific, leave this
+ *     array empty.
  *
  * @see hook_date_format_types()
  */
@@ -3786,7 +3839,7 @@ function hook_date_formats() {
 }
 
 /**
- * Alters date types and formats declared by another module.
+ * Alter date formats declared by another module.
  *
  * Called by _system_date_format_types_build() to allow modules to alter the
  * return values from implementations of hook_date_formats().

@@ -1,5 +1,5 @@
 <?php
-// $Id: bootstrap.inc,v 1.449 2010/12/01 07:52:26 webchick Exp $
+// $Id: bootstrap.inc,v 1.462 2011/01/05 06:17:58 webchick Exp $
 
 /**
  * @file
@@ -9,7 +9,7 @@
 /**
  * The current system version.
  */
-define('VERSION', '7.0-rc1');
+define('VERSION', '7.0');
 
 /**
  * Core API compatibility.
@@ -19,12 +19,12 @@ define('DRUPAL_CORE_COMPATIBILITY', '7.x');
 /**
  * Minimum supported version of PHP.
  */
-define('DRUPAL_MINIMUM_PHP',    '5.2.4');
+define('DRUPAL_MINIMUM_PHP', '5.2.4');
 
 /**
  * Minimum recommended value of PHP memory_limit.
  */
-define('DRUPAL_MINIMUM_PHP_MEMORY_LIMIT',    '32M');
+define('DRUPAL_MINIMUM_PHP_MEMORY_LIMIT', '32M');
 
 /**
  * Indicates that the item should never be removed unless explicitly selected.
@@ -512,8 +512,6 @@ function drupal_environment_initialize() {
   // sites/default/default.settings.php contains more runtime settings.
   // The .htaccess file contains settings that cannot be changed at runtime.
 
-  // Prevent PHP from generating HTML error messages.
-  ini_set('html_errors', 0);
   // Don't escape quotes when reading files from the database, disk, etc.
   ini_set('magic_quotes_runtime', '0');
   // Use session cookies, not transparent sessions that puts the session id in
@@ -1429,7 +1427,7 @@ function t($string, array $args = array(), array $options = array()) {
     $string = $custom_strings[$options['langcode']][$options['context']][$string];
   }
   // Translate with locale module if enabled.
-  elseif (function_exists('locale') && $options['langcode'] != 'en') {
+  elseif ($options['langcode'] != 'en' && function_exists('locale')) {
     $string = locale($string, $options['context'], $options['langcode']);
   }
   if (empty($args)) {
@@ -3059,7 +3057,7 @@ function &drupal_register_shutdown_function($callback = NULL) {
     $args = func_get_args();
     array_shift($args);
     // Save callback and arguments
-    $callbacks[] = array('callback' => $callback, 'arguments' => $args, 'cwd' => getcwd());
+    $callbacks[] = array('callback' => $callback, 'arguments' => $args);
   }
   return $callbacks;
 }
@@ -3070,9 +3068,12 @@ function &drupal_register_shutdown_function($callback = NULL) {
 function _drupal_shutdown_function() {
   $callbacks = &drupal_register_shutdown_function();
 
+  // Set the CWD to DRUPAL_ROOT as it is not guaranteed to be the same as it
+  // was in the normal context of execution.
+  chdir(DRUPAL_ROOT);
+
   try {
     while (list($key, $callback) = each($callbacks)) {
-      chdir($callback['cwd']);
       call_user_func_array($callback['callback'], $callback['arguments']);
     }
   }

@@ -1,6 +1,6 @@
-// $Id: CHANGELOG.txt,v 1.386 2010/12/01 07:52:26 webchick Exp $
+// $Id: CHANGELOG.txt,v 1.396 2011/01/05 06:17:58 webchick Exp $
 
-Drupal 7.0 rc1, 2010-11-30
+Drupal 7.0, 2011-01-05
 ----------------------
 - Database:
     * Fully rewritten database layer utilizing PHP 5's PDO abstraction layer.
@@ -191,8 +191,8 @@ Drupal 7.0 rc1, 2010-11-30
     * Added support for translatable fields to Field API.
 - JavaScript changes
     * Upgraded the core JavaScript library to jQuery version 1.4.4.
-    * Upgraded the jQuery Forms library to 2.49.
-    * Added jQuery UI 1.8.6, which allows improvements to Drupal's user
+    * Upgraded the jQuery Forms library to 2.52.
+    * Added jQuery UI 1.8.7, which allows improvements to Drupal's user
       experience.
 - Better module version support
     * Modules now can specify which version of another module they depend on.

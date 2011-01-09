@@ -1,4 +1,4 @@
-// $Id: MAINTAINERS.txt,v 1.50 2010/11/19 03:28:20 dries Exp $
+// $Id: MAINTAINERS.txt,v 1.53 2011/01/04 01:03:23 webchick Exp $
 
 Drupal core is maintained by the community.  To participate, go to
 
@@ -54,6 +54,9 @@ Database system
     - Damien Tournoud 'DamZ' <http://drupal.org/user/22211>
     - Károly Négyesi 'chx' <http://drupal.org/user/9446>
 
+Database update system
+- ?
+
 Entity system
 - Nathaniel Catchpole 'catch' <http://drupal.org/user/35733>
 - Franz Heinzmann 'Frando' <http://drupal.org/user/21850>
@@ -90,7 +93,7 @@ Mail system
 - ?
 
 Markup
-- Jacine Rodriguez 'Jacine' <http://drupal.org/user/88931>
+- Jacine Luisi 'Jacine' <http://drupal.org/user/88931>
 - Daniel F. Kudwien 'sun' <http://drupal.org/user/54136>
 
 Menu system
@@ -114,9 +117,6 @@ Theme system
 
 Token system
 - Dave Reid 'davereid' <http://drupal.org/user/53892>
-
-Update system
-- ?
 
 XML-RPC system
 - Frederic G. Marand 'fgm' <http://drupal.org/user/27985>
@@ -269,7 +269,6 @@ Trigger module
 
 Update module
 - Derek Wright 'dww' <http://drupal.org/user/46549>
-- Dave Reid 'davereid' <http://drupal.org/user/53892>
 
 User module
 - Moshe Weitzman 'moshe weitzman' <http://drupal.org/user/23>

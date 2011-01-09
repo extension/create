@@ -1,5 +1,5 @@
 <?php
-// $Id: form.inc,v 1.513 2010/11/30 17:16:37 dries Exp $
+// $Id: form.inc,v 1.520 2011/01/04 16:46:24 webchick Exp $
 
 /**
  * @defgroup forms Form builder functions
@@ -661,9 +661,14 @@ function drupal_form_submit($form_id, &$form_state) {
   // Merge in default values.
   $form_state += form_state_defaults();
 
-  $form = drupal_retrieve_form($form_id, $form_state);
+  // Populate $form_state['input'] with the submitted values before retrieving
+  // the form, to be consistent with what drupal_build_form() does for
+  // non-programmatic submissions (form builder functions may expect it to be
+  // there).
   $form_state['input'] = $form_state['values'];
+
   $form_state['programmed'] = TRUE;
+  $form = drupal_retrieve_form($form_id, $form_state);
   // Programmed forms are always submitted.
   $form_state['submitted'] = TRUE;
 
@@ -1641,7 +1646,7 @@ function form_error(&$element, $message = '') {
  *   This is most commonly implemented with a submit handler setting persistent
  *   data within $form_state based on *validated* values in
  *   $form_state['values'] and setting $form_state['rebuild']. The form building
- *   functions must then be implmented to use the $form_state data to rebuild
+ *   functions must then be implemented to use the $form_state data to rebuild
  *   the form with the structure appropriate for the new state.
  * - Where user input must affect the rendering of the form without affecting
  *   its structure, the necessary conditional rendering logic should reside
@@ -1700,6 +1705,9 @@ function form_builder($form_id, &$element, &$form_state) {
     else {
       $form_state['process_input'] = FALSE;
     }
+
+    // All form elements should have an #array_parents property.
+    $element['#array_parents'] = array();
   }
 
   if (!isset($element['#id'])) {
@@ -1756,7 +1764,7 @@ function form_builder($form_id, &$element, &$form_state) {
       $element[$key]['#parents'] = $element[$key]['#tree'] && $element['#tree'] ? array_merge($element['#parents'], array($key)) : array($key);
     }
     // Ensure #array_parents follows the actual form structure.
-    $array_parents = isset($element['#array_parents']) ? $element['#array_parents'] : array();
+    $array_parents = $element['#array_parents'];
     $array_parents[] = $key;
     $element[$key]['#array_parents'] = $array_parents;
 
@@ -2650,6 +2658,9 @@ function theme_fieldset($variables) {
 /**
  * Returns HTML for a radio button form element.
  *
+ * Note: The input "name" attribute needs to be sanitized before output, which
+ *       is currently done by passing all attributes to drupal_attributes().
+ *
  * @param $variables
  *   An associative array containing:
  *   - element: An associative array containing the properties of the element.
@@ -2663,7 +2674,7 @@ function theme_radio($variables) {
   $element['#attributes']['type'] = 'radio';
   element_set_attributes($element, array('id', 'name', '#return_value' => 'value'));
 
-  if (isset($element['#return_value']) && check_plain($element['#value']) == $element['#return_value']) {
+  if (isset($element['#return_value']) && $element['#value'] !== FALSE && $element['#value'] == $element['#return_value']) {
     $element['#attributes']['checked'] = 'checked';
   }
   _form_set_class($element, array('form-radio'));
@@ -2882,7 +2893,9 @@ function form_process_radios($element) {
       $element[$key] += array(
         '#type' => 'radio',
         '#title' => $choice,
-        '#return_value' => check_plain($key),
+        // The key is sanitized in drupal_attributes() during output from the
+        // theme function.
+        '#return_value' => $key,
         '#default_value' => isset($element['#default_value']) ? $element['#default_value'] : NULL,
         '#attributes' => $element['#attributes'],
         '#parents' => $element['#parents'],
@@ -3065,7 +3078,11 @@ function form_process_container($element, &$form_state) {
 }
 
 /**
- * Returns HTML for a container for grouped form items.
+ * Returns HTML to wrap child elements in a container.
+ *
+ * Used for grouped form items. Can also be used as a #theme_wrapper for any
+ * renderable element, to surround it with a <div> and add attributes such as
+ * classes or an HTML id.
  *
  * @param $variables
  *   An associative array containing:
@@ -3076,11 +3093,17 @@ function form_process_container($element, &$form_state) {
  */
 function theme_container($variables) {
   $element = $variables['element'];
-  if (!isset($element['#attributes']['id'])) {
-    $element['#attributes']['id'] = $element['#id'];
+
+  // Special handling for form elements.
+  if (isset($element['#array_parents'])) {
+    // Assign an html ID.
+    if (!isset($element['#attributes']['id'])) {
+      $element['#attributes']['id'] = $element['#id'];
+    }
+    // Add the 'form-wrapper' class.
+    $element['#attributes']['class'][] = 'form-wrapper';
   }
-  // Force the 'form-wrapper' class.
-  $element['#attributes']['class'][] = 'form-wrapper';
+
   return '<div' . drupal_attributes($element['#attributes']) . '>' . $element['#children'] . '</div>';
 }
 
@@ -3345,7 +3368,7 @@ function form_validate_machine_name(&$element, &$form_state) {
   // Verify that the machine name is unique.
   if ($element['#default_value'] !== $element['#value']) {
     $function = $element['#machine_name']['exists'];
-    if ($function($element['#value'])) {
+    if ($function($element['#value'], $element, $form_state)) {
       form_error($element, t('The machine-readable name is already in use. It must be unique.'));
     }
   }
@@ -3963,6 +3986,8 @@ function _form_set_class(&$element, $class = array()) {
 /**
  * @defgroup batch Batch operations
  * @{
+ * Create and process batch operations.
+ *
  * Functions allowing forms processing to be spread out over several page
  * requests, thus ensuring that the processing does not get interrupted
  * because of a PHP timeout, while allowing the user to receive feedback

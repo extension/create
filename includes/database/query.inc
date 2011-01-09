@@ -1,5 +1,5 @@
 <?php
-// $Id: query.inc,v 1.58 2010/10/26 15:26:09 dries Exp $
+// $Id: query.inc,v 1.60 2010/12/31 20:43:43 webchick Exp $
 
 /**
  * @ingroup database
@@ -76,6 +76,28 @@ interface QueryConditionInterface {
    */
   public function isNotNull($field);
 
+  /**
+   * Sets a condition that the specified subquery returns values.
+   * 
+   * @param SelectQueryInterface $select
+   *   The subquery that must contain results.
+   *
+   * @return QueryConditionInterface
+   *   The called object.
+   */
+  public function exists(SelectQueryInterface $select);
+  
+  /**
+   * Sets a condition that the specified subquery returns no values.
+   * 
+   * @param SelectQueryInterface $select
+   *   The subquery that must not contain results.
+   *
+   * @return QueryConditionInterface
+   *   The called object.
+   */
+  public function notExists(SelectQueryInterface $select);
+  
   /**
    * Gets a complete list of all conditions in this conditional clause.
    *
@@ -242,6 +264,20 @@ abstract class Query implements QueryPlaceholderInterface {
   protected $connection;
 
   /**
+   * The target of the connection object.
+   * 
+   * @var string
+   */
+  protected $connectionTarget;
+
+  /**
+   * The key of the connection object.
+   * 
+   * @var string
+   */
+  protected $connectionKey;
+
+  /**
    * The query options to pass on to the connection object.
    *
    * @var array
@@ -270,7 +306,26 @@ abstract class Query implements QueryPlaceholderInterface {
    */
   public function __construct(DatabaseConnection $connection, $options) {
     $this->connection = $connection;
+    $this->connectionKey = $this->connection->getKey();
+    $this->connectionTarget = $this->connection->getTarget();
+
     $this->queryOptions = $options;
+  }
+
+  /**
+   * Implements the magic __sleep function to disconnect from the database.
+   */
+  public function __sleep() {
+    $keys = get_object_vars($this);
+    unset($keys['connection']);
+    return array_keys($keys);
+  }
+
+  /**
+  * Implements the magic __wakeup function to reconnect to the database.
+   */
+  public function __wakeup() {
+    $this->connection = Database::getConnection($this->connectionTarget, $this->connectionKey);
   }
 
   /**
@@ -694,6 +749,22 @@ class DeleteQuery extends Query implements QueryConditionInterface {
   }
 
   /**
+   * Implements QueryConditionInterface::exists().
+   */
+  public function exists(SelectQueryInterface $select) {
+    $this->condition->exists($select);
+    return $this;
+  }
+
+  /**
+   * Implements QueryConditionInterface::notExists().
+   */
+  public function notExists(SelectQueryInterface $select) {
+    $this->condition->notExists($select);
+    return $this;
+  }
+  
+  /**
    * Implements QueryConditionInterface::conditions().
    */
   public function &conditions() {
@@ -913,6 +984,22 @@ class UpdateQuery extends Query implements QueryConditionInterface {
     return $this;
   }
 
+  /**
+   * Implements QueryConditionInterface::exists().
+   */
+  public function exists(SelectQueryInterface $select) {
+    $this->condition->exists($select);
+    return $this;
+  }
+
+  /**
+   * Implements QueryConditionInterface::notExists().
+   */
+  public function notExists(SelectQueryInterface $select) {
+    $this->condition->notExists($select);
+    return $this;
+  }
+  
   /**
    * Implements QueryConditionInterface::conditions().
    */
@@ -1384,6 +1471,22 @@ class MergeQuery extends Query implements QueryConditionInterface {
   }
 
   /**
+   * Implements QueryConditionInterface::exists().
+   */
+  public function exists(SelectQueryInterface $select) {
+    $this->condition->exists($select);
+    return $this;
+  }
+
+  /**
+   * Implements QueryConditionInterface::notExists().
+   */
+  public function notExists(SelectQueryInterface $select) {
+    $this->condition->notExists($select);
+    return $this;
+  }
+  
+  /**
    * Implements QueryConditionInterface::conditions().
    */
   public function &conditions() {
@@ -1582,6 +1685,20 @@ class DatabaseCondition implements QueryConditionInterface, Countable {
   }
 
   /**
+   * Implements QueryConditionInterface::exists().
+   */
+  public function exists(SelectQueryInterface $select) {
+    return $this->condition('', $select, 'EXISTS');
+  }
+  
+  /**
+   * Implements QueryConditionInterface::notExists().
+   */
+  public function notExists(SelectQueryInterface $select) {
+    return $this->condition('', $select, 'NOT EXISTS');
+  }
+  
+  /**
    * Implements QueryConditionInterface::conditions().
    */
   public function &conditions() {
@@ -1723,6 +1840,8 @@ class DatabaseCondition implements QueryConditionInterface, Countable {
       'BETWEEN' => array('delimiter' => ' AND '),
       'IN' => array('delimiter' => ', ', 'prefix' => ' (', 'postfix' => ')'),
       'NOT IN' => array('delimiter' => ', ', 'prefix' => ' (', 'postfix' => ')'),
+      'EXISTS' => array('prefix' => ' (', 'postfix' => ')'),
+      'NOT EXISTS' => array('prefix' => ' (', 'postfix' => ')'),
       'IS NULL' => array('use_value' => FALSE),
       'IS NOT NULL' => array('use_value' => FALSE),
       // Use backslash for escaping wildcard characters.
