@@ -1,4 +1,4 @@
-// $Id: wysiwyg.js,v 1.21 2010/11/13 19:37:49 sun Exp $
+// $Id: wysiwyg.js,v 1.22 2011/01/06 00:11:48 sun Exp $
 (function($) {
 
 /**
@@ -46,7 +46,7 @@ Drupal.behaviors.attachWysiwyg = {
     }
 
     $('.wysiwyg', context).once('wysiwyg', function() {
-      if (!this.id || !this.value || typeof Drupal.settings.wysiwyg.triggers[this.id] === 'undefined') {
+      if (!this.id || typeof Drupal.settings.wysiwyg.triggers[this.id] === 'undefined') {
         return;
       }
       var $this = $(this);

@@ -1,7 +1,17 @@
-// $Id: CHANGELOG.txt,v 1.225 2010/12/02 06:54:31 sun Exp $
+// $Id: CHANGELOG.txt,v 1.243 2011/01/06 02:08:10 sun Exp $
 
 Wysiwyg 7.x-2.x, xxxx-xx-xx
 ---------------------------
+
+
+Wysiwyg 7.x-2.0, 2010-01-06
+---------------------------
+#950216 by TwoD, sun: Fixed missing editor for a single text format.
+#1007630 by aspilicious: Removed files[] declarations from .info file.
+#612954 by sun: Reverted 'buttons' change in profile configuration form.
+#975546 by TwoD, sun: Fixed markItUp CSS loaded with wrong weight.
+#659428 by TwoD, sun: Fixed editor is attached to disabled text format widgets.
+#975490 by Gábor Hojtsy: Updated for 'group' API change in drupal_add_js().
 #974604 by CrookedNumber, Gábor Hojtsy: Fixed theme CSS not loaded in editors.
 #931374 by TwoD, ksenzee: Updated for text format schema change.
 #826914 by catch, sun: Added database cache for wysiwyg_profile_load().
@@ -13,6 +23,22 @@ Wysiwyg 7.x-2.x, xxxx-xx-xx
 
 Wysiwyg 6.x-2.x, xxxx-xx-xx
 ---------------------------
+by sun: Fixed coding style in wysiwyg_schema().
+#964978 by sun, TwoD: Added hook_wysiwyg_editor_settings_alter() documentation.
+#775972 by TwoD, Agileware, sun: Fixed broken user default status preferences.
+#1007066 by TwoD, penguin25: Fixed CKEditor ignores resizable option.
+#613944 by TwoD, sun: Fixed data.node not always present in CKEditor.
+#1009880 by TwoD: Fixed selection handling broken in CKEditor.
+
+
+Wysiwyg 6.x-2.2, 2010-12-20
+---------------------------
+#613944 by TwoD, sun: Fixed data.node not available in CKEditor.
+#748888 by TwoD, sun: Fixed isNode() not called in CKEditor.
+#767550 by TwoD, sun, ungeek: Fixed invalid API docs and logic for
+  $plugin['filename'].
+#988200 by sun: Changed static language list to ISO 639 defaults of Drupal core.
+#973808 by David_Rothstein: Fixed CKEditor incorrectly formatting the <br> tag.
 #773856 by Roi Danton: Added CSS path and file documentation.
 #735186 by TwoD, torbs: Fixed missing Norwegian language code.
 #678580 by TwoD, sun: Fixed Drupal.wysiwygAttachToggleLink breaks click events.
