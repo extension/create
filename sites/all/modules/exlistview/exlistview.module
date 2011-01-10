@@ -166,11 +166,27 @@ function exlistview_show() {
     // or have no status at all, which would imply draft
     if($workflow_state == 1) {
       $listview_query->leftjoin('node_workflow', 'nw', 'nw.node_id = n.nid');
-      $listview_query->condition(db_or()->condition('nw.status', $workflow_state)->condition('nw.nwid', NULL));
+      $listview_query->condition(db_or()
+                                 ->condition('nw.draft_status', $workflow_state)
+                                 ->condition(db_and()
+                                             ->condition('nw.draft_status', NULL)
+                                             ->condition('nw.published_at', NULL)
+                                            )
+                                 ->condition('nw.nwid', NULL)
+                                );
     }
     else {
       $listview_query->join('node_workflow', 'nw', 'nw.node_id = n.nid');
-      $listview_query->condition('nw.status', $workflow_state);
+      // handle the case of published listview where draft_status is null
+      if($workflow_state == 5) {
+        $listview_query->condition(db_and()
+                                   ->condition('nw.status', $workflow_state)
+                                   ->condition('nw.published_at', NULL, 'IS NOT NULL')
+                                  );
+      }
+      else {
+        $listview_query->condition('nw.draft_status', $workflow_state);
+      }
     }
     
     $listview_query->condition(db_or()->condition('n.type', 'article')->condition('n.type', 'faq')->condition('n.type', 'event'))
@@ -186,13 +202,19 @@ function exlistview_show() {
       $page_number = array();
     }
   }
+  
   // else we have no node records b/c the tag filter filtered them all out
   else {
-    $listview_records = array();
-    return theme('exlistview_show', array('listview_nodes' => $listview_records, 'tag_form' => drupal_get_form('exlistview_tag_form')));
+    $record_array = array();
+    return theme('exlistview_show', array('listview_nodes' => $record_array, 'tag_form' => drupal_get_form('exlistview_tag_form')));
   }
- 
-  return theme('exlistview_show', array('listview_nodes' => $listview_records, 'sort_direction' => $next_sort_direction, 'page_number' => $page_number, 'pager' => theme('pager'), 'tag_form' => drupal_get_form('exlistview_tag_form')));
+  
+  $record_array = array();
+  foreach ($listview_records as $listview_record) {
+    array_push($record_array, $listview_record);
+  }
+  
+  return theme('exlistview_show', array('listview_nodes' => $record_array,  'sort_direction' => $next_sort_direction, 'page_number' => $page_number, 'pager' => theme('pager'), 'tag_form' => drupal_get_form('exlistview_tag_form')));
 }
 
 // build the tag filter form
