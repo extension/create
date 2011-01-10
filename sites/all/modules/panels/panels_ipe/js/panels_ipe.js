@@ -1,4 +1,4 @@
-// $Id: panels_ipe.js,v 1.6 2010/10/19 18:50:24 merlinofchaos Exp $
+// $Id: panels_ipe.js,v 1.5 2010/10/11 22:56:02 sdboyer Exp $
 
 // Ensure the $ alias is owned by jQuery.
 (function($) {
@@ -17,7 +17,7 @@ Drupal.PanelsIPE = {
         }
         return false;
       });
-  }
+  },
 }
 
 // A ready function should be sufficient for this, at least for now

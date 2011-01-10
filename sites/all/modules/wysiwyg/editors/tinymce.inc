@@ -1,5 +1,5 @@
 <?php
-// $Id: tinymce.inc,v 1.45 2010/11/13 18:31:21 sun Exp $
+// $Id: tinymce.inc,v 1.46 2010/12/19 23:26:56 sun Exp $
 
 /**
  * @file
@@ -315,8 +315,8 @@ function wysiwyg_tinymce_plugin_settings($editor, $profile, $plugins) {
     if (!empty($plugin['load'])) {
       // Add path for native external plugins; internal ones are loaded
       // automatically.
-      if (empty($plugin['internal']) && isset($plugin['path'])) {
-        $settings[$name] = base_path() . $plugin['path'];
+      if (empty($plugin['internal']) && isset($plugin['filename'])) {
+        $settings[$name] = base_path() . $plugin['path'] . '/' . $plugin['filename'];
       }
     }
   }
@@ -334,9 +334,10 @@ function wysiwyg_tinymce_proxy_plugin_settings($editor, $profile, $plugins) {
       'title' => $plugin['title'],
       'icon' => base_path() . $plugin['icon path'] . '/' . $plugin['icon file'],
       'iconTitle' => $plugin['icon title'],
-      // @todo These should only be set if the plugin defined them.
-      'css' => base_path() . $plugin['css path'] . '/' . $plugin['css file'],
     );
+    if (isset($plugin['css file'])) {
+      $settings[$name]['css'] = base_path() . $plugin['css path'] . '/' . $plugin['css file'];
+    }
   }
   return $settings;
 }

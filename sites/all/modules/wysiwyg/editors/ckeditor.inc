@@ -1,5 +1,5 @@
 <?php
-// $Id: ckeditor.inc,v 1.9 2010/11/13 18:31:19 sun Exp $
+// $Id: ckeditor.inc,v 1.11 2010/12/25 19:12:56 sun Exp $
 
 /**
  * @file
@@ -184,7 +184,8 @@ function wysiwyg_ckeditor_settings($editor, $config, $theme) {
     $settings['language'] = $config['language'];
   }
   if (isset($config['resizing'])) {
-    $settings['resize_enabled'] = $config['resizing'];
+    // CKEditor tests "!== false", so ensure it is a Boolean.
+    $settings['resize_enabled'] = (bool) $config['resizing'];
   }
   if (isset($config['toolbar_loc'])) {
     $settings['toolbarLocation'] = $config['toolbar_loc'];
@@ -250,12 +251,13 @@ function wysiwyg_ckeditor_plugin_settings($editor, $profile, $plugins) {
       $settings[$name] = array();
       // Add path for native external plugins.
       if (empty($plugin['internal']) && isset($plugin['path'])) {
-        $settings[$name]['path'] = base_path() . $plugin['path'];
+        $settings[$name]['path'] = base_path() . $plugin['path'] . '/';
       }
       // Force native internal plugins to use the standard path.
       else {
         $settings[$name]['path'] = base_path() . $editor['library path'] . '/plugins/' . $name . '/';
       }
+      // CKEditor defaults to 'plugin.js' on its own when filename is not set.
       if (!empty($plugin['filename'])) {
         $settings[$name]['fileName'] = $plugin['filename'];
       }

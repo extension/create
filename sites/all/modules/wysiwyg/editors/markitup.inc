@@ -1,5 +1,5 @@
 <?php
-// $Id: markitup.inc,v 1.11 2010/11/13 18:31:19 sun Exp $
+// $Id: markitup.inc,v 1.12 2010/12/19 19:19:56 sun Exp $
 
 /**
  * @file
@@ -97,9 +97,12 @@ function wysiwyg_markitup_themes($editor, $profile) {
  *   Drupal.settings.wysiwyg.configs.{editor}
  */
 function wysiwyg_markitup_settings($editor, $config, $theme) {
-  // Whoever is guilty for adding this horrible CSS-file-without-filepath
-  // override "feature" to Drupal core... stand in the corner!
-  drupal_add_css($editor['library path'] . '/markitup/skins/' . $theme . '/style.css', 'theme');
+  drupal_add_css($editor['library path'] . '/markitup/skins/' . $theme . '/style.css', array(
+    // Specify an alternate basename; otherwise, style.css would override a
+    // commonly used style.css file of the theme.
+    'basename' => 'markitup.' . $theme . '.style.css',
+    'group' => CSS_THEME,
+  ));
 
   $settings = array(
     'root' => base_path() . $editor['library path'] . '/markitup/',

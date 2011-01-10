@@ -1,5 +1,5 @@
 <?php
-// $Id: styles.module,v 1.2.2.26.2.14 2010/10/28 16:27:38 aaron Exp $
+// $Id: styles.module,v 1.2.2.26.2.16 2011/01/05 16:08:45 aaron Exp $
 
 /**
  *  @file
@@ -8,6 +8,11 @@
 
 // A registry of variable_get defaults.
 include_once('includes/styles.variables.inc');
+
+// Include get_called_class() for PHP < 5.3.
+if(!function_exists('get_called_class')) {
+  include_once('includes/php/get_called_class.inc');
+}
 
 /**
  *  Implements hook_field_formatter_info().
@@ -419,24 +424,6 @@ function styles_get_registered_classes($return_style = NULL, $reset = FALSE) {
 function styles_init() {
   // Load all registered class definitions.
   styles_get_registered_classes();
-
-  // Ensure the proper files are loaded when a new Styles object is initiated.
-  spl_autoload_register('styles_autoload');
-}
-
-/**
- * Autoload the Styles object classes when needed.
- *
- * @param string $class_name
- *  The name of the registered class definition.
- */
-function styles_autoload($class_name) {
-  if ($class_name == 'StylesDefault') {
-    module_load_include('inc', 'styles', 'includes/Styles');
-  }
-  else if ($class = styles_get_styles_class_by_class_name($class_name)) {
-    include_once($class['path'] .'/'. $class['file']);
-  }
 }
 
 /**

@@ -1,5 +1,5 @@
 <?php
-// $Id: FileStyles.inc,v 1.1.2.4 2010/10/28 20:10:10 aaron Exp $
+// $Id: FileStyles.inc,v 1.1.2.9 2011/01/05 19:37:30 aaron Exp $
 
 /**
  * @file
@@ -8,6 +8,7 @@
 
 class FileStyles extends StylesDefault {
   public $fid;
+  public $uri;
   public $title;
   public $alt;
 
@@ -27,8 +28,7 @@ class FileStyles extends StylesDefault {
   function get_stream_wrapper_instance() {
     $stream_wrapper_instance = $this->get('stream_wrapper_instance');
     if (!isset($stream_wrapper_instance)) {
-      $object = $this->get_object();
-      $stream_wrapper_instance = $this->set_stream_wrapper_instance(file_stream_wrapper_get_instance_by_uri($object->uri));
+      $stream_wrapper_instance = $this->set_stream_wrapper_instance(file_stream_wrapper_get_instance_by_uri($this->get_uri()));
     }
     return $stream_wrapper_instance;
   }
@@ -41,6 +41,19 @@ class FileStyles extends StylesDefault {
   }
   function set_fid($value) {
     return $this->set('fid', $value);
+  }
+  function get_uri() {
+    $uri = $this->get('uri');
+    if (isset($uri)) {
+      return $uri;
+    }
+    $object = $this->get_object();
+    if (isset($object->uri)) {
+      return $object->uri;
+    }
+  }
+  function set_uri($value) {
+    return $this->set('uri', $value);
   }
   function get_title() {
     return $this->get('title');
@@ -84,26 +97,14 @@ class FileStyles extends StylesDefault {
   }
   function set_float($value) {
     if ($value) {
-      $this->set_prefix('<span class="styles nrembrowser-styles nrembrowser-styles-float-'. filter_xss($value) .'">');
+      $this->set_prefix('<span class="styles file-styles file-styles-float-'. filter_xss($value) .'">');
     }
     else {
-      $this->set_prefix('<span class="styles nrembrowser-styles">');
+      $this->set_prefix('<span class="styles file-styles">');
     }
     return $this->set('float', $value);
   }
 
-  function set_image_url($value) {
-    return $this->set('image_url', $value);
-  }
-  function get_image_url() {
-    if ($image_url = $this->get('image_url')) {
-      return $image_url;
-    }
-    $object = $this->get_object();
-    if ($object->url) {
-      return $object->url;
-    }
-  }
   function set_image_uri($value) {
     return $this->set('image_uri', $value);
   }
@@ -111,10 +112,7 @@ class FileStyles extends StylesDefault {
     if ($image_uri = $this->get('image_uri')) {
       return $image_uri;
     }
-    $object = $this->get_object();
-    if ($object->uri) {
-      return $object->uri;
-    }
+    return $this->get_uri();
   }
 
   // Effect callbacks when rendering.
@@ -142,8 +140,8 @@ class FileStyles extends StylesDefault {
       $attributes['style'] = implode(';', $styles);
     }
 
-    if ($image_url = $this->get_image_url()) {
-      $this->set_output(theme('file_styles_image', array('image_url' => $image_url, 'image_uri' => $this->get_image_uri(), 'attributes' => $attributes, 'alt' => $this->get_alt(), 'title' => $this->get_title(), 'image_style' => $this->get_image_style(), 'instance' => $this)));
+    if ($image_uri = $this->get_image_uri()) {
+      $this->set_output(theme('file_styles_image', array('image_uri' => $image_uri, 'attributes' => $attributes, 'alt' => $this->get_alt(), 'title' => $this->get_title(), 'image_style' => $this->get_image_style(), 'instance' => $this)));
     }
   }
 
@@ -164,10 +162,10 @@ class FileStyles extends StylesDefault {
     $this->set_image_style($effect['image_style']);
   }
 
-  function link_to_file($effect) {
+  function link_to_media($effect) {
     $this->set_link(TRUE);
-    if (!$this->get_output && $this->get_title()) {
-      $this->set_output(l($this->get_title, 'file/'. $this->get_fid()));
+    if (!$this->get_output() && $this->get_title()) {
+      $this->set_output(l($this->get_title(), 'media/'. $this->get_fid()));
     }
   }
 
@@ -181,6 +179,17 @@ class FileStyles extends StylesDefault {
   function teaser($effect) {
     $this->set('file', file_load($this->get_fid()));
     $this->set_output(file_view($this->get('file')));
+  }
+
+  /**
+   * Override the render function to always display a thumbnail in the wysiwyg.
+   */
+  public function render($reset = FALSE) {
+    $object = $this->get_object();
+    if (isset($object->override) && is_array($object->override) && isset($object->override['wysiwyg']) && $object->override['wysiwyg']) {
+      $this->push_effect(array('name' => 'thumbnail', 'settings' => array()));
+    }
+    return parent::render($reset);
   }
 
 }

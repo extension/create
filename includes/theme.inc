@@ -1,5 +1,5 @@
 <?php
-// $Id: theme.inc,v 1.625 2010/11/29 04:53:32 webchick Exp $
+// $Id: theme.inc,v 1.627 2011/01/03 08:02:11 webchick Exp $
 
 /**
  * @file
@@ -2257,7 +2257,6 @@ function template_preprocess_page(&$variables) {
   $variables['language']          = $GLOBALS['language'];
   $variables['language']->dir     = $GLOBALS['language']->direction ? 'rtl' : 'ltr';
   $variables['logo']              = theme_get_setting('logo');
-  $variables['messages']          = $variables['show_messages'] ? theme('status_messages') : '';
   $variables['main_menu']         = theme_get_setting('toggle_main_menu') ? menu_main_menu() : array();
   $variables['secondary_menu']    = theme_get_setting('toggle_secondary_menu') ? menu_secondary_menu() : array();
   $variables['action_links']      = menu_local_actions();
@@ -2294,6 +2293,12 @@ function template_process_page(&$variables) {
   }
   if (!isset($variables['title'])) {
     $variables['title'] = drupal_get_title();
+  }
+
+  // Generate messages last in order to capture as many as possible for the
+  // current page.
+  if (!isset($variables['messages'])) {
+    $variables['messages'] = $variables['show_messages'] ? theme('status_messages') : '';
   }
 }
 
@@ -2359,8 +2364,19 @@ function theme_get_suggestions($args, $base, $delimiter = '__') {
   $suggestions = array();
   $prefix = $base;
   foreach ($args as $arg) {
-    // Remove slashes or null per SA-CORE-2009-003.
-    $arg = str_replace(array("/", "\\", "\0"), '', $arg);
+    // Remove slashes or null per SA-CORE-2009-003 and change - (hyphen) to _
+    // (underscore).
+    //
+    // When we discover templates in @see drupal_find_theme_templates,
+    // hyphens (-) are converted to underscores (_) before the theme hook
+    // is registered. We do this because the hyphens used for delimiters
+    // in hook suggestions cannot be used in the function names of the
+    // associated preprocess functions. Any page templates designed to be used
+    // on paths that contain a hyphen are also registered with these hyphens
+    // converted to underscores so here we must convert any hyphens in path
+    // arguments to underscores here before fetching theme hook suggestions
+    // to ensure the templates are appropriately recognized.
+    $arg = str_replace(array("/", "\\", "\0", '-'), array('', '', '', '_'), $arg);
     // The percent acts as a wildcard for numeric arguments since
     // asterisks are not valid filename characters on many filesystems.
     if (is_numeric($arg)) {

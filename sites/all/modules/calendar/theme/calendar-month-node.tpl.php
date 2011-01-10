@@ -1,5 +1,5 @@
 <?php
-// $Id: calendar-month-node.tpl.php,v 1.5 2010/08/22 02:23:48 karens Exp $
+// $Id: calendar-month-node.tpl.php,v 1.9 2010/12/21 13:41:24 karens Exp $
 /**
  * @file
  * Template to display a view item as a calendar month node.
@@ -39,10 +39,10 @@
  */
 ?>
 <div class="view-item view-item-<?php print $view->name ?>">
-  <div class="calendar monthview" id="<?php print $node->date_id ?>">
+  <div class="<?php print $node->date_id; ?> calendar monthview">
     <?php print theme('calendar_stripe_stripe', array('node' => $node)); ?>
     <?php foreach ($fields as $field): ?>
-      <div id="<?php print $field['id']; ?>" class="view-field view-data-<?php print $field['id'] ?>">
+      <div class="view-field view-data-<?php print $field['id']; ?> <?php print $field['id']; ?>">
         <?php if ($field['label']): ?>
           <div class="view-label-<?php print $field['id'] ?>"><?php print $field['label'] ?></div>
         <?php endif; ?>  
