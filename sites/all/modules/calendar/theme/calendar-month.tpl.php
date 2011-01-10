@@ -1,5 +1,5 @@
 <?php
-// $Id: calendar-month.tpl.php,v 1.8 2010/02/28 20:51:41 karens Exp $
+// $Id: calendar-month.tpl.php,v 1.10 2010/12/21 13:41:24 karens Exp $
 /**
  * @file
  * Template to display a view as a calendar month.

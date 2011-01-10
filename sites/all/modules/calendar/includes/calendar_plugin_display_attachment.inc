@@ -1,5 +1,5 @@
 <?php
-// $Id: calendar_plugin_display_attachment.inc,v 1.11 2010/11/07 13:09:29 karens Exp $
+// $Id: calendar_plugin_display_attachment.inc,v 1.17 2011/01/03 02:39:45 karens Exp $
 
 /**
  * @file
@@ -22,12 +22,14 @@
  * to choose what calendar period this display represents.
  */
 class calendar_plugin_display_attachment extends views_plugin_display_attachment {
-  
   /**
    * Instead of going through the standard views_view.tpl.php, delegate this
    * to the style handler.
    */
   function render() {
+    if (!empty($this->view->date_info->forbid)) {
+      return '';
+    }
     return $this->view->style_plugin->render($this->view->result);
   }
   
@@ -93,10 +95,7 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
    * Display validation.
    */
   function validate() {
-    $errors = parent::validate();
-    
-    // @TODO Add validation back once view is working again.
-    return;    
+    $errors = parent::validate();  
     
     $arguments = $this->display->handler->get_option('arguments');
     if (!in_array('date_argument', array_keys($arguments))) {
@@ -129,14 +128,14 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
       unset($this->display);
       return;
     }
-    
+
     $this->view->date_info->parent_id = $display_id;
 
     // See if we're attaching to a block rather than a page.
     if (substr($display_id, 0, 14) == 'calendar_block') {
       $this->view->date_info->mini = TRUE;
       $this->view->date_info->block = TRUE;
-      $this->date_info->calendar_popup = FALSE;
+      $this->view->date_info->calendar_popup = FALSE;
       if (!isset($this->view->date_info->block_identifier)) {
         $this->view->date_info->block_identifier = 'mini';
       }
@@ -144,7 +143,9 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
     elseif (substr($display_id, 0, 9) == 'calendar_') {
       $this->view->date_info->calendar_colors = $this->view->display[$display_id]->handler->options['calendar_colors'];
       $this->view->date_info->calendar_colors_taxonomy = $this->view->display[$display_id]->handler->options['calendar_colors_taxonomy'];
+      $this->view->date_info->calendar_colors_group = $this->view->display[$display_id]->handler->options['calendar_colors_group'];
       $this->view->date_info->calendar_popup = $this->view->display[$display_id]->handler->options['calendar_popup'];
+      $this->view->date_info->calendar_date_link = $this->view->display[$display_id]->handler->options['calendar_date_link'];
     }  
     
     parent::attach_to($display_id);
@@ -207,7 +208,7 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
    * Perform any necessary changes to the form values prior to storage.
    * There is no need for this function to actually store the data.
    */
-  function options_submit($form, &$form_state) {
+  function options_submit(&$form, &$form_state) {
     // It is very important to call the parent function here:
     parent::options_submit($form, $form_state);
     switch ($form_state['section']) {

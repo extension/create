@@ -27,9 +27,9 @@ files[] = theme/calendar-week-multiple-node.tpl.php
 files[] = theme/calendar-week-node.tpl.php
 files[] = theme/calendar-week.tpl.php
 files[] = theme/calendar-year.tpl.php
-; Information added by drupal.org packaging script on 2010-11-11
+; Information added by drupal.org packaging script on 2011-01-05
 version = "7.x-1.x-dev"
 core = "7.x"
 project = "calendar"
-datestamp = "1289433887"
+datestamp = "1294229311"
 

@@ -1,5 +1,5 @@
 <?php
-// $Id: theme.inc,v 1.30 2010/11/10 13:26:58 karens Exp $
+// $Id: theme.inc,v 1.44 2011/01/03 12:28:28 karens Exp $
 
 /**
  * @file
@@ -19,35 +19,54 @@ function template_preprocess_calendar_main(&$vars) {
   $handler  = $view->style_plugin;
 
   $vars['display_type'] = $view->date_info->granularity;
-  $vars['min_date_formatted'] = date_format($view->date_info->min_date, DATE_FORMAT_DATETIME);
-  $vars['max_date_formatted'] = date_format($view->date_info->max_date, DATE_FORMAT_DATETIME);
+  $vars['min_date_formatted'] = !empty($view->date_info->min_date) ? date_format($view->date_info->min_date, DATE_FORMAT_DATETIME) : '';
+  $vars['max_date_formatted'] = !empty($view->date_info->end_date) ? date_format($view->date_info->max_date, DATE_FORMAT_DATETIME) : '';
   $view->date_info->mini = isset($view->date_info->mini) ? $view->date_info->mini : $view->date_info->granularity == 'year';
   
   // Create the links to other displays.
-  $now = date_now();
   $url = $view->get_url();
   $view->date_info->url = $url;
   $arg = $view->date_info->date_arg;
-  $view->date_info->month    = $view->date_info->month && $view->date_info->month != $view->argument['date_argument']->options['wildcard'] ? $view->date_info->month : date_format($now, 'm');
-  $view->date_info->day      = $view->date_info->day && $view->date_info->day != $view->argument['date_argument']->options['wildcard'] ? $view->date_info->day : date_format($now, 'd');
-  if (empty($view->date_info->week) || $view->date_info->week == $view->argument['date_argument']->options['wildcard']) {
-    $view->date_info->week = date_week($view->date_info->year . '-' . date_pad($view->date_info->month) . '-' . date_pad($view->date_info->day));
-  }
   $displays = $view->date_info->display_types;
     
+  // Set up the links to other calendar views.
+  $current_date = $view->date_info->min_date;
+  if (!empty($date->info->day)) {
+    $current_date = new DateObject($date_info->date_arg .' 00:00:00');
+  }
+  elseif (!empty($view->date_info->week)) {
+    $week = date_week_range($view->date_info->week, $view->date_info->year);
+    $current_date = $week[0]; 
+  }
+  elseif (!empty($view->date_info->month)) {
+    $current_date = new DateObject($view->date_info->year .'-'. date_pad($view->date_info->month) .'-01 00:00:00');
+  }
+  else {
+    $current_date = new DateObject($view->date_info->year .'-01-01 00:00:00');
+  }
+  if (empty($view->date_info->month) || $view->date_info->month == $view->argument['date_argument']->options['wildcard']) {
+    $view->date_info->month = date_format($current_date, 'm');
+  }
+  if (empty($view->date_info->day) || $view->date_info->day == $view->argument['date_argument']->options['wildcard']) {
+    $view->date_info->day = date_format($current_date, 'd');
+  }
+  if (empty($view->date_info->week) || $view->date_info->week == $view->argument['date_argument']->options['wildcard']) {
+    $view->date_info->week = date_week($view->date_info->year .'-'. date_pad($view->date_info->month) .'-'. date_pad($view->date_info->day));
+  }
+
   $calendar_links = array();
   $base = array('attributes' => array('rel' => 'nofollow'));
   if (!empty($displays['year'])) {
-    $calendar_links[] = $base + array('title' => t('Year', array(), array('context' => 'datetime')), 'href' => date_real_url($view, 'year'));
+    $calendar_links['calendar calendar-year'] = $base + array('title' => t('Year', array(), array('context' => 'datetime')), 'href' => date_real_url($view, 'year'));
   }
   if (!empty($displays['month'])) {
-    $calendar_links[] = $base + array('title' => t('Month', array(), array('context' => 'datetime')), 'href' => date_real_url($view, 'month'));
+    $calendar_links['calendar calendar-month'] = $base + array('title' => t('Month', array(), array('context' => 'datetime')), 'href' => date_real_url($view, 'month'));
   }
   if (!empty($displays['week'])) {
-    $calendar_links[] = $base + array('title' => t('Week', array(), array('context' => 'datetime')), 'href' => date_real_url($view, 'week'));
+    $calendar_links['calendar calendar-week'] = $base + array('title' => t('Week', array(), array('context' => 'datetime')), 'href' => date_real_url($view, 'week'));
   }
   if (!empty($displays['day'])) {
-    $calendar_links[] = $base + array('title' => t('Day', array(), array('context' => 'datetime')), 'href' => date_real_url($view, 'day'));
+    $calendar_links['calendar calendar-day'] = $base + array('title' => t('Day', array(), array('context' => 'datetime')), 'href' => date_real_url($view, 'day'));
   }
   $vars['calendar_links'] = $calendar_links;
     
@@ -58,17 +77,17 @@ function template_preprocess_calendar_main(&$vars) {
   
   // If an 'Add new ... link is provided, add it here.
   // the query will bring the user back here after adding the node.
-  if (!empty($view->date_info->calendar_date_link) && user_access('create ' . $view->date_info->calendar_date_link . ' content')) {
+  if (!empty($view->date_info->calendar_date_link) 
+  && (user_access("administer nodes") || user_access('create '. $view->date_info->calendar_date_link .' content'))) {
     $name = node_type_get_name($view->date_info->calendar_date_link);
     $href = 'node/add/' . str_replace('_', '-', $view->date_info->calendar_date_link);
     $query = drupal_get_query_parameters(array('destination' => $view->date_info->url));    
-    $vars['calendar_links'][] = $base + array(
+    $vars['calendar_links']['calendar calendar-add'] = $base + array(
       'title' => t('Add+'), 
       'href' => $href, 
       'query' => $query,
       );
   }
-  
   $vars['view'] = $view;  
   $vars['mini'] = !empty($view->date_info->mini);
   $vars['block'] = !empty($view->date_info->block);
@@ -108,6 +127,7 @@ function template_preprocess_calendar(&$vars) {
     $copy = clone($row);
     $items[$num] = $row;
     $items[$num]->raw = $copy;
+    $items[$num]->calendar_fields = new stdClass();
     
     foreach ($row as $key => $value) {
       if (in_array($key, $calendar_fields)) {
@@ -115,15 +135,15 @@ function template_preprocess_calendar(&$vars) {
       }
     }
     foreach ($fields as $name => $field) {
-      // Some fields, like the node edit and delete links, have no alias.
+     // Some fields, like the node edit and delete links, have no alias.
       $field_alias = $field->field_alias != 'unknown' ? $field->field_alias : $name; 
-      if (!empty($field->options['exclude'])) {
-        if (isset($items[$num]->{$field_alias})) unset($items[$num]->{$field_alias});
-      }
-      elseif (!empty($field) && is_object($field)) {
+      if (!empty($field) && is_object($field)) {
         // Theme the copy instead of the original row so duplicate date
         // fields each get a fresh copy of the original data to theme.
         $items[$num]->{$field_alias} = $field->theme($copy);
+      }
+      if (!empty($field->options['exclude'])) {
+        if (isset($items[$num]->{$field_alias})) unset($items[$num]->{$field_alias});
       }
     }
   }
@@ -165,7 +185,6 @@ function template_preprocess_calendar(&$vars) {
  * Display a month view.
  */
 function template_preprocess_calendar_month(&$vars) {
-  
   // Add in all the $vars added by the main calendar preprocessor.
   template_preprocess_calendar($vars);
   $view = $vars['view'];
@@ -282,7 +301,6 @@ function template_preprocess_calendar_year(&$vars) {
  * Display a day view.
  */
 function template_preprocess_calendar_day(&$vars) {
-  
   // Add in all the $vars added by the main calendar preprocessor.
   $vars['view']->style_with_weekno = FALSE;
   template_preprocess_calendar($vars);
@@ -457,7 +475,7 @@ function template_preprocess_calendar_week(&$vars) {
     // If we're not grouping by time, move all items into the 'all day' array.
     if (empty($view->date_info->style_groupby_times)) {
       foreach ($row['data']['items'] as $item) {
-        $row['data']['all_day'] += $item;
+        $row['data']['all_day'] = array_merge($row['data']['all_date'], $item);
       }
       $row['data']['items'] = array();
     }
@@ -553,7 +571,7 @@ function template_preprocess_calendar_datebox(&$vars) {
   $vars['day'] = intval(substr($date, 8, 2));
   $force_view_url = !empty($view->date_info->block) ? TRUE : FALSE;
   $vars['url'] = date_real_url($view, NULL, $date, $force_view_url);
-  $vars['link'] = l($vars['day'], $vars['url']);
+  $vars['link'] = !empty($view->date_info->display_types['day']) ? l($vars['day'], $vars['url']) : $vars['day'];
   $vars['granularity'] = $view->date_info->granularity;
   $vars['mini'] = $view->date_info->mini;
   

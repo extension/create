@@ -1,5 +1,5 @@
 <?php
-// $Id: calendar_plugin_style.inc,v 1.11 2010/11/10 13:26:58 karens Exp $
+// $Id: calendar_plugin_style.inc,v 1.15 2011/01/03 02:39:45 karens Exp $
 
 /**
  * @file
@@ -16,10 +16,13 @@ class calendar_plugin_style extends views_plugin_style {
    * Init will be called after construct, when the plugin is attached to a
    * view and a display. 
    */
-  function init(&$view, &$display) {
-    parent::init($view, $display);
-    $view->date_info->display_types = $this->display_types();
-  }
+   function init(&$view, &$display, $options = NULL) {
+     parent::init($view, $display, $options);
+     if (!isset($view->date_info)) {
+       $view->date_info = new StdClass();
+     }
+     $view->date_info->display_types = $this->display_types();
+   }
     
   function display_types($granularity = NULL, $option_type = 'names') {
     $ids = array();
@@ -71,9 +74,6 @@ class calendar_plugin_style extends views_plugin_style {
   function validate() {
     $errors = parent::validate();
     
-    // @TODO Add validation back once view is working again.
-    return $errors;
-    
     if (empty($this->display->display_options['style_plugin'])) {
       return $errors;
     }
@@ -92,7 +92,7 @@ class calendar_plugin_style extends views_plugin_style {
       }
       $this->view->date_info->arg_missing_default = TRUE;
     }
-     
+         
     // Make sure date fields are not set up to 'Group multiple values' 
     // in the calendar style.
     if ($style == 'calendar_style') {
@@ -144,7 +144,8 @@ class calendar_plugin_style extends views_plugin_style {
         $this->view->date_info->max_date = $argument->max_date;
         $this->view->date_info->min_date_date = date_format($this->view->date_info->min_date, DATE_FORMAT_DATE);
         $this->view->date_info->max_date_date = date_format($this->view->date_info->max_date, DATE_FORMAT_DATE);
-        
+        $this->view->date_info->forbid = isset($argument->forbid) ? $argument->forbid : FALSE;
+
         // Stop after the first date argument, if there is more than one.
         break;
       }

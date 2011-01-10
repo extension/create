@@ -1,5 +1,5 @@
 <?php
-// $Id: calendar_plugin_display_ical.inc,v 1.8 2010/10/02 11:29:54 karens Exp $
+// $Id: calendar_plugin_display_ical.inc,v 1.9 2010/12/21 13:05:15 karens Exp $
 
 /**
  * @file
@@ -169,7 +169,7 @@ class calendar_plugin_display_ical extends views_plugin_display_page {
    * Perform any necessary changes to the form values prior to storage.
    * There is no need for this function to actually store the data.
    */
-  function options_submit($form, &$form_state) {
+  function options_submit(&$form, &$form_state) {
     // It is very important to call the parent function here:
     parent::options_submit($form, $form_state);
     switch ($form_state['section']) {
