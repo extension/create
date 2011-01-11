@@ -25,7 +25,7 @@
 <?php foreach ($listview_nodes as $listview_node): ?>
   <tr>
     <td><?php print $listview_node->nid; ?></td>
-    <td><?php print l($listview_node->title, "/node/{$listview_node->nid}"); ?></td>
+    <td><?php print l($listview_node->title, "node/{$listview_node->nid}"); ?></td>
     <td><?php print format_date($listview_node->created); ?></td>
   </tr>
 <?php endforeach; ?>  
