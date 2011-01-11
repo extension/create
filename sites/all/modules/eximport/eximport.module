@@ -283,6 +283,12 @@ function eximport_node_create($entry) {
   drupal_save_session(FALSE);
   $GLOBALS['user'] = $entry->user;
   node_save($node);
+  // fix timestamps
+  db_query("UPDATE {node} SET changed = :changed WHERE nid = :nid",
+              array(':changed' => $entry->created, ':nid' => $node->nid));
+  db_query("UPDATE {node_revision} SET `timestamp` = :tstamp WHERE nid = :nid AND vid = :vid", 
+              array(':tstamp' => $entry->created, ':nid' => $node->nid, ':vid' => $node->vid));
+  
   $GLOBALS['user'] = $saved_user;
   drupal_save_session(TRUE);
   
