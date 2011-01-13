@@ -1,5 +1,5 @@
 <?php
-// $Id: plugins.inc,v 1.16 2010/10/11 22:56:01 sdboyer Exp $
+// $Id: plugins.inc,v 1.18 2011/01/07 21:04:37 merlinofchaos Exp $
 
 /**
  * @file
@@ -127,7 +127,7 @@ class panels_cache_object {
    * When constructed, take a snapshot of our existing out of band data.
    */
   function panels_cache_object() {
-    $this->head = drupal_set_html_head();
+    $this->head = drupal_add_html_head();
     $this->css = drupal_add_css();
     $this->tokens = ctools_set_page_token();
 
@@ -159,20 +159,16 @@ class panels_cache_object {
     $this->ready = TRUE;
 
     // Simple replacement for head
-    $this->head = str_replace($this->head, '', drupal_set_html_head());
+    $this->head = str_replace($this->head, '', drupal_add_html_head());
 
     // Slightly less simple for CSS:
     $css = drupal_add_css();
     $start = $this->css;
     $this->css = array();
 
-    foreach ($css as $media => $medias) {
-      foreach ($medias as $type => $types) {
-        foreach ($types as $path => $preprocess) {
-          if (!isset($start[$media][$type][$path])) {
-            $this->css[] = array($path, $type, $media, $preprocess);
-          }
-        }
+    foreach ($css as $name => $data) {
+      if (!isset($start[$name])) {
+        $this->css[$name] = array($data['data'], $data['type'], $data['media'], $data['preprocess']);
       }
     }
 
@@ -222,7 +218,7 @@ class panels_cache_object {
    */
   function restore() {
     if (!empty($this->head)) {
-      drupal_set_html_head($this->head);
+      drupal_add_html_head($this->head);
     }
     if (!empty($this->css)) {
       foreach ($this->css as $args) {

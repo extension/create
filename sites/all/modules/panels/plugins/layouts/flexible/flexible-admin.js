@@ -1,4 +1,4 @@
-// $Id: flexible-admin.js,v 1.4 2010/10/11 22:56:00 sdboyer Exp $
+// $Id: flexible-admin.js,v 1.5 2011/01/08 21:12:50 merlinofchaos Exp $
 (function ($) {
 
 Drupal.flexible = Drupal.flexible || {};
@@ -55,11 +55,6 @@ Drupal.flexible.splitter = function($splitter) {
   }
 
   function splitterStart(event) {
-    // Show splitting classes.
-//    splitter.left.addClass('flexible-splitting');	// Safari selects A/B text on a move
-//    splitter.right.addClass('flexible-splitting');	// Safari selects A/B text on a move
-//    splitter.splitter.addClass('flexible-splitter-splitting');
-
     // Bind motion events.
     $(document)
       .bind("mousemove", splitterMove)
@@ -308,9 +303,7 @@ Drupal.flexible.splitter = function($splitter) {
       splitter.right_box.remove();
     }
 
-    splitter.left.removeClass("flexible-splitting");	// Safari selects A/B text on a move
-    splitter.right.removeClass("flexible-splitting");	// Safari selects A/B text on a move
-    splitter.splitter.removeClass("flexible-splitter-splitting");	// Safari selects A/B text on a move
+
     splitter.left.css("-webkit-user-select", "text");	// let Safari select text again
     splitter.right.css("-webkit-user-select", "text");	// let Safari select text again
 
@@ -379,6 +372,13 @@ $(function() {
   };
 
   /**
+   * Provide an AJAX response command to allow the server to change width on existing splitters.
+   */
+  Drupal.ajax.prototype.commands.flexible_set_width = function(ajax, command, status) {
+    $(command.selector).html(command.width);
+  };
+
+  /**
    * Provide an AJAX response command to fix the first/last bits of a
    * group.
    */
@@ -404,6 +404,10 @@ $(function() {
   };
 
   Drupal.ajax['flexible-splitter-ajax'] = new Drupal.ajax('flexible-splitter-ajax', $('.panel-flexible-admin').get(0), element_settings);
+
+  // Prevent ajax goo from doing odd things to our layout.
+  Drupal.ajax['flexible-splitter-ajax'].beforeSend = function() { };
+  Drupal.ajax['flexible-splitter-ajax'].beforeSerialize = function() { };
 
 });
 
