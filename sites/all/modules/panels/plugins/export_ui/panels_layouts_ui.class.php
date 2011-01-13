@@ -1,5 +1,5 @@
 <?php
-// $Id: panels_layouts_ui.class.php,v 1.3 2010/10/11 22:56:02 sdboyer Exp $
+// $Id: panels_layouts_ui.class.php,v 1.4 2010/10/22 18:23:51 merlinofchaos Exp $
 
 class panels_layouts_ui extends ctools_export_ui {
   var $lipsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam egestas congue nibh, vel dictum ante posuere vitae. Cras gravida massa tempor metus eleifend sed elementum tortor scelerisque. Vivamus egestas, tortor quis luctus tristique, sem velit adipiscing risus, et tempus enim felis in massa. Morbi viverra, nisl quis rhoncus imperdiet, turpis massa vestibulum turpis, egestas faucibus nibh metus vel nunc. In hac habitasse platea dictumst. Nunc sit amet nisi quis ipsum tincidunt semper. Donec ac urna enim, et placerat arcu. Morbi eu laoreet justo. Nullam nec velit eu neque mattis pulvinar sed non libero. Sed sed vulputate erat. Fusce sit amet dui nibh.";
@@ -12,7 +12,7 @@ class panels_layouts_ui extends ctools_export_ui {
     }
 
     // Change the item to a tab on the Panels page.
-    $this->plugin['menu']['items']['list callback']['type'] = MENU_LOCAL_ACTION;
+    $this->plugin['menu']['items']['list callback']['type'] = MENU_LOCAL_TASK;
 
     // Establish a base for adding plugins
     $base = $this->plugin['menu']['items']['add'];
@@ -112,7 +112,7 @@ class panels_layouts_ui extends ctools_export_ui {
     $form_state['renderer'] = panels_get_renderer_handler('editor', $cache->display);
     $form_state['renderer']->cache = &$cache;
 
-    $form = array_merge($form, panels_edit_display_form($form_state));
+    $form = panels_edit_display_form($form, $form_state);
     // Make sure the theme will work since our form id is different.
     $form['#theme'] = 'panels_edit_display_form';
 

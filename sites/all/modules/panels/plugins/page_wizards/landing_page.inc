@@ -1,5 +1,5 @@
 <?php
-// $Id: landing_page.inc,v 1.3 2010/10/11 22:56:01 sdboyer Exp $
+// $Id: landing_page.inc,v 1.4 2011/01/10 20:39:49 merlinofchaos Exp $
 /**
  * @file
  * A page creation wizard to quickly create simple landing pages.
@@ -66,7 +66,7 @@ function panels_landing_page_new_page(&$cache) {
     ),
   );
   $cache->display = panels_new_display();
-  $cache->display->layout = 'twocol';
+  $cache->display->layout = 'flexible';
 }
 
 /**
@@ -85,11 +85,14 @@ function panels_landing_page_basic($form, &$form_state) {
   );
 
   $form['name'] = array(
-    '#type' => 'textfield',
+    '#type' => 'machine_name',
     '#title' => t('Machine name'),
+    '#machine_name' => array(
+      'exists' => 'page_manager_page_load',
+      'source' => array('admin_title'),
+    ),
     '#description' => t('The machine readable name of this page. It must be unique, and it must contain only alphanumeric characters and underscores. Once created, you will not be able to change this value!'),
     '#default_value' => $cache->name,
-    '#required' => TRUE,
   );
 
   $form['admin_description'] = array(
@@ -156,6 +159,8 @@ function panels_landing_page_basic($form, &$form_state) {
   ctools_include('page-wizard', 'panels');
   panels_page_wizard_add_layout($form, $form_state);
 
+  // Ensure all 'page' features are loaded.
+  $page_task = page_manager_get_task('page');
   return $form;
 }
 
@@ -163,9 +168,6 @@ function panels_landing_page_basic($form, &$form_state) {
  * Submit function to store the form data in our cache.
  */
 function panels_landing_page_basic_validate(&$form, &$form_state) {
-  // Ensure all 'page' features are loaded.
-  $page_task = page_manager_get_task('page');
-
   // Validate that the name is ok.
   $test = page_manager_page_load($form_state['values']['name']);
   if ($test) {

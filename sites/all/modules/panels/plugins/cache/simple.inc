@@ -1,5 +1,5 @@
 <?php
-// $Id: simple.inc,v 1.3 2010/09/07 09:42:11 sdboyer Exp $
+// $Id: simple.inc,v 1.5 2011/01/07 20:59:02 merlinofchaos Exp $
 
 /**
  * @file
@@ -104,6 +104,11 @@ function panels_simple_cache_get_id($conf, $display, $args, $contexts, $pane) {
     global $language;
     $id .= ':' . $language->language;
   }
+  
+  if($pane->configuration['use_pager'] == 1) {
+    $id .= ':p' . check_plain($_GET['page']);
+  }
+  
   return $id;
 }
 
@@ -118,7 +123,7 @@ function panels_simple_cache_settings_form($conf, $display, $pid) {
 
   $form['granularity'] = array(
     '#title' => t('Granularity'),
-    '#type' => t('select'),
+    '#type' => 'select',
     '#options' => array(
       'args' => t('Arguments'),
       'context' => t('Context'),

@@ -1,5 +1,5 @@
 <?php
-// $Id: panel_context.inc,v 1.4 2010/10/11 22:56:03 sdboyer Exp $
+// $Id: panel_context.inc,v 1.5 2010/11/05 21:33:15 merlinofchaos Exp $
 
 /**
  * @file
@@ -273,7 +273,7 @@ function panels_panel_context_render($handler, $base_contexts, $args, $test = TR
     if (!$filename) {
       $filename = ctools_css_store($css_id, $handler->conf['css']);
     }
-    ctools_css_add_css($filename);
+    drupal_add_css($filename);
   }
 
   // With an argument, this actually sets the display.
