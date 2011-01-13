@@ -1,4 +1,4 @@
-// $Id: display_editor.js,v 1.7 2010/10/11 22:56:02 sdboyer Exp $
+// $Id: display_editor.js,v 1.8 2011/01/08 20:02:39 merlinofchaos Exp $
 /**
  * @file display_editor.js
  *
@@ -220,9 +220,7 @@ Drupal.Panels.Draggable = {
 
         val += this.id.replace(draggable.draggableId, '');
       });
-      // Note: _ is replaced with - because Drupal automatically does this
-      // with form ids.
-      var region = this.id.replace(/_/g, '-').replace('panel-pane-', '');
+      var region = this.id.replace('panel-pane-', '');
       $('input[name="panel[pane][' +  region + ']"]').val(val);
     });
     return false;

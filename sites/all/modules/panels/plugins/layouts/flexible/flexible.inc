@@ -1,5 +1,5 @@
 <?php
-// $Id: flexible.inc,v 1.4 2010/10/11 22:56:00 sdboyer Exp $
+// $Id: flexible.inc,v 1.7 2011/01/08 21:12:50 merlinofchaos Exp $
 
 /**
  * Implementation of hook_panels_layouts()
@@ -377,7 +377,7 @@ function theme_panels_flexible($vars) {
     // because the display does not truly exist, so we'll stick it in the
     // head tag. We also do this if we've been told we're in the layout
     // editor so that it always gets fresh CSS.
-    drupal_add_css($css, 'inline');
+    drupal_add_css($css, array('type' => 'inline', 'preprocess' => FALSE));
   }
 
   // Also store the CSS on the display in case the live preview or something
@@ -418,7 +418,7 @@ function theme_panels_flexible_admin($vars) {
   $css = panels_flexible_render_css($renderer);
 
   // For the administrative view, add CSS directly to head.
-  drupal_add_css($css, 'inline');
+  drupal_add_css($css, array('type' => 'inline', 'preprocess' => FALSE));
 
   if (empty($display->editing_layout)) {
     $output = '<input type="submit" id="panels-flexible-toggle-layout" class="form-submit" value ="' .
@@ -882,19 +882,23 @@ function panels_flexible_get_css_group(&$css, $renderer, $list, $owner_id, $type
     // If there is any total remaining, we need to offset the splitter
     // by this much too.
     if ($left_total) {
+      // Add this even if it's 0 so we can handle removals.
+      $css["$owner_id-inside"]['padding-left'] = '0px';
       if ($renderer->admin || count($middle)) {
         $css["$owner_id-middle"]['margin-left'] = $left_total . 'px';
         // IE hack
         $css["* html $owner_id-left"]['left'] = $left_total . "px";
+        // Make this one very specific to the admin CSS so that preview
+        // does not stomp it.
+        $css[".panel-flexible-admin $owner_id-inside"]['padding-left'] = '0px';
       }
       else {
         $css["$owner_id-inside"]['margin-left'] = '-' . $left_total . 'px';
+        $css["$owner_id-inside"]['padding-left'] = $left_total . 'px';
         // IE hack
         $css["* html $owner_id-inside"]['left'] = $left_total . "px";
       }
     }
-    // Add this even if it's 0 so we can handle removals.
-    $css["$owner_id-inside"]['padding-left'] = '0px';
     if ($right_total) {
       $css["$owner_id-middle"]['margin-right'] = $right_total . 'px';
     }
@@ -1374,7 +1378,11 @@ function panels_ajax_flexible_edit_add($handler, $id, $location = 'left') {
 
     if (!empty($form_state['sibling'])) {
       $sibling_width = '#panels-dnd-main .' . $renderer->base[$item['type']] . '-' . $form_state['sibling'] . '-width';
-      $output[] = ajax_command_html($sibling_width, $settings['items'][$form_state['sibling']]['width']);
+      $output[] = array(
+        'command' => 'flexible_set_width',
+        'selector' => $sibling_width,
+        'width' => $settings['items'][$form_state['sibling']]['width'],
+      );
     }
     foreach ($css as $selector => $data) {
       $output[] = ajax_command_css($selector, $data);

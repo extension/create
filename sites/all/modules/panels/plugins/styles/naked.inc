@@ -1,5 +1,5 @@
 <?php
-// $Id: naked.inc,v 1.4 2010/10/11 22:56:01 sdboyer Exp $
+// $Id: naked.inc,v 1.5 2010/11/06 19:29:46 merlinofchaos Exp $
 
 /**
  * @file
@@ -20,6 +20,6 @@ $plugin = array(
  * @ingroup themeable
  */
 function theme_panels_naked_style_render_pane($vars) {
-  return $vars['content']->content;
+  return render($vars['content']->content);
 }
 
