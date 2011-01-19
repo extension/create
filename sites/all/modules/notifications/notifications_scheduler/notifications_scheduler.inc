@@ -73,6 +73,19 @@ abstract class Notifications_Scheduler_Event extends Notifications_Event {
       return $this->action_context;
     }
   }
+  
+  /**
+   * Create message template to build this event as text
+   * 
+   * The template can be configured per action
+   */
+  function create_template() {
+    $template_name = $this->get_action_context('template');
+    // If no template set, we go for the default for this event type
+    $template_name = $template_name ? $template_name : $this->get_type('template', 'default');
+    return notifications_template($template_name)
+      ->set_event($this);
+  }
   /**
    * Process event, send pending notifications. Subscriptions start on $counter (min sid)
    * 
@@ -145,8 +158,28 @@ abstract class Notifications_Scheduler_Event extends Notifications_Event {
   public function user_access($account, $op = 'view') {
     return TRUE;
   }
+  /**
+   * When done these events cannot be just deleted, we need to keep track of last time it was executed
+   */
+  public function done() {
+    $this->record(TRUE);
+    // Now take care of previous events of this type / action
+    if (variable_get('notifications_event_log', NOTIFICATIONS_EVENT_LOG)) {
+      // If logging enabled, make logs of previous events
+      $query = db_update('notifications_event')
+        ->fields(array('log' => 1));
+    }
+    else {
+      // If not logging enabled, delete all previous events
+      $query = db_delete('notifications_event');       
+    }
+    $query
+      ->condition('type', $this->type)
+      ->condition('action', $this->action)
+      ->condition('eid', $this->eid, '<')
+      ->execute();
+  }
 }
-
 
 /**
  * Test this schedule class, send latest created nodes
@@ -196,11 +229,16 @@ class Notifications_Scheduler_Latest_Posts extends Notifications_Scheduler_Event
    */
   function subscription_types() {
     $types = parent::subscription_types();
-    if ($this->get_action_context('node_type')) {
+    $type = $this->get_action_context('node_type');
+    $term = $this->get_action_context('taxonomy_term');
+    if ($type) {
       $types[] = 'content_type';
     }
-    if ($this->get_action_context('taxonomy_term')) {
+    if ($term) {
       $types[] = 'taxonomy_term';
+    }
+    if ($type && $term) {
+      $types[] = 'content_type_term';
     }
     return $types;
   }
@@ -226,20 +264,17 @@ class Notifications_Scheduler_New_Posts extends Notifications_Scheduler_Latest_P
   }
   
   /**
-   * Load latest nodes created and published. It doesn't check node access
+   * Load nodes created and published since last time this was executed. It doesn't check node access
    */
   protected function load_content() {
-    // Get the last time this event was executed
-    $last_time = db_query('SELECT MAX(created) FROM {notifications_event} WHERE type = :type AND action = :action', array(
-      ':type' => $this->type,
-      ':action' => $this->action,
-    ))->fetchField();
     // Only nodes updated since last time
     $query = db_select('node', 'n')
       ->fields('n', array('nid', 'created'))
       ->orderBy('n.created', 'DESC')
       ->condition('n.status', 1)
-      ->condition('n.changed', $last_time ? $last_time : 0, '>=');
+      ->condition('n.changed', $this->get_last_time(), '>=')
+      ->extend('PagerDefault')
+      ->limit($this->get_action_context('node_number', 50));
     if ($type = $this->get_action_context('node_type')) {
       $query->condition('type', $type);
     }
@@ -251,6 +286,20 @@ class Notifications_Scheduler_New_Posts extends Notifications_Scheduler_Latest_P
       return node_load_multiple($nids);
     }
   }
+
+  /**
+   * Get last time (timestamp) when this event/action was executed
+   * 
+   * @return int (timestamp)
+   */
+  protected function get_last_time() {
+    $last = (int)db_query('SELECT MAX(created) FROM {notifications_event} WHERE type = :type AND action = :action', array(
+      ':type' => $this->type,
+      ':action' => $this->action,
+    ))->fetchField();
+    return $last ? $last : variable_get('notifications_scheduler_last', 0);
+  }
+  
   /**
    * Check user access to event's objects.
    */

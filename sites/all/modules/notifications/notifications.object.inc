@@ -93,6 +93,13 @@ abstract class Notifications_Object {
   }
 
   /**
+   * Get object token type
+   */
+  public function get_token_type() {
+    return $this->type;
+  }
+
+  /**
    * Build from type, value (can be a plain value or a Drupal object)
    */
   public static function build($type, $value = NULL) {

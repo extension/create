@@ -13,10 +13,17 @@
  * The messaging framework is used for message delivery
  * Token module is used for token replacement in messages 
  * 
+ * Hidden variables (can be set programatically, have no UI):
+ * 
+ * - 'notifications_event_log', number of seconds logs will be kept (defaults to 7 days)
+ *  To keep logs longer than a week, define the (hidden) variable
+ * 
+ * - 'notifications_event_dispatch', dispatch events, defaults to 1
+ *  Set to 0 to disable event dispatching (no new notifications will be queued nor sent)
+ * 
  * This is based on the previous subscriptions module
  * 
  * Development Seed, http://www.developmentseed.org, 2007 
- *
  */
 
 // Format as plaintext. Note it evaluates to false.
@@ -29,6 +36,8 @@ define('NOTIFICATIONS_FORMAT_INLINE', 2);
 define('NOTIFICATIONS_FORMAT_TABLE', 5);
 // Format as item list (8 + 2(inline) + 1 (html))
 define('NOTIFICATIONS_FORMAT_LIST', 10);
+// Default time for logs, 7 days
+define('NOTIFICATIONS_EVENT_LOG', 7* 24 * 3600);
 
 /**
  * Implements hook_help().
@@ -37,17 +46,17 @@ define('NOTIFICATIONS_FORMAT_LIST', 10);
  */
 function notifications_help($path, $arg) {
   $pages = array(
-    '@admin-events' => url( 'admin/config/notifications/settings/events'),
-    '@admin-subscriptions' => url('admin/config/notifications/subscriptions'),
+    '@admin-events' => url( 'admin/config/messaging/notifications/events'),
+    '@admin-subscriptions' => url('admin/config/messaging/subscriptions'),
     '@admin-messaging' => url('admin/config/messaging/settings'),
     '@admin-methods' => url('admin/config/messaging/settings/methods'),
     '@admin-triggers' => url('admin/structure/trigger'),
   );
   switch ($path) {
-    case 'admin/config/notifications/settings/events':
+    case 'admin/config/messaging/notifications/events':
       $output = '<p>' . t('To set up event actions, go to the <a href="@admin-triggers">Triggers page</a>.', $pages) . '</p>';
       return $output;
-    case 'admin/config/notifications/settings':
+    case 'admin/config/messaging/notifications/settings':
       // Try to clarify some concepts, tell the long story short.
       $output = '<p>' . t('Users can subscribe to different objects (nodes, users, tags) by creating <strong><a href="@admin-subscriptions">Subscriptions</a></strong> for that objects. The subscription types available and the options to display will depend on additional modules enabled.', $pages) . '</p>';
       $output .= '<p>' . t('When an <a href="@admin-events">Event</a> happens (node update, comment) and it matches an existing subscription, that triggers a <strong>Notification</strong> which is a <strong>Message</strong> that will be sent to the user through one of the available <a href="@admin-methods">Sending Methods</a>.', $pages) . '</p>';
@@ -85,15 +94,7 @@ function notifications_format_items($items, $format = NOTIFICATIONS_FORMAT_LIST)
  * Implementation of hook_menu().
  */
 function notifications_menu() {
-  $items['admin/config/notifications'] = array(
-    'title' => 'Notifications',
-    'description' => 'Administer and configure notifications',
-    'page callback' => 'system_admin_menu_block_page',
-    'access arguments' => array('access administration pages'),
-    'file' => 'system.admin.inc',
-    'file path' => drupal_get_path('module', 'system'),
-  );
-  $items['admin/config/notifications/settings'] = array(
+  $items['admin/config/messaging/notifications'] = array(
     'title' => 'Notifications settings',
     'description' => 'Configure notifications.',
     'page callback' => 'drupal_get_form',
@@ -101,13 +102,13 @@ function notifications_menu() {
     'access arguments' => array('administer site configuration'),
     'file' => 'notifications.admin.inc',
   );
-  $items['admin/config/notifications/settings/overview'] = array(
+  $items['admin/config/messaging/notifications/settings'] = array(
     'title' => 'Options',
     'description' => 'Configure notifications',
     'weight' => -10,
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
-  $items['admin/config/notifications/settings/events'] = array(
+  $items['admin/config/messaging/notifications/events'] = array(
     'title' => 'Events',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('notifications_admin_events_form'),
@@ -116,7 +117,7 @@ function notifications_menu() {
     'file' => 'notifications.admin.inc',
   );
 
-  $items['admin/config/notifications/subscriptions'] = array(
+  $items['admin/config/messaging/subscriptions'] = array(
     'title' => 'Subscriptions settings',
     'description' => 'Configure subscription types and options.',
     'page callback' => 'drupal_get_form',
@@ -124,7 +125,7 @@ function notifications_menu() {
     'access arguments' => array('administer site configuration'),
     'file' => 'notifications.admin.inc',
   );
-  $items['admin/config/notifications/subscriptions/types'] = array(
+  $items['admin/config/messaging/subscriptions/types'] = array(
     'title' => 'Options',
     'description' => 'Subscription options.',
     'type' => MENU_DEFAULT_LOCAL_TASK,
@@ -607,6 +608,15 @@ function notifications_notifications_subscription_list($name, $list = NULL) {
 }
 
 /**
+ * Create notifications template object
+ */
+function notifications_template($name) {
+  $class = notifications_info('message templates', $name, 'class', 'Notifications_Message_Template');
+  $info = notifications_info('message templates', $name);
+  return new $class($info);   
+}
+
+/**
  * Get info about templates
  *
  * @param $type
@@ -614,7 +624,7 @@ function notifications_notifications_subscription_list($name, $list = NULL) {
  * @param $field
  *   String, a specific field to retrieve info from OPTIONAL
  */
-function notifications_template($type = NULL, $field = NULL) {
+function notifications_template_info($type = NULL, $field = NULL) {
   $types = notifications_info('notifications templates');
   return messaging_array_info($types, $type, $field);
 }
@@ -755,13 +765,8 @@ function notifications_event_enabled($key, $default = TRUE) {
  * @param $subscription
  *   Subscription object, or array of properties or subscription type
  */
-function notifications_build_subscription($subscription) {
-  if (is_object($subscription) && is_a($subscription, 'Notifications_Subscription')) {
-    return $subscription;
-  }
-  else {
-    return Notifications_Subscription::build($subscription);
-  }
+function notifications_subscription_build($subscription) {
+  return Notifications_Subscription::build_object($subscription);
 }
 
 /**
@@ -780,10 +785,10 @@ function notifications_build_subscription($subscription) {
  */
 function notifications_save_subscription(&$subscription, $check = TRUE) {
   // Build object if not built previously
-  $subscription = notifications_build_subscription($subscription);
+  $subscription = notifications_subscription_build($subscription);
 
   // Check all the parameters are ok, add error message and return if not
-  if ($check && !notifications_check_subscription($subscription)) {
+  if ($check && !$subscription->check_all()) {
     return FALSE;
   }
   
@@ -818,8 +823,7 @@ function notifications_save_subscription(&$subscription, $check = TRUE) {
   
   // If the operation has worked so far, update fields and inform other modules
   if ($result !== FALSE) {
-    notifications_queue()->queue_init_subscription($subscription);
-    module_invoke_all('notifications_subscription', $op, $subscription);
+    $subscription->invoke_all($op);
   }
 
   return $result;
@@ -1025,25 +1029,6 @@ function notifications_messaging_method($op, $method, $param = NULL) {
 }
 
 /**
- * Implements hook_messaging_destination().
- */
-function notifications_messaging_destination($op, $destination) {
-  switch ($op) {
-    case 'tokens':
-      $user = $destination->get_user();
-      $options = array('absolute' => TRUE);
-      if ($user->uid) {
-        $options['signed'] = TRUE;
-        $path = 'notifications/unsubscribe/user/' . $user->uid;
-        $options = notifications_url_options($path, $options);
-      }
-      else {
-        $path = 'notifications/unsubscribe';
-      }
-      return array('[user:unsubscribe-url]' => url($path, $options));
-  }
-}
-/**
  * Get event types. Invoking this function will also load the event API
  * 
  * Was: notifications_event_type_enabled
@@ -1243,7 +1228,11 @@ function notifications_theme() {
     'notifications_admin_table_form' => array(
       'render element' => 'form',
       'file' => 'notifications.admin.inc',
-    ),    
+    ),
+    'notifications_admin_subscription_list' => array(
+      'variables' => array('sids' => NULL, 'limit' => 10),
+      'file' => 'notifications.admin.inc',
+    )  
   );
 }
 
@@ -1311,6 +1300,50 @@ function notifications_subscription_list_form_submit($form, &$form_state) {
 }
 
 /**
+ * Implements hook_token_info().
+ */
+function notifications_token_info() {
+  $types['subscription'] = array(
+    'name' => t('Subscriptions'), 
+    'description' => t('Tokens related to notifications subscriptions.'), 
+    'needs-data' => 'subscription',
+  );
+  $tokens['user']['unsubscribe-url'] = array(
+    'name' => t("Unsubscribe URL"), 
+    'description' => t("Signed URL for cancelling all user subscriptions."), 
+  );
+  return array('types' => $types, 'tokens' => $tokens);
+}
+
+/**
+ * Implements hook_tokens().
+ */
+function notifications_tokens($type, $tokens, array $data = array(), array $options = array()) {
+  if ($type == 'user' && !empty($data['user'])) {
+    $user = $data['user'];
+    $replacements = array();
+    foreach ($tokens as $name => $original) {
+      switch ($name) {
+        // Signed unsubscribe url
+        case 'unsubscribe-url':
+          $url_options = array('absolute' => TRUE);
+          if ($user->uid) {
+            $url_options['signed'] = TRUE;
+            $path = 'notifications/unsubscribe/user/' . $user->uid;
+            $url_options = notifications_url_options($path, $url_options);
+          }
+          else {
+            $path = 'notifications/unsubscribe';
+          }
+          $replacements[$original] = url($path, $url_options);
+          break;
+      }
+    }
+    return $replacements;
+  }
+}
+
+/**
  * Fill some url options
  */
 /**
@@ -1352,6 +1385,20 @@ function notifications_url_signature($path, $query = array()) {
 }
 
 /**
+ * Implementation of hook_cron()
+ * 
+ * Keep logs clean
+ */
+function notifications_cron() {
+  if ($log_time = variable_get('notifications_event_log', NOTIFICATIONS_EVENT_LOG)) {
+    db_delete('notifications_event')
+      ->condition('log', 1)
+      ->condition('created', REQUEST_TIME - $log_time, '<')
+      ->execute();
+  }
+}
+
+/**
  * Implementation of hook_cron_queue_info()
  */
 function notifications_cron_queue_info() {
@@ -1367,5 +1414,5 @@ function notifications_cron_queue_info() {
  */
 function notifications_cron_queue_event_worker($event) {
   $event->send_all();
-  $event->delete();
+  $event->done();
 }

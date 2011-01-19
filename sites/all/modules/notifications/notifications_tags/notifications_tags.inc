@@ -18,6 +18,12 @@ class Notifications_Taxonomy_Term extends Notifications_Object {
     return t('Taxonomy term');
   }
   /**
+   * Token type
+   */
+  public function get_token_type() {
+    return 'term';
+  }
+  /**
    * Load object
    */  
   public static function object_load($value) {
@@ -77,6 +83,19 @@ class Notifications_Taxonomy_Term_Field extends Notifications_Field_Autocomplete
       return $term->tid;
     }
   }
+  /**
+   * Get value/s from object
+   */
+  function object_value($object) {
+    if ($object->type == 'node') {
+      // If the object is a node, get all tids for it
+      $node = $object->get_object();
+      return array_keys(notifications_tags_node_terms($node));
+    }
+    else {
+      return parent::object_value($object);
+    }
+  }
 }
 
 class Notifications_Taxonomy_Vocabulary_Subscription extends Notifications_Subscription_Simple {
@@ -109,7 +128,12 @@ class Notifications_Taxonomy_Vocabulary extends Notifications_Object {
   public function get_title() {
     return t('Vocabulary');
   }
-  
+  /**
+   * Token type
+   */
+  public function get_token_type() {
+    return 'vocabulary';
+  }
   /**
    * Load object
    */
@@ -310,13 +334,21 @@ class Notifications_Taxonomy_Term_Create_Template extends Notifications_Message_
   function default_text($type, $options) {
     switch ($type) {
       case 'subject':
-        return t('Update for [vocabulary:name]', array(), $options);
+        return array(
+          '#tokens' => TRUE,
+          '#markup' => t('Update for [vocabulary:name]', array(), $options),
+        );
       case 'content':
         return array(
-          '#type' => 'messaging_text',
+          '#type' => 'messaging_template_text',
+          '#tokens' => TRUE,
           'header' => t('Update for [vocabulary:name]:', array(), $options),
           'teaser' => 'A new term has been created: [term:name]',
-          'more' => t('Read more [term:url]', array(), $options),
+          'more' => array(
+            '#type' => 'messaging_link',
+            '#text' => t('Read more', array(), $options),
+            '#url' => '[term:url]',        
+          ),
         );
       case 'digest':
         return t('New term [term:name] created for vocabulary [vocabulary:name].', array(), $options);
