@@ -1,0 +1,32 @@
+<?php
+// $Id: atom.install,v 1.7 2010/09/11 03:53:52 deekayen Exp $
+
+/**
+ * @file
+ * Install, update and uninstall functions for the atom module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function atom_uninstall() {
+  variable_del('atom_feed_entries');
+  variable_del('atom_display_summary');
+  variable_del('atom_display_content');
+
+  // Remove unused variables if updates weren't performed.
+  variable_del('atom_ad_location');
+  variable_del('atom_ad_code');
+}
+
+/**
+ * Remove support for built-in advertising.
+ */
+function atom_update_6100() {
+  if (variable_get('atom_ad_code', '')) {
+    drupal_set_message(t("Atom module's built-in advertising feature has been removed. For a better solution, use the <a href=\"http://drupal.org/project/ad\">Ad module</a> and it's sub-module, Ad embed. If you are just using Google Adsense, the <a href=\"http://drupal.org/project/adsense_injector\">Adsense injector module</a> is recommended."), 'warning');
+  }
+  variable_del('atom_ad_location');
+  variable_del('atom_ad_code');
+  return t('Removed support for built-in advertising.');
+}

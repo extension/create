@@ -1,0 +1,64 @@
+<?php
+// $Id: atom.test,v 1.5 2009/09/21 18:56:49 davereid Exp $
+
+/**
+ * @file
+ * Unit tests for the atom module.
+ */
+
+class AtomFunctionalTest extends DrupalWebTestCase {
+  public static function getInfo() {
+    return array(
+      'name' => 'Atom functionality',
+      'description' => 'Functional tests for the Atom module.',
+      'group' => 'Atom',
+    );
+  }
+
+  function setUp() {
+    parent::setUp('atom');
+    $this->denied_user = $this->drupalCreateUser(array());
+    $this->normal_user = $this->drupalCreateUser(array('access content'));
+    $this->admin_user = $this->drupalCreateUser(array('administer nodes', 'administer atom'));
+  }
+
+  /**
+   * Test access to the Atom feeds.
+   */
+  function testAtomAccess() {
+    $this->drupalLogin($this->denied_user);
+    $this->drupalGet('atom.xml');
+    $this->assertResponse(403);
+    $this->drupalGet('');
+    $this->assertNoRaw('application/atom+xml');
+
+    $this->drupalLogin($this->normal_user);
+    $this->drupalGet('atom.xml');
+    $this->assertResponse(200);
+    $this->drupalGet('');
+    $this->assertRaw('application/atom+xml');
+
+    $this->assertValidAtom('atom.xml');
+  }
+
+  /**
+   * Assert that an Atom feed is valid as checked by the W3C Validator.
+   */
+  protected function assertValidAtom($url = NULL, $options = array()) {
+    if (isset($url)) {
+      $this->drupalGet($url, $options);
+    }
+
+    $request = drupal_http_request('http://validator.w3.org/feed/check.cgi', array('headers' => array('Content-Type' => 'application/x-www-form-urlencoded'), 'method' => 'POST', 'data' => "rawdata=" . urlencode($this->drupalGetContent()) . "&manual=true"));
+    $this->drupalSetContent($request->data);
+
+    preg_match_all('%<span class="message">.*</span>.*\[<a .* href=".*">help</a>\]%', $request->data, $warnings);
+    foreach ($warnings[0] as $warning) {
+      $warning = strip_tags($warning, '<a>');
+      $warning = str_replace('href="docs', 'href="http://validator.w3.org/feed/docs', $warning);
+      $this->error($warning);
+    }
+
+    return $this->assertText('This is a valid Atom 1.0 feed.', "Atom 1.0 feed $url validated.");
+  }
+}
