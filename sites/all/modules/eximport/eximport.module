@@ -23,7 +23,7 @@ require_once 'http_build_url.php';
   2. Be sure content types exist and are configured properly
      a. news (cop)
      b. article (cop)
-     c. public_article (about)
+     c. originalnews (cop)
   3. check filter weights and configuration at /admin/config/content/formats
      a. see screenshot -
 https://skitch.com/jerobins/rdsqe/text-formats-extension-content-management-system
@@ -44,10 +44,10 @@ https://skitch.com/jerobins/rdsqu/full-html-extension-content-management-system
  * 2. import revisions
  *    a. use eXtension as the user for publishing events
  *    b. TODO mark all published revisions as such
- *    c. TODO when import complete, mark all unpublished articles as draft
- *    d. import 'news' articles as content-type news, all others as articles
+ *    c. import 'news' articles as content-type news and 'originalnews'
+ *       as content-type original_news , all others as articles
  *
- * 3. import images? Nope
+ * 3. import images? TODO - review Media module
  *
  * 4. rewrite URLs
  *    a. rewrite img src's
@@ -283,11 +283,17 @@ function eximport_node_create($entry) {
   drupal_save_session(FALSE);
   $GLOBALS['user'] = $entry->user;
   node_save($node);
+  
   // fix timestamps
   db_query("UPDATE {node} SET changed = :changed WHERE nid = :nid",
               array(':changed' => $entry->created, ':nid' => $node->nid));
   db_query("UPDATE {node_revision} SET `timestamp` = :tstamp WHERE nid = :nid AND vid = :vid", 
               array(':tstamp' => $entry->created, ':nid' => $node->nid, ':vid' => $node->vid));
+  
+  // mark as published
+  if ($entry->published) {
+    
+  }
   
   $GLOBALS['user'] = $saved_user;
   drupal_save_session(TRUE);
@@ -336,8 +342,7 @@ function eximport_entry_create($atom_entry) {
   $entry = new stdClass();
   
   // default to article content-type
-  // $entry->type = 'article';
-  $entry->type = 'public_article';
+  $entry->type = 'article';
     
   // create our tag array
   $categories = array();
@@ -347,6 +352,8 @@ function eximport_entry_create($atom_entry) {
     if ($cat['term'] == 'news') {
       // if it is news, change content-type
       $entry->type = 'news';
+    } elseif ($cat['term'] == 'originalnews') {
+      $entry->type = 'original_news';
     }
     
     if ($cat['term'] == 'published') {
