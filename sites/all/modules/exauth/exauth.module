@@ -42,7 +42,7 @@ function maintenance_mode()
  */
 function exauth_node_view($node, $view_mode, $langcode){
   $node_type = $node->type;
-  if(!user_is_logged_in() && accessing_protected_page($node_type) && !maintenance_mode() && !drupal_is_front_page() && strpos($_SERVER['REQUEST_URI'], "atom.xml")) 
+  if(!user_is_logged_in() && accessing_protected_page($node_type) && !maintenance_mode() && !drupal_is_front_page() && strpos($_SERVER['REQUEST_URI'], "atom.xml") === FALSE) 
   {
     global $base_url;
     $default_openidreturn = $base_url . '/openid/authenticate?destination=' . ltrim(request_uri(), "/");
