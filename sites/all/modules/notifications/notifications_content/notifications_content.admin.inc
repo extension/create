@@ -144,7 +144,7 @@ function notifications_content_test_template_submit(&$form, &$form_state) {
     drupal_set_message(t('That event type is not enabled though we try building a message for it.'), 'warning');
   }
   // Get a subscription template, that may determine the module
-  $subscription = notifications_build_subscription($form_state['values']['subscription_type']);
+  $subscription = Notifications_Subscription::build_type($form_state['values']['subscription_type']);
 
   // Build the message and store it
   $send_method = $form_state['values']['send_method'];

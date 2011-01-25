@@ -102,7 +102,7 @@ class NotificationsContentTests extends NotificationsTestCase {
       'log' => '', // If not set, token module produces a notice
     ));
 
-    $subs_thread = notifications_build_subscription(array(
+    $subs_thread = notifications_subscription_build(array(
       'type' => 'thread',
       'event_type' => 'node',
       'fields' => array('nid' => $node->nid),

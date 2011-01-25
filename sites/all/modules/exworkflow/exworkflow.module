@@ -536,6 +536,66 @@ function exworkflow_node_update($node) {
   
 }
 
+function exworkflow_menu() {
+  $items = array();
+      
+  $items['node/%node/workflow_history'] = array(
+    'title' => 'Workflow History',
+    'description' => 'Workflow history for node',
+    'page callback' => 'exworkflow_history',
+    'page arguments' => array(1),
+    'access callback' => 'workflow_menu_permissions',
+    'access arguments' => array(1),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 1000, // give it a high weight to push it to last on the menu list
+  );
+
+  return $items;
+}
+
+function workflow_menu_permissions($node) {
+  global $user;
+  
+  if(($user != NULL && $user->uid != NULL) && ($node->type == 'article' || $node->type == 'faq' || $node->type == 'event')) { 
+    // see if the node has a workflow event
+    $node_workflow_event = db_query('SELECT * FROM {node_workflow_events} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
+    if($node_workflow_event != false) {
+      return true; 
+    }
+  }
+  return false;
+}
+
+/**
+ * Implements hook_theme().
+*/
+function exworkflow_theme() {
+  return array(
+    'exworkflow_history' => array(
+      'template' => 'exworkflow_history'
+     )
+  );
+}
+
+function exworkflow_history($node_obj) {
+  $workflow_query = db_select('node_workflow_events', 'we');
+  $workflow_query->addExpression('u.name', 'login');
+  $workflow_query->addExpression('u.uid', 'user_id');
+  $workflow_query->fields('we');
+  $workflow_query->join('users', 'u', 'we.user_id = u.uid');
+  $workflow_query->condition('we.node_id', $node_obj->nid)
+                 ->orderBy('we.created', 'DESC');  
+  $workflow_records = $workflow_query->execute();
+  
+  $event_array = array();
+  
+  foreach ($workflow_records as $workflow_record) {
+    array_push($event_array, $workflow_record);
+  }
+  
+  return theme('exworkflow_history', array('workflow_events' => $event_array));
+}
+
 // WARNING: DO NOT CHANGE THESE VALUES, 
 // THEY ARE USED IN THE DATABASE TABLES
 function get_workflow_states() {

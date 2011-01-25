@@ -10,239 +10,181 @@
  * Implementation of hook_menu()
  */
 function notifications_user_menu() {
-  // User account tabs
-  $items['user/%user/notifications'] = array(
-    'type' => MENU_LOCAL_TASK,
-    'title' => 'Notifications',
-    'page callback' => 'notifications_user_overview',
-    'page arguments' => array(1),
-    'access callback' => 'notifications_user_access',
-    'access arguments' => array(1),
-    'file' => 'notifications_user.pages.inc',
-  );
-  $items['user/%user/notifications/overview'] = array(
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'title' => 'Overview',
-    'weight' => -10,
-  );  
-  $items['user/%user/notifications/subscription'] = array(
-    'type' => MENU_LOCAL_TASK,
-    'title' => 'Subscriptions',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('notifications_user_manage_subscriptions_form', 1),
-    'access callback' => 'notifications_user_access',
-    'access arguments' => array(1, 'maintain'),
-    'file' => 'notifications_user.pages.inc',
-  );
-  // Edit subscription under subscriptions tab
-  $items['user/%user/notifications/subscription/%notifications_subscription'] = array(
-    'type' => MENU_LOCAL_TASK,
-    'title' => 'Edit subscription',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('notifications_subscription_edit_form', 4),
-    'access callback' => 'notifications_user_subscription_access',
-    'access arguments' => array('edit', 5),
-    'file' => 'notifications_user.pages.inc',
-  );
-  $items['user/%user/notifications/subscription/%notifications_subscription/edit'] = array(
-    'type' => MENU_LOCAL_TASK,
-    'title' => 'Edit subscription',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('notifications_subscription_edit_form', 4),
-    'access callback' => 'notifications_user_subscription_access',
-    'access arguments' => array('edit', 5),
-    'file' => 'notifications_user.pages.inc',
-  );
-  // Delete subscription under subscriptions tab
-  $items['user/%user/notifications/subscription/%notifications_subscription/delete'] = array(
-    'type' => MENU_LOCAL_TASK,
-    'title' => 'Delete subscription',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('notifications_user_form_unsubscribe_confirm', 4),
-    'access callback' => 'notifications_user_subscription_access',
-    'access arguments' => array('unsubscribe', 5),
-    'file' => 'notifications.pages.inc',
-  );
-  /*
-  $items['user/%user/notifications/update/%'] = array(
-    'type' => MENU_CALLBACK,
-    'title' => 'Update subscriptions',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('notifications_user_update_subscriptions', 1, 4),
-    'access callback' => 'notifications_user_access',
-    'access arguments' => array(1, 'maintain'),
-    'file' => 'notifications_user.pages.inc',
-  );
-  */
+  // User pages for each subscription type, will be disabled by default
+  foreach (array('user_content') as $type) {
+    if (notifications_subscription_type_enabled($type)) {
+      $items['user/%user/notifications/' . $type] = array(
+        'type' => MENU_LOCAL_TASK,
+        'access callback' => 'notifications_user_account_access',
+        'access arguments' => array(1, $type),
+        'title' => notifications_subscription_type($type, 'title'),
+        'page callback' => 'notifications_account_subscription_list_page',
+        'page arguments' => array($type, 1),
+        'weight' => 10,
+      );
+    } 
+  }
   return $items;
 }
 
 /**
- * Implementation of hook_permission()
+ * Check access to user account tab
+ */
+function notifications_user_account_access($account, $type) {
+  return module_exists('notifications_account') && notifications_account_tab_access($account, $type);
+}
+
+/**
+ * Implements hook_permission()
  */
 function notifications_user_permission() {
   return array(
-    'manage own subscriptions' =>  array(
-      'title' => t('Manage own subscriptions'),
-      'description' => t('Access the subscriptions management tab to view and edit own subscriptions.'),
+    'subscribe to author' =>  array(
+      'title' => t('Subscribe to author'),
+      'description' => t('Subscribe to content posted by a given user.'),
     ),
   );
 }
 
 /**
- * Menu access callback for user subscriptions
- * 
- * @param $account
- *   User account to which these subscriptions below
- * @param $op
- *   - maintain = create / delete
- *   - manage = use the per account administration page
+ * Implementation of hook_notifications()
  */
-function notifications_user_access($account, $op = 'maintain') {  
-  if (user_access('administer notifications') || user_access('manage all subscriptions')) {
-    return TRUE;
-  }
-  else {
-    return $account->uid && $GLOBALS['user']->uid == $account->uid &&
-      (($op == 'maintain' && user_access('maintain own subscriptions')) || ($op == 'manage' && user_access('manage own subscriptions')));
-  }
-}
+function notifications_user_notifications($op) {
+  switch ($op) {
+    case 'subscription types':
+      $types['user_content'] = array(
+        'title' => t('Author'),
+        'class' => 'Notifications_User_Content_Subscription',
+        'field_types' => array('node:uid'),
+        'object_types' => array('node', 'user'),
+        'access' => array('subscribe to author'),
+        'description' => t('Subscribe to all content submitted by a user.'),
+        'display_options' => array('user_links', 'account_tabs'),
+      );
+      // This is a complex type, combining two fields
+      $types['user_content_type'] = array(
+        'title' => t('Content type by author'),
+        'class' => 'Notifications_User_Content_Subscription',
+        'field_types' => array('node:type', 'node:uid'),
+        'object_types' => array('node', 'node_type', 'user'),
+        'access' => array('subscribe to content', 'subscribe to author'),
+        'description' => t('Subscribe to all content of a given type submitted by a user.'),
+      );
+      return $types;
 
-/**
- * Menu access callback for user subscription tabs
- */
-function notifications_user_tab_access($account, $type) {  
-  if (user_access('administer notifications') || user_access('manage all subscriptions')) {
-    return TRUE;
-  }
-  else {
-    return $account->uid && $GLOBALS['user']->uid == $account->uid &&
-      user_access('maintain own subscriptions') && notifications_subscription($type)->user_access($account);
-  }
-}
-/**
- * Check user access to subscription
- */
-function notifications_user_subscription_access($op, $subscription = NULL) {
+    case 'field types':
+      $fields['node:uid'] = array(
+        'title' => t('Author'),
+        'class' => 'Notifications_User_Field',
+      );
+      return $fields;
 
-}
-
-/**
- * Implementation of hook_forms()
- */
-function notifications_user_forms() {
-  $forms['notifications_user_subscription_add_form']['callback'] = 'notifications_user_subscription_form';
-  $forms['notifications_user_subscription_edit_form']['callback'] = 'notifications_user_subscription_form';
-  $forms['notifications_user_subscription_confirm_form']['callback'] = 'notifications_user_subscription_form';
-  return $forms;
-}
-
-/**
- * Generic user page for a subscription type
- */
-function notifications_user_subscription_list_page($type, $account) {
-  module_load_include('pages.inc', 'notifications_user');
-  module_load_include('manage.inc', 'notifications'); // Needed for bulk operations ?
-  return drupal_get_form('notifications_user_subscription_list_form', $type, $account);  
-}
-
-/**
- * Main Subscription form builder
- */
-function notifications_subscription_user_form(&$form_state, $subscription, $destination_path = '') {
-  module_load_include('pages.inc', 'notifications');
-  return notifications_subscription_base_form($form_state, $subscription, $destination_path);
-}
-
-/**
- * Main subscription form validate
- */
-function notifications_subscription_user_form_validate($form, &$form_state) {
-  module_load_include('pages.inc', 'notifications');
-  return notifications_subscription_base_form_validate($form, $form_state);
-}
-
-/**
- * Main subscriptions form submit
- */
-function notifications_subscription_user_form_submit($form, &$form_state) {
-  module_load_include('pages.inc', 'notifications');
-  return notifications_subscription_base_form_submit($form, $form_state);
-}
-
-
-
-/**
- * Form with multiple subscription options
- */
-function notifications_subscriptions_options_form($form_state, $subscriptions, $account = NULL, $destination = NULL, $length = 40) {
-  $account = $account ? $account : $GLOBALS['user'];
-  notifications_include('object.inc');
-  $form = notifications_object_options_form($form_state, $subscriptions);
-  // If anonymous account, add destination subform
-  if (!$account->uid) {
-    $form = notifications_subscription_destination_subform($form, $account, $destination = NULL, NULL, $length);
-  }
-  return $form;
-}
-
-/**
- * Subform with multiple subscription options
- */
-function notifications_subscriptions_options_subform($subscriptions, $buttons = TRUE) {
-  notifications_include('object.inc');
-  return notifications_object_options_subform($subscriptions, $buttons);
-}
-/**
- * Wrapper submit callback se we can do an include before actual submission
- */
-function notifications_subscriptions_options_form_submit($form, &$form_state) {
-  notifications_include('object.inc');
-  return notifications_object_options_form_submit($form, $form_state);
-}
-
-/**
- * Add destination subform
- */
-function notifications_subscription_destination_subform($form, $account, $destination = NULL, $send_methods = NULL, $length = 40) {
-  notifications_include('destination.inc');
-  $form['send_method'] = notifications_destination_address_subform($account, $destination, $send_methods, $length);
-  // Add our validate and submit callbacks first
-  $form['#validate'] = array_merge(array('notifications_subscription_destination_subform_validate'), isset($form['#validate']) ? $form['#validate'] : array());
-  $form['#submit'] = array_merge(array('notifications_subscription_destination_subform_submit'), isset($form['#submit']) ? $form['#submit'] : array());
-  return $form;
-}
-
-/**
- * Validate submitted destination
- */
-function notifications_subscription_destination_subform_validate($form, &$form_state) {
-  notifications_include('destination.inc');
-  // Get destination from form and check it is ok for an anonymous user
-  $dest = notifications_destination_parse_submitted($form_state['values'], TRUE);
-  if (!empty($dest['method']) && !empty($dest['address'])) {
-    // Set destination field so we don't validate again send method later
-    $form_state['values']['destination'] = TRUE;
-    // Set send method in case we need some more validation for the subscription
-    $form_state['values']['send_method'] = $dest['method'];
+    case 'display options':
+      // All types can be in block
+      $types['user_links'] = array(
+        '#title' => t('User links'),
+        '#description' => t('Display subscription links on user account page.'),
+      );    
+      return $types;
   }
 }
 
 /**
- * Create submitted destination
+ * Implementation of hook notifications_subscription()
  */
-function notifications_subscription_destination_subform_submit($form, &$form_state) {
-  notifications_include('destination.inc');
-  // Get destination from form and add method / destination to form values
-  $dest = notifications_destination_parse_submitted($form_state['values'], FALSE);
-  if ($destination = Messaging_Destination::create($dest)) {
-    $form_state['values']['send_method'] = $dest['method'];
-    $form_state['values']['destination'] = $destination;
-    $form_state['values']['subscription_fields'][] = 'send_method';
-    $form_state['values']['subscription_fields'][] = 'destination';
+function notifications_user_notifications_subscription($op, $subscription = NULL) {
+  switch ($op) {
+    case 'page objects':
+      $objects = array();
+      // Return objects on current page to which we can subscribe
+      if (arg(0) == 'user' && is_numeric(arg(1)) && ($user = menu_get_object('user'))) {
+        $objects[] = notifications_object('user', $user);  
+      }
+      return $objects;
+  }  
+}
+
+/**
+ * Implementation of hook_notifications_object_user()
+ */
+function notifications_user_notifications_object_user($op, $user, $account = NULL) {
+  switch ($op) {
+    case 'conditions':
+      // Condition fields for subscriptions to this object type (user)
+      return array(
+        'uid' => $user->uid,
+        'author' => $user->uid,
+      );
+    case 'subscriptions':
+      // Option subscriptions to user account. Checking permissions here will save some processing.
+      $options = array();
+      // All posts by author
+      if (!$account || user_access('subscribe to author', $account)) {
+        $options[] = notifications_subscription('content_author')
+           ->add_field('node:uid', $user->uid)
+           ->set_name(t('All posts by @name', array('@name' => $user->name)));
+      }
+      // Content types with author subscriptions
+      if (!$account || user_access('subscribe to content type', $account) && user_access('subscribe to author', $account)) {
+        foreach (notifications_content_types('content_type_author') as $type => $type_name) {
+          $options[] = notifications_subscription('content_type_author')
+            ->add_field('node:uid', $user->uid)
+            ->add_field('node:type', $type)
+            ->set_name(t('@type posts by @name', array('@name' => $user->name, '@type' => node_type_get_name($type))));
+        }
+      }
+      return $options;
   }
-  else {
-    // We should have trapped this on validation. Just in case print an error message.
-    drupal_set_message(t('Cannot create a destination for this subscription.'), 'error');
+}
+
+/**
+ * Implementation of hook_notifications_object_node()
+ */
+function notifications_user_notifications_object_node($op, $node, $account = NULL) {
+  switch ($op) {
+    case 'subscription_types':
+      return array('user_content', 'user_content_type');
+    case 'subscriptions':
+      // Return available subscription options for this node and this user account
+      $options = array();
+      $author = user_load($node->uid);
+      // Node author subscriptions
+      if (notifications_content_type_enabled($node->type, 'content_author')) {       
+        $options[] = notifications_subscription('user_content')
+          ->set_author($node->uid)
+          ->set_name(t('Posts by @name', array('@name' => $author->name)));
+      }
+      // Subscribe to content type by author
+      if (notifications_content_type_enabled($node->type, 'user_content_type')) {
+        $options[] = notifications_subscription('user_content_type')
+          ->set_node($node)
+          ->set_name(t('@type posts by @name', array('@name' => $author->name, '@type' => node_type_get_name($node))));
+      }
+      return $options;
+      break;
+  }
+}
+
+/**
+ * Implements hook_user_view().
+ */
+function notifications_user_user_view($account) {
+  $list = new Notifications_Subscription_List();
+  if (user_access('subscribe to author')) {
+    if (notifications_subscription_type('user_content', 'user_links') && notifications_subscription_type_enabled('user_content')) {
+      $list->add(notifications_subscription('user_content')
+        ->set_author($account)
+      );
+    }
+    // @todo Add here subscriptions to content type x author if enabled
+  }
+  if ($list->count()) {
+    $list->set_user($GLOBALS['user']);
+    $account->content['summary']['notifications'] =  array(
+      '#type' => 'user_profile_item',
+      '#title' => t('Subscriptions'),
+      '#markup' => theme('item_list', array('items' => $list->get_links())),
+      '#attributes' => array('class' => array('notifications')),
+    );    
   }
 }

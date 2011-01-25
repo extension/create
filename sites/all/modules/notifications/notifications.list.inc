@@ -49,7 +49,8 @@ class Notifications_Subscription_List implements Iterator {
       elseif (is_a($items, 'Notifications_Subscription')) {
         $this->add_subscription($items);
       }
-    } 
+    }
+    return $this;
   }
   /**
    * Get number of subscriptions
@@ -74,6 +75,7 @@ class Notifications_Subscription_List implements Iterator {
   function add_subscription($subscription) {
     $this->index++;
     $this->subscriptions[$this->index] = $subscription;
+    return $this;
   }
   /**
    * Get array of subscription / subscription types
@@ -232,16 +234,12 @@ class Notifications_Subscription_List implements Iterator {
         // Unsubscribe confirm form
         $form['operation'] = array('#type' => 'value', '#value' => 'unsubscribe');
         $form['subscriptions'] = $this->element_items();
-        return confirm_form($form,
+        $form = confirm_form($form,
                       t('Are you sure you want to delete these subscriptions?'),
                       variable_get('notifications_frontpage', variable_get('site_frontpage', 'node')), 
                       t('This action cannot be undone.'),
                       t('Delete all'), t('Cancel'));
         break;
-    }
-    // Set destination depending on operation, 
-    if (!isset($_REQUEST['destination'])) {
-      $form['#redirect'] = isset($destination) ? $destination : variable_get('notifications_frontpage', variable_get('site_frontpage', 'node'));
     }
     return $form;
   }
@@ -324,13 +322,14 @@ class Notifications_Subscription_List implements Iterator {
           drupal_set_message(t('The subscriptions have been updated: created @created, deleted @deleted.', array('@created' => $created, '@deleted' => $deleted)));
         }
         break;
-      case 'unsubscribe':
+      case 'unsubscribe':      
       case 'delete':
         $count = 0;
         foreach ($this->get_instances() as $subscription) {
           $subscription->delete();
           $count++;
         }
+        $form_state['redirect'] = variable_get('notifications_frontpage', '<front>');
         drupal_set_message(format_plural($count, 'A subscription has been deleted.', '@count subscriptions have been deleted.'));
         break;
     }
@@ -407,6 +406,18 @@ class Notifications_Subscription_List implements Iterator {
       '#items' => $items,
     );
   }
+  /**
+   * Filter out subscription types for a given option
+   */
+  public function filter_option($option, $value = TRUE) {
+    foreach ($this->subscriptions as $index => $subscription) {
+      if (notifications_subscription_type($subscription->type, $option) != $value) {
+        unset($this->subscriptions[$index]);
+      }
+    }
+    return $this;
+  }
+
   /**
    * Implementation of iterator interface
    */
@@ -512,7 +523,7 @@ class Notifications_Subscription_Table extends Notifications_Subscription_List {
           $value  = format_date($subs->created, 'short');
           break;
         case 'uid': // User
-          $value = theme('username', array('account' => $subs));
+          $value = theme('username', array('account' => $subs->get_user()));
           break;
         case 'operations':
           $value = $this->field_operations($subs);

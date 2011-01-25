@@ -13,6 +13,9 @@
  * Each event type can have a linked template that will be the object responsible for building the notification text
  * 
  * @see hook_notifications('event types')
+ * 
+ * Hidden variable: 'notifications_event_log', set to number of seconds for keeping all events logged for that time
+ *
  */
 class Notifications_Event extends Notifications_Entity {
   // Object unique id
@@ -31,6 +34,8 @@ class Notifications_Event extends Notifications_Entity {
   public $triggered;
   // Notifications in queue linked to this event
   public $counter = 0;
+  // Mark event as log
+  public $log = 0;
   // Objects for this event
   public $objects = array();
   // Generic content for this event. It can be nodes, comments, etc...
@@ -51,6 +56,14 @@ class Notifications_Event extends Notifications_Entity {
   protected $notifications_sent;
   // Last (biggest) sid, this message has been sent to
   protected $last_sid = 0;
+  // Stats about this event
+  public $send_start = 0; // Timestamp start sending
+  public $send_end = 0; // Timestamp end sending
+  public $send_time = 0; // Time lapse, sending time, seconds
+  public $notif_count = 0; // Counter for notifications to be sent
+  public $notif_errors = 0; // Number of sending errors
+  public $notif_sent = 0; // Number of notifications sent
+  public $notif_success = 0; // Number of messages successfully sent
   /**
    * Constructor
    */
@@ -134,7 +147,7 @@ class Notifications_Event extends Notifications_Entity {
    * 
    * The difference with create template is that this one keeps the template with the event so it can be reused
    */
-  function get_template() {
+  public function get_template() {
     if (!isset($this->template)) {
       $this->template = $this->create_template();
     }
@@ -148,10 +161,8 @@ class Notifications_Event extends Notifications_Entity {
    */
   function create_template() {
     $template_name = $this->get_type('template', 'default');
-    $class = notifications_info('message templates', $template_name, 'class', 'Notifications_Message_Template');
-    $template = new $class($this);
-    $template->set_event($this);
-    return $template;
+    return notifications_template($template_name)
+      ->set_event($this);
   }
 
   /**
@@ -213,7 +224,7 @@ class Notifications_Event extends Notifications_Entity {
    * Replaces notifications_event_trigger($event)
    */
   public function trigger() {
-    // If already been triggered, do't do it again
+    // If already been triggered, don't do it again
     if (empty($this->triggered)) {
       $this->prepare();
       $this->triggered = REQUEST_TIME;
@@ -233,7 +244,7 @@ class Notifications_Event extends Notifications_Entity {
    */
   public function prepare() {
     if (!isset($this->dispatch)) {
-      $this->dispatch = TRUE;
+      $this->dispatch = variable_get('notifications_event_dispatch', 1);
     }
     if (!isset($this->queue)) {
       $this->queue = $this->dispatch && variable_get('notifications_event_queue', 0);
@@ -267,12 +278,18 @@ class Notifications_Event extends Notifications_Entity {
     $this->sent = REQUEST_TIME;
     $this->record();
     $this->send_all();
+    $this->done();
   }
   /**
    * Create a record for the event and get unique eid
+   * 
+   * @param $update
+   *   Whether to update the row if already created.
    */
   function record($update = FALSE) {
     if (!$this->eid || $update) {
+      $this->send_time = $this->send_end - $this->send_start;
+      $this->updated = time();
       drupal_write_record('notifications_event', $this, $this->eid ? 'eid' : array());
     }
   }
@@ -294,10 +311,10 @@ class Notifications_Event extends Notifications_Entity {
   function queue() {
     // First of all, make sure we have a unique eid
     $this->queued = REQUEST_TIME;
-    $this->record();
+    $this->record(TRUE);
     // If advanced queue enabled, go for it. Otherwise, go for Drupal Queue
     if (function_exists('notifications_queue')) {
-      $this->counter = notifications_queue()->queue_event($this);
+      notifications_queue()->queue_event($this);
     }
     else {
       $queue = DrupalQueue::get('notifications_event');
@@ -305,16 +322,7 @@ class Notifications_Event extends Notifications_Entity {
     }
     
     // Modules can do cleanup operations or modify the queue or the event counter
-    $this->invoke_all('queued');
-
-    // Now update event counter with rows in notifications_queue or delete if no rows
-    if ($this->counter) {
-      $this->update_counter();
-    }
-    else {
-      $this->delete();
-      return FALSE;
-    }    
+    $this->invoke_all('queued');   
   }
 
   /**
@@ -448,16 +456,32 @@ class Notifications_Event extends Notifications_Entity {
     $limit = variable_get('notifications_batch_size', 100);
     $total_count = 0;
     while ($sids = $this->get_subscriptions($limit)) {
-      $results = $this->send_list($sids);
       $count = count($sids);
+      $results = $this->send_list($sids);
       $sent = count($results['sent']);
       $skip = count($results['skip']);
-      $success = count(array_filter($results['success']));
-      watchdog('notifications', 'Sent event @event to @count subscriptions: @success success, @errors errors, @skip skipped.', array('@event' => $this->get_title(), '@count' => $count, '@success' => $success, '@errors' => $sent - $success, '@skip' => $skip));       
+      $success = $results['success'];
+      $errors = $sent - $success;
+      watchdog('notifications', 'Sent event @event to @count subscriptions: @success success, @errors errors, @skip skipped.', array('@event' => $this->get_title(), '@count' => $count, '@success' => $success, '@errors' => $errors, '@skip' => $skip));       
       $total_count += $count;
     }
     return $total_count;
   }
+  
+  /**
+   * Processing and sending is done, log or dispose
+   */
+  public function done() {
+    // If logging enabled record data, if not just delete
+    if (variable_get('notifications_event_log', NOTIFICATIONS_EVENT_LOG)) {
+      $this->log = 1;
+      $this->record(TRUE);
+    }
+    else {
+      $this->delete();
+    }
+  }
+
   /**
    * Get subscriptions
    * 
@@ -467,7 +491,7 @@ class Notifications_Event extends Notifications_Entity {
    *   Array of subscription ids
    */
   public function get_subscriptions($limit = 0) {
-    if ($condition = $this->subscriptions_conditions()) {    
+    if ($condition = $this->subscriptions_conditions()) {  
       $query = $this->query_subscriptions()
         ->fields('s', array('sid', 'conditions'));
       $query->leftJoin('notifications_subscription_fields', 'f', 's.sid = f.sid');
@@ -495,6 +519,10 @@ class Notifications_Event extends Notifications_Entity {
    *   List of subscriptions to send to
    */
   public function send_list($sids) {
+    if (!$this->send_start) {
+      $this->send_start = time();
+    }
+    $this->notif_count += count($sids);
     $subscriptions = entity_load('notifications_subscription', $sids);
     // Template to be rendered for each user
     $template = $this->get_template();
@@ -503,28 +531,38 @@ class Notifications_Event extends Notifications_Entity {
     $results = array('skip' => array(), 'sent' => array(), 'success' => array(), 'error' => array());
     foreach ($subscriptions as $subscription) {
       $this->last_sid = $subscription->sid;
-      $destination = $subscription->get_destination();
-      // If already sent for this destination (user, method, address), move on
-      if (isset($this->notifications_sent[$destination->index()])) {
-        $results['skip'][] = $subscription->sid;
-        continue;
+      if ($destination = $subscription->get_destination()) {
+        // If already sent for this destination (user, method, address), move on
+        if (isset($this->notifications_sent[$destination->index()])) {
+          $results['skip'][] = $subscription->sid;
+          continue;
+        }
+        // Mark the event as already sent for this destination
+        $this->notifications_sent[$destination->index()] = TRUE;
       }
-      // Mark the event as already sent for this destination
-      $this->notifications_sent[$destination->index()] = TRUE;
+      else {
+        // Missing or wrong destination
+        watchdog('notifications', 'Cannot find destination or missing user for subscription @sid', array('@sid' => $subscription->sid), WATCHDOG_WARNING);
+      }
       // Check access to all objects related with this event
-      if (($user = $subscription->get_user()) && $this->user_access($user)) {
+      if ($destination && ($user = $subscription->get_user()) && $this->user_access($user)) {
+        $this->notif_sent++;
         $message->add_destination($destination, $subscription->send_method);
         $results['sent'][] = $subscription->sid;
       }
       else {
+        $this->notif_error++;
         $results['error'][] = $subscription->sid;
       }    
     }
     // This will send out all messages. It will be a bulk sending or not depending on send method
     if (!empty($results['sent'])) {
       $message->send_all();
-      $results['success'] = $message->get_results();
+      $results['results'] = $message->get_results();
+      $results['success'] = count(array_filter($results['results']));
+      $this->notif_success += $results['success'];
     }
+    $this->send_end = time();
     return $results;
   }
 }

@@ -1,7 +1,10 @@
-; $Id: messaging_template.info,v 1.1.4.2 2010/03/26 17:39:37 jareyero Exp $
-name = Text templates
-description = Configurable text templates for modules using messaging.
-package = "Messaging"
+; $Id: messaging.info,v 1.1.4.1.6.1 2010/03/16 17:09:04 jareyero Exp $
+name = Messaging template
+description = Advanced templating system for messages. Do not enable this module unless other module requires it.
+package = Messaging
+version = VERSION
+core = 7.x
 dependencies[] = messaging
-dependencies[] = token
-core = 6.x
+files[] = messaging_template.inc
+
+

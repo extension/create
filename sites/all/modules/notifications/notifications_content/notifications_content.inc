@@ -135,7 +135,7 @@ class Notifications_Comment extends Notifications_Object {
  */
 class Notifications_Node_Type extends Notifications_Drupal_Object {
   public $type = 'node_type';
-  
+    
   public function get_title() {
     return t('Content type');
   }
@@ -143,7 +143,7 @@ class Notifications_Node_Type extends Notifications_Drupal_Object {
    * Load related object or data
    */
   public static function object_load($value) {  
-    return user_load($value);
+    return node_type_get_type($value);
   }
   /**
    * Get object name, unfiltered string
@@ -165,7 +165,7 @@ class Notifications_Node_Type extends Notifications_Drupal_Object {
 class Notifications_Node_Type_Field extends Notifications_Field_Select {
   public $type = 'node:type';
   public $object_type = 'node_type';
-
+  protected $data_type = 'varchar';
   public function get_title() {
     return t('Content type');
   }
@@ -221,16 +221,24 @@ class Notifications_Node_Event_Template extends Notifications_Message_Template {
   function default_text($type, $options) {
     switch ($type) {
       case 'subject':
-        return t('Update for [node:type-name]: [node:title]', array(), $options);
+        return array(
+          '#tokens' => TRUE,
+          '#markup' => t('Update for [node:type-name]: [node:title]', array(), $options)
+        );
       case 'content':
         return array(
-          '#type' => 'messaging_text',
+          '#type' => 'messaging_template_text', '#tokens' => TRUE,
           'header' => t('Update for [node:type-name]: [node:title]', array(), $options),
           'teaser' => '[node:summary]',
-          'more' => t('Read more [node:url]', array(), $options),
+          'more' => array(
+            '#type' => 'messaging_link',
+            '#text' => t('Read more', array(), $options),
+            '#url' => '[node:url]',        
+          ),
         );
       case 'digest':
         return array(
+          '#tokens' => TRUE,
           'title' => '[node:title]',
           'more' =>t('Read more [node:url]', array(), $options),
         );
@@ -267,7 +275,10 @@ class Notifications_Node_Insert_Template extends Notifications_Node_Event_Templa
   function default_text($type, $options) {
     switch ($type) {
       case 'subject':
-        return t('New [node:type-name]: [node:title]', array(), $options);
+        return array(
+          '#tokens' => TRUE,
+          '#markup' => t('New [node:type-name]: [node:title]', array(), $options),
+        );
       default:
         return parent::default_text($type, $options);
     }
@@ -318,15 +329,20 @@ class Notifications_Node_Comment_Template extends Notifications_Node_Event_Templ
   function default_text($type, $options) {
     switch ($type) {
       case 'subject':
-        return t('Comment for [node:type-name]: [node:title]', array(), $options);
+        return array(
+          '#tokens' => TRUE,
+          '#markup' => t('Comment for [node:type-name]: [node:title]', array(), $options),
+        );
       case 'content':
         return array(
+          '#tokens' => TRUE,
           'header' => t('Comment by [comment:name]: [comment:title]', array(), $options),
           'content' => '[comment:body]',
           'footer' => t('Read more [comment-url]', array(), $options),
         );
       case 'digest':
         return array(
+          '#tokens' => TRUE,
           'title' => '[node:title]',
           'more' =>t('Read more [node:url]', array(), $options),
         );
@@ -341,31 +357,40 @@ class Notifications_Node_Comment_Template extends Notifications_Node_Event_Templ
  */
 class Notifications_Content_Node_List extends Notifications_Message_Template {
   /**
-   * Default texts for this template, may need token replacement
+   * Get node list
    */
-  function default_text($type, $options) {
-    switch ($type) {
-      case 'subject':
-        return t('Latest posts from [site:name]', array(), $options);
-      case 'content':
-        // @todo There should be a way to format this as an item list
-        $list = array(
-          '#title' => t('These are the latest posts:'),
-          '#type' => 'messaging_list',
-        );
-        foreach ($this->get_content() as $node) {
-          $list[$node->nid] = array(
-            '#type' => 'link',
-            '#title' => $node->title,
-            '#href' => 'node/' . $node->nid,
-            '#options' => array('absolute' => TRUE),
-          );
-        }
-        return $list;
-      default:
-        return parent::default_text($type, $options);
+  function node_list() {
+    return !empty($this->content) ? $this->content : array();
+  }
+  
+  /**
+   * Subject text
+   */
+  protected function text_subject($options) {
+    return array(
+      '#tokens' => TRUE,
+      '#markup' => t('Latest posts from [site:name]', array(), $options),
+    );    
+  }
+  /**
+   * Content text
+   */
+  protected function text_content($options) {
+    // @todo There should be a way to format this as an item list
+    $content['list'] = array(
+      '#title' => t('These are the latest posts:'),
+      '#type' => 'messaging_list',
+    );
+    foreach ($this->node_list() as $node) {
+      $content['list'][$node->nid] = array(
+        '#type' => 'messaging_link',
+        '#title' => $node->title,
+        '#href' => 'node/' . $node->nid,
+        '#options' => array('absolute' => TRUE),
+      );
     }
-  }  
+    return $content;    
+  }
 }
 
 /**
@@ -375,12 +400,60 @@ class Notifications_Content_Node_Teasers extends Notifications_Content_Node_List
    /**
    * Default texts for this template, may need token replacement
    */
-  function default_text($type, $options) {
-    switch ($type) {
-      case 'content':
-        return node_view_multiple($this->get_content());
-      default:
-        return parent::default_text($type, $options);
-    }
+  protected function text_content($options) {
+    return node_view_multiple($this->node_list(), 'notifications');
   } 
+}
+
+/**
+ * Template for a list of nodes, built with a View
+ * 
+ * As we cannot store a View object, because we get a serialization error (PDOException)
+ * we need to store only some parts of the view (content, title, etc...)
+ */
+class Notifications_Content_Node_View extends Notifications_Content_Node_List {
+  protected $view_name = 'notifications_content_node_list';
+  protected $view_content;
+
+  /**
+   * Set event and view name
+   */
+  public function set_event($event) {
+    parent::set_event($event);
+    // View may be set into action parameters, or we may get it from template info
+    if ($view_name = $event->get_action_context('view')) {
+      $this->view_name = $view_name;
+    }
+    elseif (isset($this->info['view'])) {
+      $this->view_name = $this->info['view'];
+    }
+    return $this;
+  }
+  /**
+   * Content text.
+   * 
+   * @todo Better way to render view
+   */
+  function text_content($options) {
+    if (!isset($this->view_content)) {
+      $view = $this->get_view();
+      // Weird: if we pass same objects, the view alters some of them, causing it to reference to PDO Object
+      // Which causes an exception if trying to serialize. So we need to unlink the view from the node after render()
+      $node_list = $this->node_list();
+      $view->result = $node_list;
+      $view->executed = TRUE;
+      $this->view_content = $view->render();
+      foreach ($node_list as $node) {
+        unset($node->view);
+      }
+    }
+    return $this->view_content;
+  }
+
+  /**
+   * Get view
+   */
+  function get_view() {
+    return views_get_view($this->view_name);
+  }
 }

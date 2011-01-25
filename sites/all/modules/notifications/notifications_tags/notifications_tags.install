@@ -1,0 +1,11 @@
+<?php
+// $Id: notifications_content.install,v 1.1.2.4.2.2.4.3 2010/04/09 01:24:43 jareyero Exp $
+
+/**
+ * Implementation of hook_install().
+ */
+function notifications_tags_install() {
+  // Set action for trigger: After saving a new term to the database
+  module_load_install('notifications_content');
+  notifications_content_install_trigger_action('taxonomy_term_insert', 'notifications_tags_term_create_action');
+}

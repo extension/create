@@ -66,13 +66,13 @@ class Notifications_Subscription extends Notifications_Entity {
   public $created;
   public $updated;
   // Name for this subscription that will be quite dependent on context
-  public $name;
+  protected $name;
   // Mark if incomplete loading of objects
-  public $incomplete;
+  protected $incomplete;
   // Mark when editable
-  public $editable;
+  protected $editable;
   // Mark when prepared to be instantiated (saved to db)
-  public $prepared;
+  protected $prepared;
   // Temporary error message, to display when validation fails
   public $error_message;
   // Subscription type. Array of field types
@@ -84,10 +84,21 @@ class Notifications_Subscription extends Notifications_Entity {
 
   /**
    * Build from db object or template.
+   * 
+   * @param $subscription
+   *   Notifications_Subscription object, or generic object
+   * @return Notifications_Subscription
+   *   Object of the right class of Notifications_Subscription
    */
-  public static function build_object($object) {
-    $class = self::type_info($object->type, 'class', 'Notifications_Subscription');
-    return new $class($object);
+  public static function build_object($subscription) {
+    if (is_object($subscription) && is_a($subscription, 'Notifications_Subscription')) {
+      return $subscription;
+    }
+    else {
+      $subscription = (object)$subscription;
+      $class = self::type_info($subscription->type, 'class', 'Notifications_Subscription');
+      return new $class($subscription);
+    }
   }
   /**
    * Build from subscription type
@@ -130,7 +141,19 @@ class Notifications_Subscription extends Notifications_Entity {
       return array();
     }
   }
-  
+  /**
+   * Load single subscription from db
+   */
+  public static function load_single($conditions, $fields = array(), $limit = FALSE) {
+    $query = self::select_subscriptions($conditions, $fields, $limit);
+    $query->range(0, 1);
+    if ($sid = $query->execute()->fetchField()) {
+      return self::load($sid);
+    }
+    else {
+      return array();
+    }
+  }  
   /**
    * Get all existing instances form the db
    */
@@ -140,7 +163,15 @@ class Notifications_Subscription extends Notifications_Entity {
     $fields = $this->get_fields(TRUE);
     return $this->load_multiple($params, $fields);
   }
-
+  /**
+   * Get single instance form the db
+   */
+  public function load_single_instance($params) {
+    $params += array('type' => $this->type);
+    // Add all the fields that have a value set (type and instance fields)
+    $fields = $this->get_fields(TRUE);
+    return $this->load_single($params, $fields);
+  }
   /**
    * Get result from last operation
    */
@@ -377,6 +408,9 @@ class Notifications_Subscription extends Notifications_Entity {
           default:
             drupal_set_message(t('Error saving the subscription.'), 'error');
         }
+        if (!empty($this->sid)) {
+          $form_state['redirect'] = 'notifications/subscription/' . $this->sid;
+        }
         break;
 
       case 'unsubscribe':
@@ -388,6 +422,7 @@ class Notifications_Subscription extends Notifications_Entity {
         else {
           drupal_set_message(t('Error deleting the subscription.'), 'error');
         }
+        $form_state['redirect'] = variable_get('notifications_frontpage', '<front>');
         break;
 
       default:
@@ -411,7 +446,6 @@ class Notifications_Subscription extends Notifications_Entity {
         break;
       case 'edit':
         $editable = TRUE;
-        $destination = 'subscription/' . $this->sid;
         break;
       case 'unsubscribe':
       case 'delete':
@@ -426,10 +460,6 @@ class Notifications_Subscription extends Notifications_Entity {
       $form = $this->form_view($operation, $form, $form_state);
     }
     $form['controls'] = $this->element_operation($operation);
-    // Set destination depending on operation, 
-    if (!isset($_REQUEST['destination'])) {
-      $form['#redirect'] = isset($destination) ? $destination : variable_get('notifications_frontpage', variable_get('site_frontpage', 'node'));
-    }
     return $form;
   }
   
@@ -716,7 +746,7 @@ class Notifications_Subscription extends Notifications_Entity {
   /**
    * Run module_invoke_all('notifications_subscription') with this object
    */
-  protected function invoke_all($op, $param = NULL) {
+  public function invoke_all($op, $param = NULL) {
     return module_invoke_all('notifications_subscription', $op, $this, $param);    
   }
   /**
@@ -781,8 +811,10 @@ class Notifications_Subscription extends Notifications_Entity {
       $query->condition('conditions', count($field_conditions));
     }
     if ($field_conditions) {
+      $count = 0;
       foreach ($field_conditions as $type => $field) {
-        $alias = $query->join('notifications_subscription_fields');
+        $alias = 'f' . $count++;
+        $query->join('notifications_subscription_fields', $alias, "s.sid = $alias.sid");
         if (is_object($field)) {
           $query->condition($field->get_query_condition($alias));
         }
@@ -996,6 +1028,29 @@ class Notifications_Subscription extends Notifications_Entity {
     }
   }
   /**
+   * Check all subscriptions values and set error message if any invalid one
+   * 
+   * @return boolean
+   *   TRUE if everything is ok
+   */
+  function check_all() {
+    if (!$this->check_account()) {
+      $this->error_message = t('Invalid user account for this subscription.');
+      return FALSE;
+    }
+    elseif (!$this->check_fields()) {
+      $this->error_message = t('Invalid field values for this subscription.');
+      return FALSE;
+    }
+    elseif (!$this->check_destination()) {
+      $this->error_message = t('The destination method or address for the subscription is not valid.');
+      return FALSE;
+    }
+    else {
+      return TRUE;
+    }
+  }
+  /**
    * Check subscription user account and related parameters
    */
   function check_account() {
@@ -1009,7 +1064,6 @@ class Notifications_Subscription extends Notifications_Entity {
       return TRUE;
     }
   }
-  
   /**
    * Check destination (user, method, address, etc...)
    */
@@ -1028,6 +1082,12 @@ class Notifications_Subscription extends Notifications_Entity {
     $account = $account ? $account : $this->get_account();
     // @todo check access to all subscription fields
     return TRUE;
+  }
+  /**
+   * Check all fields are there and they have a value
+   */
+  function check_fields() {
+    return count($this->type_fields()) === count($this->get_fields(TRUE));
   }
   /**
    * Create destination for this subscription
@@ -1051,7 +1111,8 @@ class Notifications_Subscription extends Notifications_Entity {
       $this->created = REQUEST_TIME;
     }
     $result = drupal_write_record('notifications_subscription', $this, $update ? 'sid' : array());
-    return $result && $this->save_fields($update);
+    $this->save_fields($update);
+    return $result;
   }
 
   /**
@@ -1205,12 +1266,7 @@ class Notifications_Subscription extends Notifications_Entity {
   function get_user() {
     return isset($this->uid) ? user_load($this->uid) : NULL;
   }
-  /**
-   * Check all fields are there and they have a value
-   */
-  function check_fields() {
-    return count($this->type_fields()) === count($this->get_fields(TRUE));
-  }
+
   /**
    * Set field values, all at a time from the ones coming from the subscription type.
    */
@@ -1312,8 +1368,8 @@ class Notifications_Subscription extends Notifications_Entity {
     if ($user = $this->get_user()) {
       $params+= array('uid' => $user->uid);
     }
-    if ($instances = $this->load_instances($params)) {
-      return reset($instances);
+    if ($instance = $this->load_single_instance($params)) {
+      return $instance;
     }
     else {
       return $return_self ? $this : FALSE;
@@ -1592,5 +1648,17 @@ class Notifications_Subscription_Multiple extends Notifications_Subscription {
    */
   function check_fields() {
     return count($this->type_fields()) <= count($this->get_fields(TRUE));
+  }
+}
+
+/**
+ * Subscription without fields
+ */
+class Notifications_Subscription_NoFields extends Notifications_Subscription {
+   /**
+   * Return a simple subscription type condition
+   */
+  function event_conditions($event) {
+    return db_and()->condition('s.type', $this->type);
   }
 }

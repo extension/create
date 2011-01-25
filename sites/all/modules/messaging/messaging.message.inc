@@ -190,17 +190,29 @@ class Messaging_Message {
    * Set message template
    */
   function set_template($template) {
-    $this->template = $template;
+    $this->template['default'] = $template;
   }
   /**
-   * Get message template
+   * Get message template for current method
    */
   function get_template() {
-    if (!isset($this->template)) {
-      // We don't have a template yet, create one
-      $this->template = new Messaging_Message_Template();
+    if (empty($this->method)) {
+      return $this->default_template();
     }
-    return $this->template;
+    elseif (!isset($this->template[$this->method])) {
+      $this->render();
+    }
+    return $this->template[$this->method];
+  }
+  /**
+   * Get default message template
+   */
+  protected function default_template() {
+    if (!isset($this->template['default'])) {
+      // We don't have a template yet, create one
+      $this->template['default'] = new Messaging_Message_Text();
+    }
+    return $this->template['default'];
   }
   /**
    * Set user, if the message is intended for a single user try to find suitable method
@@ -317,19 +329,19 @@ class Messaging_Message {
    * Get rendered subject
    */
   function get_subject() {
-    return $this->get_text()->render(array('subject'));
+    return $this->get_template()->render('subject');
   }
   /**
    * Get rendered body
    */
   function get_body() {
-    return $this->get_text()->render(array('header', 'content', 'footer'));
+    return $this->get_template()->render('body');
   }
   /**
    * Get message content rendered
    */
   function get_content() {
-    return $this->get_text()->render(array('content'));
+    return $this->get_template()->render('content');
   }
   /**
    * Get language object
@@ -343,13 +355,10 @@ class Messaging_Message {
     }
   }
   /**
-   * Get template text
+   * Get template text, prepared for this method
    */
   function get_text() {
-    if (!isset($this->text[$this->method])) {
-      $this->render();
-    }
-    return $this->text[$this->method];
+    return $this->get_template();
   }
   /**
    * Get message files
@@ -408,7 +417,8 @@ class Messaging_Message {
    * Render through sending method
    */
   protected function do_render() {
-    $this->text[$this->method] = $this->send_method()->message_render($this);
+    $this->template[$this->method] = clone $this->default_template();
+    $this->send_method()->message_render($this);
     return TRUE;
   }
 
@@ -728,7 +738,7 @@ class Messaging_Message {
       case 'header':
       case 'footer':
         // Add text elements the right way
-        $this->get_template()->add_item($name, $value);
+        $this->get_template()->add_element($name, $value);
     }
   }
   // Magic function, format as string
@@ -744,3 +754,4 @@ class Messaging_Message {
     return 'Message: ' . implode(' ', $text);
   }
 }
+

@@ -39,7 +39,7 @@ class Messaging_Mail_Method extends Messaging_Send_Method {
   function render_body($text) {
     $body = array();
     foreach (element_children($text) as $key) {
-      $body[$key] = drupal_render($text[$key], array('#type' => 'messaging_text', '#separator' => "\n"));
+      $body[$key] = drupal_render($text[$key]);
     }
     return $body;
   }
@@ -107,7 +107,7 @@ class Messaging_Mail_Method extends Messaging_Send_Method {
       'language' => $message->get_language(),
       'params'   => $params,
       'subject'  => $message->get_subject(),
-      'body'     => $this->render_body($message->get_text()->build_body()),
+      'body'     => $this->render_body($message->get_template()->build('body')),
       'attachments' => $message->get_files(),
     );
   

@@ -1,0 +1,157 @@
+<?php
+// $Id: atom.module,v 1.49 2010/09/11 03:53:52 deekayen Exp $
+
+/**
+ * @file
+ * Provides an Atom 1.0 feed.
+ *
+ * @author David Kent Norman
+ * @link http://deekayen.net/
+ * @author Kristjan Jansen
+ * @link http://kika.trip.ee/
+ */
+
+/**
+ * Implements hook_permission().
+ */
+function atom_permission() {
+  return array(
+    'administer atom' => array(
+      'title' => t('Administer Atom feeds and settings'),
+      'description' => t('Set the number of items to display and the amount of each to show.'),
+    )
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function atom_menu() {
+  $items['atom.xml'] = array(
+    'page callback' => 'atom_feed',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'file' => 'atom.pages.inc',
+  );
+  $items['node/%node/atom.xml'] = array(
+    'page callback' => 'atom_node_feed',
+    'page arguments' => array(1),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+    'file' => 'atom.pages.inc',
+  );
+  if (module_exists('blog')) {
+    $items['blog/atom.xml'] = array(
+      'page callback' => 'atom_blog_feed',
+      'access arguments' => array('access content'),
+      'type' => MENU_CALLBACK,
+      'file' => 'atom.pages.inc',
+    );
+    $items['blog/%user/atom.xml'] = array(
+      'page callback' => 'atom_user_blog_feed',
+      'page arguments' => array(1),
+      'access arguments' => array('access content'),
+      'type' => MENU_CALLBACK,
+      'file' => 'atom.pages.inc',
+    );
+  }
+  if (module_exists('taxonomy')) {
+    $items['taxonomy/term/%taxonomy_term/atom.xml'] = array(
+      'page callback' => 'atom_taxonomy_feed',
+      'page arguments' => array(2),
+      'access arguments' => array('access content'),
+      'type' => MENU_CALLBACK,
+      'file' => 'atom.pages.inc',
+    );
+  }
+  $items['admin/config/services/atom'] = array(
+    'title' => 'Atom publishing',
+    'description' => 'Configure the number of items per feed and whether feeds should be teasers and/or full-text.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('atom_settings_form'),
+    'access arguments' => array('administer atom'),
+    'file' => 'atom.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_init().
+ */
+function atom_init() {
+  if (variable_get('site_offline', 0) || !user_access('access content')) {
+    return;
+  }
+
+  $link = FALSE;
+  if (preg_match('%^blog/\d+$%', $_GET['q'])) {
+    $link = 'blog/' . arg(1) . '/atom.xml';
+  }
+  elseif (preg_match('%^node/\d+$%', $_GET['q'])) {
+    $node = node_load(arg(1));
+    if ($node && node_access('view', $node)) {
+      $link = 'node/' . $node->nid . '/atom.xml';
+    }
+  }
+  elseif (preg_match('%^taxonomy/term/\d+$%', $_GET['q'])) {
+    $link = 'taxonomy/term/' . arg(2) . '/atom.xml';
+  }
+  elseif ($_GET['q'] == 'blog') {
+    $link = 'blog/atom.xml';
+  }
+  elseif (drupal_is_front_page() || $_GET['q'] == 'node') {
+    $link = 'atom.xml';
+  }
+
+  if ($link) {
+    drupal_add_html_head_link(array(
+      'rel' => 'alternate',
+      'type' => 'application/atom+xml',
+      'title' => t('!site_name Atom', array('!site_name' => variable_get('site_name', 'Drupal'))),
+      'href' => url($link, array('absolute' => TRUE)),
+    ));
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function atom_theme() {
+  return array(
+    'atom_feed_item' => array(
+      'variables' => array(
+        'title' => NULL,
+        'link' => NULL,
+        'item' => NULL,
+        'extra' => array(),
+      ),
+      'file' => 'atom.pages.inc',
+    ),
+    'atom_feed' => array(
+      'variables' => array(
+        'feed_info' => array(),
+        'items' => '',
+      ),
+      'file' => 'atom.pages.inc',
+    ),
+  );
+}
+
+/**
+ * Load contrib module element handlers.
+ */
+function _atom_contrib_load() {
+  static $loaded = FALSE;
+  if (!$loaded) {
+    // Load all atom contrib module elements handlers from ./contrib
+    $path = drupal_get_path('module', 'atom') . '/contrib';
+    $files = drupal_system_listing('/.*/\.inc$/', $path, 'name', 0);
+    foreach ($files as $file) {
+      require_once DRUPAL_ROOT . "/$file->filename";
+    }
+    // Rebuild cache.
+    module_implements('', FALSE, TRUE);
+  }
+  $loaded = TRUE;
+}

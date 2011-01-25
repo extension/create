@@ -197,7 +197,7 @@ function notifications_subscription_base_form($form_state, $subscription, $desti
   }
   
   // Check the subscription object is built properly
-  $subscription = notifications_build_subscription($subscription);
+  $subscription = notifications_subscription_build($subscription);
   // Pass on whole subscription and then the fields to be saved along
   $form['subscription'] = array('#type' => 'value', '#value' => $subscription);
   $account = $subscription->get_user();
@@ -342,7 +342,7 @@ function notifications_submit_subscription($subscription) {
     $subscription->set_account($user);
   }
   // Check some parameters are ok (checking fills in some missing values too)
-  if (!notifications_check_subscription($subscription)) {
+  if (!$subscription->check_all()) {
     drupal_set_message($subscription->error_message, 'error');
     return FALSE;
   }
@@ -394,7 +394,7 @@ function notifications_multiple_delete_confirm(&$form_state, $items, $destinatio
     // array_filter returns only elements with TRUE values
     foreach ($items as $id => $value) {
       // Load the subscription to display a friendly name
-      $subscription = notifications_load_subscription($id);
+      $subscription = notifications_subscription_load($id);
       $form['items'][$id] = array(
         '#type' => 'hidden',
         '#value' => $id,

@@ -1,8 +1,0 @@
-; $Id: messaging.info,v 1.1.4.1.6.1 2010/03/16 17:09:04 jareyero Exp $
-name = Messaging destinations
-description = Management utilities for messaging destinations, anonymous address, etc
-package = Messaging
-version = VERSION
-core = 7.x
-
-
