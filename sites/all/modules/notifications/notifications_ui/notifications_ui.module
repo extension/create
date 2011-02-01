@@ -10,7 +10,7 @@
  */
 function notifications_ui_help($path, $arg) {
   switch ($path) {
-    case 'admin/messaging/notifications/ui':
+    case 'admin/config/messaging/subscriptions/ui':
       $output = '<p>' . t('These are UI settings only and will define which options will be visible for end users and how they\'ll be displayed. Which options will be finally available will be determined by:'); 
       $output .= '<ol>';
       $output .= '<li>' . t('Enabled subscription types on the other Notifications settings pages') . '</li>';
@@ -25,7 +25,7 @@ function notifications_ui_help($path, $arg) {
  * Implementation of hook_menu()
  */
 function notifications_ui_menu() {
-  $items['admin/config/notifications/subscriptions/ui'] = array(
+  $items['admin/config/messaging/subscriptions/ui'] = array(
     'title' => 'User interface',
     'description' => 'Enables site settings for user subscriptions.',
     'page callback' => 'drupal_get_form',
@@ -80,6 +80,21 @@ function notifications_ui_access_page($type, $account) {
   if (notifications_access_user($account) && notifications_ui_type_enabled($type) && notifications_ui_user_options('page')) {    
     // Check specifics for this subscription type
     return notifications_subscription($type)->user_access($account);
+  }
+}
+
+/**
+ * Implements hook_notifications()
+ */
+function notifications_ui_notifications($op) {
+  switch ($op) {
+    case 'display options':
+    // All types can be in block
+    $types['subscriptions_block'] = array(
+      '#title' => t('Subscriptions block'),
+      '#description' => t('Display links or checkboxes on subscriptions block.'),
+    );
+    return $types;
   }
 }
 
@@ -236,15 +251,28 @@ function notifications_ui_object_subscriptions($type, $object) {
  */
 function notifications_ui_block_info() {
   // This example comes from node.module.
-  $blocks['links'] = array(
-    'info' => t('Subscription links'),
-    'cache' => DRUPAL_NO_CACHE
-  );
-  $blocks['checkboxes'] = array(
-    'info' => t('Subscription checkboxes'),
+  $blocks['subscriptions'] = array(
+    'info' => t('Page subscriptions'),
     'cache' => DRUPAL_NO_CACHE
   );
   return $blocks;
+}
+
+/**
+ * Implements block_configure
+ */
+function notifications_ui_block_configure($delta = '') {
+  // This example comes from node.module.
+  $form = array();
+  if ($delta == 'subscriptions') {
+    $form['notifications_ui_block_display'] = array(
+      '#type' => 'radios', 
+      '#title' => t('Subscription display'), 
+      '#default_value' => variable_get('notifications_ui_block_display', 'links'), 
+      '#options' => array('links' => t('Links'), 'checkboxes' => t('Checkboxes')),
+    );
+  }
+  return $form;
 }
 
 /**
@@ -255,41 +283,24 @@ function notifications_ui_block_view($delta = '') {
   // renderable array rather than rendered HTML for 'content'.
   $block = array();
   switch ($delta) {
-    case 'links':
-      if ($links = notifications_subscription_list('page subscriptions')->get_links()) {
+    case 'subscriptions':
+      $list = notifications_subscription_list('page subscriptions')
+        ->filter_option('subscriptions_block');
+      if ($list->count()) {
         $block['subject'] = t('Subscriptions');
-        $block['content'] = theme('item_list', array('items' => $links));
+        $display = variable_get('notifications_ui_block_display', 'links');
+        if ($display == 'links') {
+          $block['content'] = theme('item_list', array('items' => $list->get_links()));
+        }
+        elseif ($display == 'checkboxes') {
+          $block['content'] = drupal_get_form('notifications_subscription_list_form', 'checkboxes', $list);
+        }
       }
-      break;
-    case 'checkboxes':
-      if (($subscriptions = notifications_subscription_list('page subscriptions')) && $subscriptions->count()) {
-        $block['subject'] = t('Subscriptions');
-        $block['content'] = drupal_get_form('notifications_subscription_list_form', 'checkboxes', $subscriptions);
-      }
-      break;
-      
+      break; 
   }
   return $block;
 }
 
-/**
- * Implementation of hook node_type
- */
-function notifications_ui_node_type($op, $info) {
-  if ($op == 'delete') {
-    // Remove settings for this node type
-    variable_del('notifications_node_ui_'. $info->type);
-  }
-}
-
-/**
- * Find subscriptions options for this node
- */
-function notifications_ui_node_subscriptions($node, $display) {
-  if (notifications_ui_user_access() && notifications_ui_node_options($node->type, $display)) {
-    return notifications_ui_object_subscriptions('node', $node);
-  }
-}
 
 /**
  * Get settings value for content types

@@ -2,6 +2,43 @@
 // $Id: notifications.install,v 1.4.2.5.2.6.2.2.4.9 2010/06/01 11:00:12 jareyero Exp $
 
 /**
+ * Test and report Drupal installation requirements.
+ *
+ * @param $phase
+ *   The current system installation phase.
+ * @return
+ *   An array of system requirements.
+ */
+function notifications_requirements($phase) {
+  global $base_url;
+  $requirements = array();
+  // Ensure translations don't break at install time
+  $t = get_t();
+
+  if ($phase == 'runtime') {
+    if ($disabled = !variable_get('notifications_event_dispatch', TRUE)) {
+      $message[] = $t('Notifications are disabled so no new notifications will be sent.');
+    }
+    $values[] = $disabled ? t('Disabled.') : t('Enabled.');
+    $queued = DrupalQueue::get('notifications_event')->numberOfItems();
+    $message[] = format_plural($queued, 'There is one notification event in queue.', 'There are @count notification events in queue.');
+    $values[] = $t('@count queued.', array('@count' => $queued));
+    $sent_last = db_query('SELECT MAX(send_end) FROM {notifications_event} WHERE notif_success > 0')->fetchField();
+    $sent_ago =  REQUEST_TIME - $sent_last;
+    $message[] = $sent_last ? t('Last successful notification was sent !time ago.', array('!time' => format_interval($sent_ago))) : t('No successful notifications have been sent.');
+    $message[] = t('View full <a href="@dblog">notifications logs</a>.', array('@dblog' => url('admin/reports/dblog')));
+    $values[] = t('Last: !date', array('!date' => $sent_last ? format_date($sent_last, 'long') : t('never')));
+    $requirements['notifications'] = array(
+      'title' => $t('Notifications status'),
+      'value' =>  implode(' ', $values),
+      'description' => implode(' ', $message),
+      'severity' => (!$disabled && $sent_ago <= variable_get('notifications_last_sent_warning', 86400)) ? REQUIREMENT_OK : REQUIREMENT_WARNING, // $sent_last ? REQUIREMENT_OK : REQUIREMENT_WARNING,
+    );
+  }
+  return $requirements;
+}
+
+/**
  * Implementation of hook_schema()
  */
 function notifications_schema() {
@@ -126,6 +163,38 @@ function notifications_schema() {
         'description' => 'Keeps a count of the notifications queued for this event.',
         'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '11'
       ),
+      'send_start' => array(
+        'description' => 'Unix timestamp, when sending started.',
+        'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '11'
+      ),
+      'send_end' => array(
+        'description' => 'Unix timestamp, when sending finished.',
+        'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '11'
+      ),
+      'send_time' => array(
+        'description' => 'Time lapse, sending time, seconds.',
+        'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '11'
+      ),
+      'notif_count' => array(
+        'description' => 'Counter for notifications to be sent.',
+        'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '11'
+      ),
+      'notif_errors' => array(
+        'description' => 'Number of sending errors.',
+        'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '11'
+      ),
+      'notif_sent' => array(
+        'description' => 'Number of notifications actually sent.',
+        'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '11'
+      ),
+      'notif_success' => array(
+        'description' => 'Number of messages sent successfully.',
+        'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '11'
+      ),
+      'log' => array(
+        'description' => 'Mark rows that are just logs, to be deleted.',
+        'type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'disp-width' => '11'
+      ),
       'data' => array(
         'type' => 'blob',
         'not null' => FALSE,
@@ -146,6 +215,15 @@ function notifications_schema() {
 function notifications_uninstall() {
   foreach (array('event_enabled', 'send_intervals', 'sender', 'sendself', 'send_immediate') as $name) {
     variable_del("notifications_$name");
+  }
+}
+
+/**
+ * Update schema: add stats fields for events
+ */
+function notifications_update_7001() {
+  foreach (array('send_start', 'send_end', 'send_time', 'notif_count', 'notif_errors', 'notif_sent', 'notif_success', 'log') as $field) {
+    db_add_field('notifications_event', $field, array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0));
   }
 }
 

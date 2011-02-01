@@ -35,10 +35,10 @@ class Messaging_Simple extends Messaging_Object {
     $store->sender = $message->get_sender('uid');
     $store->language = $message->get_language()->language;
     // Build message subject and content, may do token replacement
-    $template = $message->get_text();
-    $template->set_user($user);
-    $store->subject = $template->get_subject();
-    $store->body = $template->render(array('content'));
+    $template = $message->get_template();
+    // As this is to be displayed on site we don't need greetings nor footer
+    $store->subject = $template->render('subject');
+    $store->body = $template->render('content');
     return $store;
   }
   /**

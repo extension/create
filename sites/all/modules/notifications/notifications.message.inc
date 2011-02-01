@@ -136,7 +136,7 @@ class Notifications_Message extends Messaging_Message {
     );
     // We pass only the first subscription, which is at least something
     // @ TODO Handle nicely the case where there are more than one subscription
-    $subscription = $subscriptions ? notifications_load_subscription(current($subscriptions)) : NULL;
+    $subscription = $subscriptions ? notifications_subscription_load(current($subscriptions)) : NULL;
     $objects = array('destination' => $destination, 'user' => $account, 'event' => $event, 'subscription' => $subscription);
     $objects = array_merge($objects, $event->get_objects());
     $text = messaging_template_text_replace($parts, $objects, $language);

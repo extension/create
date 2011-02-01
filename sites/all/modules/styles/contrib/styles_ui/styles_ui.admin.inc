@@ -1,5 +1,5 @@
 <?php
-// $Id: styles_ui.admin.inc,v 1.1.2.8.2.13 2010/10/26 19:10:18 aaron Exp $
+// $Id: styles_ui.admin.inc,v 1.1.2.8.2.18 2011/01/18 22:50:33 aaron Exp $
 
 /**
  *  @file
@@ -27,8 +27,17 @@ function styles_ui_containers_overview($field_type) {
     $row = array(l(t('@style', array('@style' => $style_name)), $edit_path));
 
     // Add our ops.
-    $row[] = array('data' => l(t('edit'), $edit_path));
-    $row[] = array('data' => l(t('delete'), $field_containers['admin']['path'] . '/delete/' . $style_name));
+    if ($style['storage'] == STYLES_STORAGE_NORMAL) {
+      $row[] = array('data' => l(t('edit'), $edit_path));
+      $row[] = array('data' => l(t('delete'), $field_containers['admin']['path'] . '/delete/' . $style_name));
+    }
+    else if ($style['storage'] == STYLES_STORAGE_OVERRIDE) {
+      $row[] = array('data' => l(t('edit'), $edit_path));
+      $row[] = array('data' => l(t('revert'), $field_containers['admin']['path'] . '/revert/' . $style_name));
+    }
+    else {
+      $row[] = array('data' => l(t('edit'), $edit_path), 'colspan' => 2);
+    }
     $rows[] = $row;
   }
 
@@ -134,6 +143,45 @@ function styles_ui_style_edit_form($form, $form_state, $field_type, $style_name)
     '#description' => t('The description of the style.'),
     '#default_value' => $style['description'],
   );
+
+  $form['containers'] = array(
+    '#type' => 'vertical_tabs',
+    '#tree' => TRUE,
+  );
+  $containers = styles_default_containers($field_type);
+  $presets = styles_default_presets($field_type);
+  foreach ($containers['containers'] as $container_name => $container) {
+    $style = $presets['containers'][$container_name]['styles'][$style_name];
+    $container_label = isset($container['label']) ? $container['label'] : $container_name;
+    $form['containers'][$container_name] = array(
+      '#type' => 'fieldset',
+      '#title' => t('@container', array('@container' => $container_label)),
+    );
+    $options = array();
+    foreach ($presets['containers'][$container_name]['presets'] as $preset_name => $preset) {
+      $options[$preset_name] = t('@preset', array('@preset' => $preset_name));
+    }
+    $default_value = isset($presets['containers'][$container_name]['styles'][$style_name]['preset']) ? $presets['containers'][$container_name]['styles'][$style_name]['preset'] : (isset($presets['containers'][$container_name]['styles'][$style_name]['default preset']) ? $presets['containers'][$container_name]['styles'][$style_name]['default preset'] : $presets['containers'][$container_name]['default preset']);
+    $form['containers'][$container_name]['preset'] = array(
+      '#type' => 'select',
+      '#title' => t('Preset'),
+      '#options' => $options,
+      '#default_value' => $default_value,
+    );
+    $form['containers'][$container_name]['default_preset'] = array(
+      '#type' => 'item',
+      '#title' => t('Default preset'),
+      '#markup' => t('%preset', array('%preset' => $style['default preset'])),
+    );
+    if (isset($container['preview'])) {
+      $form['containers'][$container_name]['preview'] = array(
+        '#type' => 'item',
+        '#title' => t('Preview'),
+        '#markup' => theme($container['preview'], array('style_name' => $style_name)),
+      );
+    }
+  }
+
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save'),
@@ -233,11 +281,19 @@ function styles_ui_style_edit_form_submit(&$form, &$form_state) {
   styles_style_save($style);
 
   // Get the containers for this field type.
-  $styles_containers = styles_default_containers();
-  $field_containers = $styles_containers[$field_type];
+  $styles = styles_default_presets($field_type);
+  $containers = styles_default_containers($field_type);
+
+  foreach ($form_state['values']['containers'] as $container_name => $container) {
+    if (is_array($container)) {
+      $default_preset = isset($styles['containers'][$container_name]['styles'][$style_name]['default preset']) ? $styles['containers'][$container_name]['styles'][$style_name]['default preset'] : $styles['containers'][$container_name]['default preset'];
+      $delete_only = ($default_preset == $container['preset']);
+      styles_style_save_preset($field_type, $container_name, $style_name, $container['preset'], $delete_only);
+    }
+  }
 
   // Redirect to this style's edit page.
-  $form_state['redirect'] = $field_containers['admin']['path'] . '/edit/' . $style_name;
+  $form_state['redirect'] = $containers['admin']['path'] . '/edit/' . $style_name;
 }
 
 function styles_ui_preview_ajax($field_type, $container_name, $preset_name) {

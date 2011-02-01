@@ -5,133 +5,86 @@
  *   User pages for User Interface for subscriptions modules
  */
 
-
-/**
- * Allowed options for content types
- */
-function _notifications_ui_node_options() {
-  return array(
-    'form' => t('<strong>In node form</strong>. A subscriptions subform will be available when creating or editing nodes.'),
-    'comment' => t('<strong>In comment form</strong>. A subscriptions subform will be available when posting comments.'),
-    'links' => t('<strong>Full node links</strong>. Subscription links will be displayed for full node pages.'),
-    'teaserlinks' => t('<strong>Teaser node links</strong>. Subscription links will be displayed for node teasers.'),
-    'subform' => t('<strong>Form on node pages</strong>. A collapsible subscriptions form will be displayed for full node pages.'),    
-    'block' => t('<strong>In block</strong>. Options will be displayed on the Subscriptions block when viewing a node.'),
-  );
-}
-
-/**
- * Allowed options for user accounts
- */
-function _notifications_ui_account_options() {
-  return array(
-    //'form' => t('Subform on user account tab'),
-    'links' => t('Links on user account tab'),
-    'block' => t('Display in block'),
-  );
-}
-
 /**
  *  Site-wide settings form.
  */
 function notifications_ui_settings_form() {
-  // Enable / disable for subscription types
+  // Display enabled subscription types
+  $subscription_types = array();
+  foreach (notifications_subscription_type_enabled() as $type) {
+    $subscription_types[] = array(
+      array('data' => notifications_subscription_type($type, 'title'), 'header' => TRUE), 
+      notifications_subscription_type($type, 'description')
+    );
+  }
   $form['notifications_ui_types'] = array(
-    '#type' => 'checkboxes',
-    '#title' => t('Visible subscription types'),
-    '#options' => array_map('notifications_format_title_description', notifications_subscription_enabled_types()),
-    '#default_value' => variable_get('notifications_ui_types', array('thread', 'nodetype', 'author')),
-    '#description' => t('Check the subscription types the UI module should show. If not checked no options for this subscription type will be displayed at all.'),
-  );
-  // UI elements on user account pages
-  $form['users'] = array(
-    '#title' => t('User account pages'),
-    '#type' => 'fieldset',    
-    '#collapsible' => TRUE,
-    '#description' => t('Check elements to display on user account pages'),
-  );
-  $form['users']['notifications_ui_user_options'] = array(
-    '#type' => 'checkboxes',
-    '#title' => t('Manage own subscriptions'),
-    '#default_value' => notifications_ui_user_options(),
-    '#options' => array(
-      'page' => t('<strong>Tab</strong>. A full tab for some subscription types will be displayed for each enabled subscription type when available.'),
-      'create' => t('<strong>Create</strong>. A create link and a custom page for adding subscriptions will be available for each enabled subscription type.'), 
-    ),
-    '#description' => t('Check elements to display on user account tabs for site users to manage their own subscriptions'),  
-  );
-  $form['users']['notifications_ui_account_options'] = array(
-    '#title' => t('Subscribe to other users'),
-    '#type' => 'checkboxes',
-    '#default_value' => variable_get('notifications_ui_account_options', array('links', 'block')),
-    '#options' => _notifications_ui_account_options(),
-    '#description' => t('Check elements to display on user account tabs for other users to subscribe to them'),     
+    '#type' => 'item',
+    '#title' => t('Enabled subscription types'),
+    '#markup' => theme('table', array('rows' => $subscription_types)),
+    '#description' => t('Only options for enabled subscription types will be displayed. To enable or disable more subscription types go to <a href="@subscription-options">Subscription Options</a>.', array('@subscription-options' => url('admin/config/messaging/subscriptions'))),
   );
 
-  // Several options to subscribe to content  
-  $form['content'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Subscribe to content'),
-    '#collapsible' => TRUE,
-    '#description' => t('You can use the global settings here or set different options for each content type. On this second case these will be the defaults for new content types.'),  
-  );
-  $form['content']['notifications_ui_per_type'] = array(
-    '#type' => 'radios',
-    '#default_value' => variable_get('notifications_ui_per_type', 0),
-    '#options' => array(
-      t('Use global settings on this page for all content types'),
-      t('Set up for each content type on <a href="@content-type-settings">Administer Content Types</a>.', array('@content-type-settings' => url('admin/content/types'))),
+  // Widget options for each subscription type  
+  $form['notifications_ui_options'] = array(
+    '#type' => 'vertical_tabs',
+    '#title' => t('Subscription widgets'),
+  /*
+    '#attached' => array(
+      'js' => array(drupal_get_path('module', 'node') . '/content_types.js'),
     ),
-  );  
-  $form['content']['notifications_ui_node_options'] = array(
-    '#type' => 'checkboxes',
-    '#title' => t('Global settings'),
-    '#default_value' => variable_get('notifications_ui_node_options', array('links', 'block')),
-    '#options' => _notifications_ui_node_options(),
-    '#description' => t('Check elements to display on each node for users to subscribe / unsubscribe.'),
-       
-  );  
-  return system_settings_form($form);
+    */
+  );
+  // Collect all subscription options, some of them will be 'display options'
+  $subscription_options = notifications_info('display options');
+  foreach (notifications_subscription_type() as $type => $info) {
+    // We need to collect options that are display options for each type
+    $widgets = array('subscriptions_block');
+    if (!empty($info['display_options'])) {
+      $widgets = array_unique(array_merge($widgets, $info['display_options']));
+    }
+    $form[$type] = array(
+      '#type' => 'fieldset',
+      '#title' => $info['title'],
+      '#description' => $info['description'],
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#group' => 'notifications_ui_options',
+      '#tree' => TRUE,
+    );
+    $options = array();
+    foreach ($widgets as $index) {
+      if (isset($subscription_options[$index])) {
+         $form[$type][$index] = $subscription_options[$index] + array(
+          '#type' => 'checkbox',
+          '#default_value' => !empty($info[$index]),
+        );
+      }
+    }
+  }
+  $form['buttons']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save configuration'),
+  );
+  return $form;
 }
 
 /**
- * Format subscription type settings
+ * Submit display options
  */
-function theme_notifications_subscription_enabled_types(&$elements) {
-  $output = '';
-  $header = array('', t('Enabled'), t('Show user account page'), t('Show create subscription page'));
-  $rows = array();
-  foreach (element_children($elements) as $key) {
-    $rows[] = array(
-      drupal_render($elements[$key]['title']),
-      drupal_render($elements[$key]['enabled']),
-      drupal_render($elements[$key]['page']),
-      drupal_render($elements[$key]['create']),
-    );
+function notifications_ui_settings_form_submit(&$form, &$form_state) {
+  $options = array();
+  foreach (notifications_subscription_type() as $type => $info) {
+    foreach ($form_state['values'][$type] as $display => $value) {
+     $options[$display][$type] = $value;
+    }
   }
-  $output .= theme('table', array('header' => $header, 'rows' =>$rows));
-  $output .= drupal_render($elements);
-  return $output;
+  foreach ($options as $display => $values) {
+    notifications_option_array_set('subscription_types', $display, $values);
+  }
+  // This can affect menus so
+  menu_rebuild();
 }
 
-function theme_notifications_ui_content_types(&$elements) {
-  $output = '';
-  $options = _notifications_ui_node_type_options();
-  $header = array_merge(array(''), array_values($options));
-  $rows = array();
-  foreach (element_children($elements) as $key) {
-    $row = array($elements[$key]['#title']);
-    unset($elements[$key]['#title']);
-    foreach (array_keys($options) as $index) {
-      unset($elements[$key][$index]['#title']);
-      $row[] = drupal_render($elements[$key][$index]);
-    }
-    $rows[] = $row;
-  }
-  $output .= theme('table', array('header' => $header, 'rows' =>$rows));
-  $output .= drupal_render($elements);
-  return $output;
-}
 
 /**
  * Display the list of available subscription types for creation

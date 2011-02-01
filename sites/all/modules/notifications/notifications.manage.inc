@@ -307,7 +307,7 @@ function notifications_manage_subscriptions_mass_update($subscriptions, $updates
 }
 
 function _notifications_manage_subscriptions_mass_update_helper($sid, $updates) {
-  $subs = notifications_load_subscription($sid);
+  $subs = notifications_subscription_load($sid);
   foreach ($updates as $name => $value) {
     $subs->$name = $value;
   }

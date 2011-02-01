@@ -15,6 +15,8 @@
 define('MESSAGING_FORMAT_PLAIN', 0);
 // Format as html. Note it evaluates to true
 define('MESSAGING_FORMAT_HTML', 1);
+// Default messaging format, will be plaintext. Add a variable?
+define('MESSAGING_FORMAT', MESSAGING_FORMAT_PLAIN);
 
 // Special string for empty text part
 define('MESSAGING_EMPTY', '<none>');
@@ -133,7 +135,7 @@ function messaging_help($path, $arg) {
  */
 function messaging_menu() {
   $items['admin/config/messaging'] = array(
-    'title' => 'Messaging',
+    'title' => 'Messaging & Notifications',
     'description' => 'Administer and configure messaging',
     'page callback' => 'system_admin_menu_block_page',
     'access arguments' => array('access administration pages'),
@@ -463,16 +465,6 @@ function messaging_messaging($op, $type = NULL) {
 }
 
 /**
- * Implements hook_messaging_destination().
- */
-function messaging_messaging_destination($op, $destination) {
-  switch ($op) {
-    case 'tokens':
-      return array('[user:name]' => $destination->get_user()->name);
-  }
-}
-
-/**
  * Entry point for the storage and queueing API
  * 
  * Default methods are implemented by Messaging_Store class
@@ -533,67 +525,13 @@ function messaging_check_object($object, $class, $create = FALSE) {
 }
 
 /**
- * Implementation of hook_element_info()
- */
-function messaging_element_info() {
-  $types['messaging_message'] = array(
-    '#theme' => 'messaging_message',
-  );
-  $types['messaging_subject'] = array(
-    '#markup' => '',
-    '#separator' => ' ',
-    '#theme' => 'messaging_subject',
-    '#pre_render' => array('drupal_pre_render_markup'),
-  );
-  $types['messaging_body'] = array(
-    '#separator' => "<br/>",
-    '#theme' => 'messaging_body',
-  );
-  $types['messaging_text'] = array(
-    '#separator' => "<br/>",
-    '#theme' => 'messaging_text',
-    '#markup' => '',
-    '#pre_render' => array('drupal_pre_render_markup'),
-  );
-  $types['messaging_break'] = array(
-    '#markup' => '<br/>',
-  );
-  $types['messaging_list'] = array(
-    '#title' => '',
-    '#separator' => "\n", // This won't harm html formatting
-    '#list_prefix' => '<ul>',
-    '#list_suffix' => '</ul>',
-    '#item_prefix' => '<li>',
-    '#item_suffix' => '</li>',
-    '#theme' => 'messaging_list',
-  );
-  return $types;
-}
-
-/**
  * Implementation of hook_theme()
  */
 function messaging_theme() {
   return array(
-    'messaging_message' => array(
-      'render element' => 'element',
-      'file' => 'messaging.text.inc',
-    ),
-    'messaging_subject' => array(
-      'render element' => 'element',
-      'file' => 'messaging.text.inc',
-    ),
-    'messaging_body' => array(
-      'render element' => 'element',
-      'file' => 'messaging.text.inc',
-    ),    
     'messaging_text' => array(
       'render element' => 'element',
       'file' => 'messaging.text.inc',
-    ),
-    'messaging_list' => array(
-      'render element' => 'element',
-      'file' => 'messaging.text.inc',      
     ),
     'messaging_admin_methods_table'  => array(
       'render element' => 'elements',
@@ -691,6 +629,7 @@ function messaging_static_cache_set($cache_name, $key, $value) {
   }
   $cache[$key] = $value;
 }
+
 /**
  * Get data from static cache
  */
@@ -765,4 +704,18 @@ function messaging_user_object($account) {
 function messaging_user_format_name($account, $format = MESSAGING_FORMAT_PLAIN) {
   $account = messaging_user_object($account);
   return ($format & MESSAGING_FORMAT_HTML) ? theme('username', array('account' => $account)) : check_plain($account->name);
+}
+
+/**
+ * Implements hook_element_info()
+ */
+function messaging_element_info() {
+  $types['messaging_text'] = array(
+    '#theme' => 'messaging_text',
+    '#options' => array(),
+    '#format' => MESSAGING_FORMAT,
+    '#markup' => '',
+    '#pre_render' => array('drupal_pre_render_markup'),
+  );
+  return $types;
 }

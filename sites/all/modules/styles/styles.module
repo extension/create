@@ -1,5 +1,5 @@
 <?php
-// $Id: styles.module,v 1.2.2.26.2.16 2011/01/05 16:08:45 aaron Exp $
+// $Id: styles.module,v 1.2.2.26.2.22 2011/01/18 22:49:48 aaron Exp $
 
 /**
  *  @file
@@ -330,7 +330,22 @@ function styles_default_presets($return_type = NULL, $reset = FALSE) {
         }
       }
 
-      // @TODO: Add user-defined presets.
+      // Add user-defined and overridden presets.
+      $query = db_select('styles_preset_instances', 'spi');
+      $query->join('styles', 's', 's.sid = spi.sid');
+      $query->join('styles_presets', 'p', 'p.pid = spi.pid');
+      $query->addField('spi', 'sid');
+      $query->addField('spi', 'pid');
+      $query->addField('s', 'name', 'style_name');
+      $query->addField('p', 'name', 'preset_name');
+      $query->addField('p', 'field_type', 'field_type');
+      $query->addField('p', 'container_name', 'container_name');
+      $user_styles = $query->execute();
+      foreach ($user_styles as $style) {
+        if (isset($styles[$style->field_type]) && isset($styles[$style->field_type]['containers'][$style->container_name]) && isset($styles[$style->field_type]['containers'][$style->container_name]['presets'][$style->preset_name]) && isset($styles[$style->field_type]['containers'][$style->container_name]['styles'][$style->style_name])) {
+          $styles[$style->field_type]['containers'][$style->container_name]['styles'][$style->style_name]['preset'] = $style->preset_name;
+        }
+      }
 
       drupal_alter('styles_default_presets', $styles);
       cache_set('styles_default_presets', $styles, 'cache_styles');
@@ -496,7 +511,8 @@ function styles_instance($field_type, $style_name, $object) {
   $presets = styles_default_presets($field_type);
   $variables['presets'] = $container && isset($presets['containers'][$container]) ? $presets['containers'][$container] : array();
   $variables['preset_style'] = isset($variables['presets']['styles'][$style_name]) ? $variables['presets']['styles'][$style_name] : array();
-  $variables['preset'] = isset($variables['preset_style']['selected preset']) ? $variables['preset_style']['selected preset'] : (isset($variables['preset_style']['default preset']) ? $variables['preset_style']['default preset'] : (isset($variables['presets']['default preset']) ? $variables['presets']['default preset'] : ''));
+  $variables['default preset'] = (isset($variables['preset_style']['default preset']) ? $variables['preset_style']['default preset'] : (isset($variables['presets']['default preset']) ? $variables['presets']['default preset'] : ''));
+  $variables['preset'] = isset($variables['preset_style']['selected preset']) ? $variables['preset_style']['selected preset'] : (isset($variables['preset_style']['preset']) ? $variables['preset_style']['preset'] : $variables['default preset']);
   $variables['effects'] = ($variables['preset'] !== '') && isset($variables['presets']['presets'][$variables['preset']]) ? $variables['presets']['presets'][$variables['preset']] : array();
 
   // Instantiate the class and render the output.
@@ -524,16 +540,16 @@ function styles_instance($field_type, $style_name, $object) {
  *   If the style name or ID is not valid, an empty array is returned.
  */
 function styles_style_load($field_type, $name = NULL, $sid = NULL, $include = NULL) {
-  $styles = styles_default_styles();
+  $styles = styles_default_styles($field_type);
 
   // If retrieving by name.
-  if (isset($name) && isset($styles[$field_type]['styles'][$name])) {
-    $style = $styles[$field_type]['styles'][$name];
+  if (isset($name) && isset($styles['styles'][$name])) {
+    $style = $styles['styles'][$name];
   }
 
   // If retrieving by style id.
   if (!isset($name) && isset($sid)) {
-    foreach ($styles[$field_type]['styles'] as $name => $database_style) {
+    foreach ($styles['styles'] as $name => $database_style) {
       if (isset($database_style['sid']) && $database_style['sid'] == $sid) {
         $style = $database_style;
         break;
@@ -551,13 +567,118 @@ function styles_style_load($field_type, $name = NULL, $sid = NULL, $include = NU
   return array();
 }
 
-function styles_style_save($style) {
+function styles_style_reset_preset($field_type, $container_name, $style_name, $preset_name) {
+}
+
+/**
+ * Save a style/preset instance.
+ *
+ * @param string $field_type
+ *  The field type of the style/preset to save.
+ * @param string $container_name
+ *  The container.
+ * @param string $style_name
+ *  The name of the style to save to.
+ * @param string $preset_name
+ *  The name of the preset.
+ * @param boolean $delete_only
+ *  If TRUE, then we delete only, rather than saving.
+ *
+ * @return boolean
+ *  Return TRUE, or FALSE if the save was not successful.
+ *
+ * @TODO: Throw an error instead?
+ */
+function styles_style_save_preset($field_type, $container_name, $style_name, $preset_name, $delete_only = FALSE) {
+  $query = db_select('styles_presets', 'p');
+  $query->addField('p', 'pid');
+  $query->condition('p.name', $preset_name);
+  $query->condition('p.field_type', $field_type);
+  $query->condition('p.container_name', $container_name);
+  $result = $query->execute();
+
+  foreach ($result as $preset) {
+    $preset = (array)$preset;
+  }
+  if (empty($preset)) {
+    $preset = array(
+      'name' => $preset_name,
+      'field_type' => $field_type,
+      'container_name' => $container_name
+    );
+    drupal_write_record('styles_presets', $preset);
+  }
+
+  $styles = styles_default_styles($field_type);
+  if (!isset($styles['styles'][$style_name])) {
+    return FALSE;
+  }
+  else {
+    $style = $styles['styles'][$style_name];
+  }
+
+  if (!isset($style['sid'])) {
+    return FALSE;
+  }
+
+  // Delete old style/preset instances for this container.
+  // This is probably only good for MySQL. Unfortunately, we can't use joins
+  // with DeleteQuery. See following comment.
+  db_query("DELETE i FROM {styles_preset_instances} i INNER JOIN {styles} s ON s.sid = i.sid INNER JOIN {styles_presets} p ON i.pid = p.pid AND s.field_type = p.field_type WHERE i.sid = :sid AND p.container_name = :container_name", array(':sid' => $style['sid'], ':container_name' => $container_name));
+
+  // @TODO: See if there's a way to implement something like the following:
+//   db_delete('styles_preset_instances')
+//     ->join('styles', 's')
+//     ->join('styles_presets', 'p')
+//     ->condition('s.sid', 'styles_preset_instances.sid')
+//     ->condition('styles_preset_instances.pid', 'p.pid')
+//     ->condition('s.field_type', 'p.field_type')
+//     ->condition('styles_preset_instances.sid', $style['sid'])
+//     ->condition('p.container_name', $container_name)
+//     ->execute();
+
+
+  if (!$delete_only) {
+    $record = array(
+      'sid' => $style['sid'],
+      'pid' => $preset['pid'],
+    );
+
+    drupal_write_record('styles_preset_instances', $record);
+  }
+
+  // Let other modules update as necessary on save.
+  module_invoke_all('styles_preset_save', $field_type, $container_name, $style_name, $preset_name, $delete_only);
+
+  // Clear all caches and flush.
+  styles_style_flush($style);
+
+  return TRUE;
+}
+
+function styles_style_save(&$style) {
   if (isset($style['sid']) && is_numeric($style['sid'])) {
     // Load the existing style to make sure we account for renamed styles.
-    $old_style = styles_style_load(NULL, $style['sid']);
+    $old_style = styles_style_load($style['field_type'], NULL, $style['sid']);
     styles_style_flush($old_style);
     drupal_write_record('styles', $style, 'sid');
     if ($old_style['name'] != $style['name']) {
+      $style['old_name'] = $old_style['name'];
+    }
+  }
+  else if (isset($style['name'])) {
+    // Load the existing style to make sure we account for renamed styles.
+    $old_style = styles_style_load($style['field_type'], $style['name']);
+    styles_style_flush($old_style);
+    if (isset($old_style['sid'])) {
+      $style['sid'] = $old_style['sid'];
+      drupal_write_record('styles', $style, 'sid');
+    }
+    else {
+      drupal_write_record('styles', $style);
+      $style['is_new'] = TRUE;
+    }
+    if (isset($old_style['name'])) {
       $style['old_name'] = $old_style['name'];
     }
   }

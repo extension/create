@@ -30,8 +30,6 @@ class Messaging_Destination extends Messaging_Object {
   public $sent = 0;
   // Status
   public $status = 0;
-  // Tokens for text replacement
-  public $tokens;
 
   /**
    * Get address type name for display
@@ -71,15 +69,6 @@ class Messaging_Destination extends Messaging_Object {
     return $user;
   }
   /**
-   * Get destination tokens for bulk messages
-   */
-  function get_tokens() {
-    if (!isset($this->tokens)) {
-      $this->tokens = $this->invoke_all('tokens');
-    }
-    return $this->tokens;
-  }
-  /**
    * Set user for this destination
    */
   function set_user($user) {
@@ -114,7 +103,7 @@ class Messaging_Destination extends Messaging_Object {
    * Build destination object
    */
   public static function build($type, $address = NULL, $uid = NULL, $validate = FALSE) {
-    if (!$validate || self::address_validate($address, $type)) {
+    if (!$validate || self::validate_address($address, $type)) {
       return self::build_type($type, array('address' => $address, 'uid' => $uid));
     }
   }

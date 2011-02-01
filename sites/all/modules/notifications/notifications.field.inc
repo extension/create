@@ -137,7 +137,7 @@ abstract class Notifications_Field {
     }
   }
   /**
-   * Get value from object
+   * Get value/s from object
    */
   function object_value($object) {
     if ($object->type == $this->object_type) {
@@ -146,6 +146,11 @@ abstract class Notifications_Field {
   }
   /**
    * Get query condition for a given value
+   * 
+   * @param $value
+   *   Single value or array of values for this field
+   * @param $alias
+   *   Alias of the notifications_fields table
    */
   function get_value_condition($value, $alias = 'f') {
     $and = db_and();
@@ -154,7 +159,8 @@ abstract class Notifications_Field {
       $and->condition($alias . '.position', $this->position);
     }
     if ($this->data_type == 'int') {
-      $and->condition($alias . '.intval', (int)$value);
+      $value = is_array($value) ? array_map('intval', $value) : (int)$value;
+      $and->condition($alias . '.intval', $value);
     }
     else {
       $and->condition($alias . '.value', $value);

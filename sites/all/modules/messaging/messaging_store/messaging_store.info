@@ -1,7 +1,0 @@
-; $Id: messaging_queue.info,v 1.1.2.1 2010/05/15 15:55:19 jareyero Exp $
-name = Messaging queue
-description = Queues messages for asynchronous sending. Can use multiple worker threads.
-package = "Messaging"
-dependencies[] = messaging
-core = 7.x
-files[] = messaging_store.inc

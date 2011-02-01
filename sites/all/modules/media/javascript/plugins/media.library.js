@@ -1,4 +1,4 @@
-// $Id: media.library.js,v 1.9 2010/08/13 15:28:17 JacobSingh Exp $
+// $Id: media.library.js,v 1.10 2011/01/15 00:41:20 effulgentsia Exp $
 
 (function ($) {
 namespace('Drupal.media.browser');
@@ -114,7 +114,7 @@ Drupal.media.browser.library.prototype.getNextMedia = function () {
 };
 
 Drupal.media.browser.library.prototype.render = function (renderElement) {
-  
+
   if (this.mediaFiles.length < 1) {
     $('<div id="media-empty-message" class="media-empty-message"></div>').appendTo(renderElement)
       .html(this.emptyMessage);
@@ -168,10 +168,10 @@ Drupal.media.browser.library.prototype.multiSelect = function (event) {
   $('.media-item', $(this)).toggleClass('selected');
 
   // Add or remove the media file from the array
-  var index = lib.selectedMediaFiles.indexOf(event.data.file);
+  var index = $.inArray(file, lib.selectedMediaFiles);
   if (index == -1) {
     // Media file isn't selected, add it
-    lib.selectedMediaFiles.push(event.data.file);
+    lib.selectedMediaFiles.push(file);
   } else {
     // Media file has previously been selected, remove it
     lib.selectedMediaFiles.splice(index, 1);

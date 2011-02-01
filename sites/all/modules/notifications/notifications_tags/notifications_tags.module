@@ -9,7 +9,7 @@
  * Implementation of hook_menu_()
  */
 function notifications_tags_menu() {
-  $items['admin/config/notifications/subscriptions/tags'] = array(
+  $items['admin/config/messaging/subscriptions/tags'] = array(
     'title' => 'Tags',
     'description' => 'Options for taxonomy subscriptions',
     'page callback' => 'drupal_get_form',
@@ -30,7 +30,7 @@ function notifications_tags_menu() {
     'title' => 'Tags',     
     'access callback' => 'notifications_tags_user_access',
     'access arguments' => array(1, 'taxonomy_term'),
-    'page callback' => 'notifications_user_subscription_list_page',
+    'page callback' => 'notifications_account_subscription_list_page',
     'page arguments' => array('taxonomy_term', 1),
     'weight' => 10,
   );
@@ -41,7 +41,7 @@ function notifications_tags_menu() {
  * Check access to user account tab
  */
 function notifications_tags_user_access($account, $type) {
-  return module_exists('notifications_user') && user_access('subscribe to taxonomy terms', $account) && notifications_user_tab_access($account, $type);
+  return module_exists('notifications_account') && user_access('subscribe to taxonomy terms', $account) && notifications_account_tab_access($account, $type);
 }
 /**
  * Implementation of hook_permission()
@@ -219,7 +219,7 @@ function notifications_tags_node_terms($node) {
 function notifications_tags_notifications_object_taxonomy_term($op, $term, $account = NULL) {
   switch ($op) {
     case 'subscription types':
-      return array('taxonomy_term', 'taxonomy_vocabulary');
+      return array('taxonomy_term', 'taxonomy_vocabulary', 'content_type_term', 'taxonomy_term_multiple');
     case 'conditions':
       return array('term:tid' => $term->tid);
     case 'subscriptions':
@@ -287,10 +287,8 @@ function notifications_tags_action_info() {
  * @ingroup actions
  */
 function notifications_tags_term_create_action($object, $context = array()) {
-  $term = $object;
-  // Just for new nodes that are published and updated nodes that change status
   notifications_event('taxonomy_term-create')
-    ->add_object('taxonomy_term', $term)
+    ->add_object('taxonomy_term', $object)
     ->trigger();
 }
 
@@ -372,8 +370,6 @@ function notifications_tags_node_get_terms($node) {
  *   'simple' or 'multiple'
  */
 function notifications_tags_autocomplete($type, $tags_typed = '') {
-  $field = field_info_field($field_name);
-
   // The user enters a comma-separated list of tags. We only autocomplete the last tag.
   $tags_typed = drupal_explode_tags($tags_typed);
   $tag_last = drupal_strtolower(array_pop($tags_typed));

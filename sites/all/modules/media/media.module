@@ -1,5 +1,5 @@
 <?php
-// $Id: media.module,v 1.57 2010/11/15 13:13:16 JacobSingh Exp $
+// $Id: media.module,v 1.68 2011/01/14 03:25:09 effulgentsia Exp $
 
 /**
  * @file
@@ -70,10 +70,10 @@ function media_menu() {
   $items['admin/config/media/types/manage/%media_type'] = array(
     'title' => 'Manage media',
     'title callback' => 'media_type_page_title',
-    'title arguments' => array(4),
+    'title arguments' => array(5),
     'description' => 'Manage files used on your site.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('media_admin_type_manage_form', 4),
+    'page arguments' => array('media_admin_type_manage_form', 5),
     'access arguments' => array('administer media'),
     'file' => 'media.admin.inc',
   );
@@ -219,35 +219,13 @@ function media_menu() {
     'theme callback' => '_node_custom_theme',
   );
 
-  $items['media/add/upload'] = array(
-    'title' => 'Upload new file',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('media_add_upload'),
-    'access arguments' => array('administer media'),
-    'type' => MENU_LOCAL_ACTION,
-    'file' => 'media.pages.inc',
-    'weight' => -1,
-  );
-
-  $items['admin/content/media/add/upload'] = $items['media/add/upload'];
+  $items['admin/content/media/browser'] = $items['media/browser'];
+  $items['admin/content/media/browser']['type'] = MENU_LOCAL_ACTION;
 
   /**
    * End-user CRUD screens
    * @var unknown_type
    */
-
-  $items['media/add/from_url'] = array(
-    'title' => 'Add media from URL',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('media_add_from_url'),
-    'access arguments' => array('administer media'),
-    'type' => MENU_LOCAL_ACTION,
-    'file' => 'media.pages.inc',
-    'weight' => -1,
-  );
-
-  $items['admin/content/media/add/from_url'] = $items['media/add/from_url'];
-
   $items['media/js'] = array(
     'page callback' => 'media_preview_ajax',
     'access callback' => 'media_access',
@@ -391,6 +369,54 @@ function media_file_update($file) {
 }
 
 /**
+ * Implements hook_file_delete().
+ */
+function media_file_delete($file) {
+  // @todo: call field_attach_delete() from here, or add media_delete().
+
+  // Remove this file from the {media_filter_usage} table.
+  db_delete('media_filter_usage')->condition('fid', $file->fid)->execute();
+}
+
+/**
+ * Implements hook_image_style_flush().
+ *
+ * This hook is invoked by Drupal core when cached image derivatives are no
+ * longer valid.
+ *
+ * @see media_styles_style_flush()
+ * @see media_file_style_flush()
+ */
+function media_image_style_flush($style) {
+  // When a image style is flushed, clear the filter and field caches.
+  media_filter_invalidate_caches();
+}
+
+/**
+ * Implements hook_file_style_flush().
+ *
+ * This hook is invoked by the File Styles module in Styles 1.x.
+ *
+ * @see media_styles_style_flush()
+ */
+function media_file_style_flush($style) {
+  // When a file style is flushed, clear the filter and field caches.
+  media_filter_invalidate_caches();
+}
+
+/**
+ * Implements hook_styles_style_flush().
+ *
+ * This hook is invoked by the Styles module in Styles 2.x.
+ *
+ * @see media_file_style_flush()
+ */
+function media_styles_style_flush($style) {
+  // When a style is flushed, clear the filter and field caches.
+  media_filter_invalidate_caches();
+}
+
+/**
  * Implement hook_page_alter().
  *
  * This is used to use our alternate template when ?render=media-popup is passed
@@ -464,7 +490,7 @@ function media_media_operations() {
       'redirect' => 'media/%fids/multiedit'
     ),
   );
-  
+
   if (!module_exists('multiform')) {
     // If the multiform module is not installed, do not show this option.
     unset($operations['edit']);
@@ -474,7 +500,7 @@ function media_media_operations() {
 
 /**
  * Implementation of hook_forms()
- */ 
+ */
 function media_forms($form_id, $args) {
   $forms = array();
   // To support the multiedit form, each form has to have a unique ID.
@@ -513,7 +539,7 @@ function media_load($fid) {
  *
  * @return array
  *  An array of corresponding media entities.
- */ 
+ */
 function media_multi_load($fids) {
   $fids = explode(" ", $fids);
   if ($files = media_load_multiple($fids)) {
@@ -563,6 +589,7 @@ function media_save($media) {
   }
   else {
     field_attach_update('media', $media);
+    media_filter_invalidate_caches($media->fid);
   }
 
   // Since the Media module can't make files into fieldable entities directly
@@ -649,23 +676,40 @@ if (!function_exists('file_uri_to_object')) {
    * Returns a file object which can be passed to file_save().
    *
    * @param $uri
-   *  A string containing the URI, path, or filename.
+   *   A string containing the URI, path, or filename.
+   * @param $use_existing
+   *   (Optional) If TRUE and there's an existing file in the {file_managed}
+   *   table with the passed in URI, then that file object is returned.
+   *   Otherwise, a new file object is returned.
    * @return
-   *  A file object, or FALSE on error.
+   *   A file object, or FALSE on error.
    */
-  function file_uri_to_object($uri) {
-    global $user;
-    $uri = file_stream_wrapper_uri_normalize($uri);
-    $wrapper = file_stream_wrapper_get_instance_by_uri($uri);
-    $file = new StdClass;
-    $file->uid = $user->uid;
-    $file->filename = basename($uri);
-    $file->uri = $uri;
-    $file->filemime = file_get_mimetype($uri);
-    // This is gagged because some uris will not support it.
-    $file->filesize = @filesize($uri);
-    $file->timestamp = REQUEST_TIME;
-    $file->status = FILE_STATUS_PERMANENT;
+  function file_uri_to_object($uri, $use_existing = FALSE) {
+    if ($use_existing) {
+      $query = db_select('file_managed', 'f')
+        ->fields('f', array('fid'))
+        ->condition('uri', $uri)
+        ->execute()
+        ->fetchCol();
+      if (!empty($query)) {
+        $file = file_load(array_shift($query));
+      }
+    }
+    if (!isset($file)) {
+      global $user;
+      $uri = file_stream_wrapper_uri_normalize($uri);
+      $wrapper = file_stream_wrapper_get_instance_by_uri($uri);
+      $file = new StdClass;
+      $file->uid = $user->uid;
+      $file->filename = basename($uri);
+      $file->uri = $uri;
+      $file->filemime = file_get_mimetype($uri);
+      // This is gagged because some uris will not support it.
+      $file->filesize = @filesize($uri);
+      $file->timestamp = REQUEST_TIME;
+      $file->status = FILE_STATUS_PERMANENT;
+      $file->is_new = TRUE;
+    }
     return $file;
   }
 }
@@ -687,9 +731,9 @@ function media_library() {
   $libraries['media_base'] = array(
     'title' => 'Media base',
     'js' => array(
-      $path . '/javascript/media.core.js' => array('weight' => JS_LIBRARY - 5),
-      $path . '/javascript/util/json2.js' => array('weight' => JS_LIBRARY),
-      $path . '/javascript/util/ba-debug.min.js' => array('weight' => JS_LIBRARY),
+      $path . '/javascript/media.core.js' => array('group' => JS_LIBRARY, 'weight' => - 5),
+      $path . '/javascript/util/json2.js' => array('group' => JS_LIBRARY),
+      $path . '/javascript/util/ba-debug.min.js' => array('group' => JS_LIBRARY),
     ),
     'css' => array(
       $path . '/css/media.css',
@@ -703,7 +747,7 @@ function media_library() {
   $libraries['media_browser'] = array(
     'title' => 'Media Browser popup libraries',
     'js' => array(
-      $path . '/javascript/media.popups.js' => array('weight' => JS_DEFAULT),
+      $path . '/javascript/media.popups.js' => array('group' => JS_DEFAULT),
     ),
     'dependencies' => array(
       array('media', 'media_base'),
@@ -719,10 +763,10 @@ function media_library() {
   $libraries['media_browser_page'] = array(
     'title' => 'Media browser',
     'js' => array(
-      $path . '/javascript/media-browser.js'  => array('weight' => JS_DEFAULT),
+      $path . '/javascript/media-browser.js'  => array('group' => JS_DEFAULT),
     ),
     'css' => array(
-      $path . '/css/media.browser.css' => array('weight' => CSS_DEFAULT),
+      $path . '/css/media.browser.css' => array('group' => CSS_DEFAULT),
     ),
     'dependencies' => array(
       array('media', 'media_base'),
@@ -918,6 +962,9 @@ function media_save_attached_file($file) {
       //   Since we aren't, we have to update usage here too, as we do in
       //   media_save().
       file_usage_delete((object)(array) $media, 'file', 'media', $media->fid);
+
+      // Also clear cached text formats from here.
+      media_filter_invalidate_caches($media->fid);
     }
   }
 
@@ -974,11 +1021,16 @@ function media_element_process(&$element, &$form_state, $form) {
   );
 
   //@TODO: This should be loaded from the JS in case of a failed form submission.
+  $markup = '';
+  if (!empty($media)) {
+    $preview = media_get_thumbnail_preview($media);
+    $markup = drupal_render($preview);
+  }
   $element['preview'] = array(
     '#type' => 'item',
-    '#markup' => empty($media) ? '' : drupal_render(media_get_thumbnail_preview($media)),
+    '#markup' => $markup,
     '#prefix' => '<div class="preview launcher">',
-    '#suffix' => '</div><a class="launcher" href="#">' . t(media_variable_get('field_select_media_text')) . '</a>',
+    '#suffix' => '</div><a class="launcher" href="#">' . t(media_variable_get('field_select_media_text')) . '</a><a class="remove" href="#">' . t(media_variable_get('field_remove_media_text')) . '</a>',
   );
 
   /**
@@ -1028,10 +1080,10 @@ function media_element_process(&$element, &$form_state, $form) {
     'type' => 'setting',
     'data' => $setting,
   );
-  
+
   // hmm... Might need to think about this.
   // All settings would likely apply to all media in a multi-value, but what about passing the existing fid?
-  
+
   module_load_include('inc', 'media', 'media.browser');
   media_include_browser_js();
 
@@ -1040,7 +1092,16 @@ function media_element_process(&$element, &$form_state, $form) {
 }
 
 /**
- * Implement hook_filter_info
+ * Implements hook_filter_info().
+ *
+ * For performance, the media filter is allowed to be cached by default. See
+ * media_filter_invalidate_caches() for details. Some sites may use advanced
+ * media styles with rendering implentations that differs per theme or based on
+ * other runtime information. For these sites, it may be necessary to implement
+ * a module with a hook_filter_info_alter() implementation that sets
+ * $info['media_filter']['cache'] to FALSE.
+ *
+ * @see media_filter_invalidate_caches()
  */
 function media_filter_info() {
   $filters['media_filter'] = array(
@@ -1048,7 +1109,6 @@ function media_filter_info() {
     'description' => t('This filter will convert [[{type:media... ]] tags into markup'),
     'process callback' => 'media_filter',
     'tips callback' => 'media_filter_tips', // @TODO not implemented
-    'cache' => FALSE,
   );
   return $filters;
 }
@@ -1091,8 +1151,6 @@ function media_entity_info() {
   $return = array(
     'media' => array(
       'label' => t('Media'),
-  	  'entity class' => 'Media',
-      'controller class' => 'MediaEntityController',
       'base table' => 'file_managed',
       'fieldable' => TRUE,
       'view modes' => $view_modes,
@@ -1115,7 +1173,7 @@ function media_entity_info() {
       'label' => $bundle_info->label,
       'path' => 'admin/config/media/types/manage/%media_type',
       'real path' => 'admin/config/media/types/manage/' . $type,
-      'bundle argument' => 4,
+      'bundle argument' => 5,
       // @TODO: Add an 'administer media types' perm?
       'access arguments' => array('administer site configuration'),
     );
@@ -1143,6 +1201,20 @@ function media_file_validate_types(stdClass $file, $types) {
   if (!in_array(media_get_type($file), $types)) {
     $errors[] = t('Only the following types of files are allowed to be uploaded: %types-allowed', array('%types-allowed' => implode(', ', $types)));
   }
-  
+
   return $errors;
+}
+
+/**
+ * Implements hook_flush_caches().
+ */
+function media_flush_caches() {
+  // Garbage collection for the {media_filter_usage} table. If an fid was last
+  // recorded four months ago (minimum three months due to logic in
+  // media_filter_track_usage()), remove it from this table while the filter
+  // and field caches are being cleared. If the fid is still in use, it will
+  // be added back to the table the next time check_markup() runs on that
+  // content. This prevents fids from staying in this table indefinitely,
+  // even if the post that references them is edited or deleted.
+  db_delete('media_filter_usage')->condition('timestamp', REQUEST_TIME - 86400 * 120, '<')->execute();
 }

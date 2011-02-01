@@ -10,7 +10,7 @@ require_once drupal_get_path('module', 'notifications') . '/notifications.manage
 function notifications_admin_manage_subscriptions($form, &$form_state) {
   module_load_include('manage.inc', 'notifications');
   if (isset($form_state['values']['operation']) && $form_state['values']['operation'] == 'delete') {
-   if ($selected = array_filter($form_state['values']['subscriptions']['select'])) { // $form_state['values']['subscriptions']
+   if ($selected = array_filter($form_state['values']['subscriptions'])) { // $form_state['values']['subscriptions']
       $list = Notifications_Subscription_List::build_sids(array_keys($selected));
       return notifications_subscription_list_form($form, $form_state, 'delete', $list);     
     }
@@ -70,17 +70,26 @@ function notifications_settings_form() {
       '#title' => t('General settings'),
       '#weight' => -10,
   );
+  $form['general']['notifications_event_dispatch'] = array(
+    '#title' => t('Notifications events'),
+    '#type' => 'radios',
+    '#default_value' => variable_get('notifications_event_dispatch', 1),
+    '#options' => array(t('Disabled'), t('Enabled')),
+    '#description' => t('Enable notifications sending. If disabled no new notifications will be produced (though the ones queued will still be sent).'),
+  );
+
+  $form['general']['notifications_event_queue'] = array(
+    '#title' => t('Queue notifications'),
+    '#type' => 'radios',
+    '#default_value' => variable_get('notifications_event_queue', 0),
+    '#options' => array(t('Disabled'), t('Enabled')),
+    '#description' => t('Queue notifications to be sent on cron process later. Recommended for sites with a large number of users.'),
+  );
   $form['general']['notifications_sendself'] = array(
     '#type'          => 'checkbox',
     '#title'         => t('Notify poster of own posts'),
     '#default_value' => variable_get('notifications_sendself', 1),
     '#description'   => t("Notifies a node poster about their own posts.  Useful principally during testing."),
-  );
-  $form['general']['notifications_event_queue'] = array(
-    '#title' => t('Queue notifications'),
-    '#type' => 'checkbox',
-    '#default_value' => variable_get('notifications_event_queue', 0),
-    '#description' => t('Queue notifications to be sent on cron process later. Recommended for sites with a large number of users.'),
   );
   $form['general']['notifications_sender'] = array(
     '#title' => t('Notifications Sender'),
@@ -234,6 +243,7 @@ function notifications_admin_events_form($form, &$form_state) {
       '#type' => 'select',
       '#options' => isset($template_list[$event['object']]) ? $template_list[$event['object']] : array(),
       '#default_value' => $event['template'],
+      '#parents' => array('events', $key),
     );
     $form['events'][$key]['triggers']['#markup'] = implode(', ', notifications_admin_event_triggers($key));
   }
@@ -265,7 +275,7 @@ function notifications_admin_event_triggers($type) {
   if ($event_triggers = notifications_event_type($type, 'triggers', array())) {
     $event_actions = notifications_event_type($type, 'actions', array());
     foreach ($event_triggers as $trigger_type => $hooks) {
-      if (in_array('any', $hooks)) {
+      if (in_array('any', $hooks) && isset($trigger_info[$trigger_type])) {
         $hooks = array_keys($trigger_info[$trigger_type]);
       }
       foreach ($hooks as $hook) {
@@ -355,4 +365,36 @@ function theme_notifications_admin_table_form($variables) {
   $output = theme('table', array('header' => $header, 'rows' => $rows, 'empty' => $form['#empty']));
   $output .= drupal_render_children($form);
   return $output;
+}
+
+/**
+ * Display big list of subscriptions
+ */
+function theme_notifications_admin_subscription_list($variables) {
+  $sids = $variables['sids'];
+  $limit = $variables['limit'];
+  // Display fully only the first ones up to limit
+  if (!$sids) {
+    return t('No subscriptions');
+  }
+  else {
+    $display = array_slice($sids, 0, $limit);
+    $send_methods = _notifications_send_methods();
+    foreach ($display as $sid) {
+      $subscription = notifications_subscription_load($sid);
+      $rows[] = array(
+        l($sid, 'notifications/subscription/' . $sid),
+        $subscription->get_name(),
+        $send_methods[$subscription->send_method],
+        theme('username', array('account' => $subscription->get_user())),
+      );
+    }
+    if (count($sids) > count($display)) {
+      $rows[] = array(array(
+        'data' => t('And @count other subscriptions...', array('@count' => count($sids) - count($display))),
+        'colspan' => 4
+      ));
+    }
+    return theme('table', array('rows' => $rows));
+  }
 }

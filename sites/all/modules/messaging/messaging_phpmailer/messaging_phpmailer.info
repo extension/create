@@ -1,6 +1,0 @@
-; $Id: messaging_phpmailer.info,v 1.1.2.1.2.2.2.1.4.1 2010/06/04 17:57:11 jareyero Exp $
-name = Messaging PHPMailer
-description = Mail Sending Method: Integration with PHPMailer for HTML Mail
-package = "Messaging"
-dependencies[] = messaging_mail
-core = 6.x

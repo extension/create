@@ -27,7 +27,7 @@ class NotificationsBasicTests extends NotificationsTestCase {
     // Any user will do for exercising the API
     $user = $this->drupalCreateUser();
     // Create sample subscription object    
-    $s1 = notifications_build_subscription(array(
+    $s1 = notifications_subscription_build(array(
       'type' => $test_type,
       'event_type' => $test_event_type,
       'send_method' => 'mail',
@@ -46,7 +46,7 @@ class NotificationsBasicTests extends NotificationsTestCase {
     $dest = $s1->get_destination();
     $this->assertEqual(array($s1->mdid, $user->uid, 'mail', $user->mail), array($dest->mdid, $dest->uid, $dest->type, $dest->address), "A messaging destination has been created. $dest->mdid, $dest->uid, $dest->type, $dest->address");   
     // Retrieve the subscription and check values
-    $s = notifications_load_subscription($s1->sid, TRUE);
+    $s = notifications_subscription_load($s1->sid, TRUE);
     $this->assertEqual(array($s->sid, $s->uid, $s->fields), array($s1->sid, $s1->uid, $s1->fields), 'The subscription has been retrieved and values are ok');
     // Attempt to create a second one with the same values
     $result = notifications_save_subscription($s2, FALSE);

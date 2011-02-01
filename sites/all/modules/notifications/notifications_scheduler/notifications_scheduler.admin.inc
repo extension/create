@@ -37,7 +37,7 @@ function notifications_scheduler_admin_form($form, &$form_state, $aid = NULL) {
     $operations['send'] = array(
       '#type' => 'link',
       '#title' => t('Preview'),
-      '#href' => 'admin/config/notifications/settings/scheduler/' . $key,
+      '#href' => 'admin/config/messaging/notifications/scheduler/' . $key,
     );
     $form['actions'][$key]['operations'] = $operations;
   }
@@ -48,6 +48,7 @@ function notifications_scheduler_admin_form($form, &$form_state, $aid = NULL) {
  * Preview form to send notifications
  */
 function notifications_scheduler_admin_send_form($form, &$form_state, $action) {
+  drupal_set_title(t('Preview: @action', array('@action' => $action['label'])));
   $form['notification'] = array(
     '#type' => 'fieldset',
     '#title' => t('Scheduled notification'),
@@ -65,36 +66,51 @@ function notifications_scheduler_admin_send_form($form, &$form_state, $action) {
   $form['subscriptions'] = array(
     '#type' => 'fieldset',
     '#title' => t('Subscriptions (@count)', array('@count' => count($sids))),
+    '#collapsible' => count($sids) > 2, '#collapsed' => count($sids) > 10,
   );
-  if ($sids) {
-    foreach ($sids as $sid) {
-      $items[] = l($sid, 'notifications/subscription/' . $sid);
-    }
-    $form['subscriptions'] += array('#collapsible' => TRUE, '#collapsed' => TRUE);
-    $form['subscriptions']['links']['#markup'] = implode(', ', $items);
-  }
-  else {
-    $form['subscriptions']['#description'] = t('There are no subscriptions for this notification.');
-  }
+  $form['subscriptions']['list']['#markup'] = theme('notifications_admin_subscription_list', array('sids' => $sids));
+  // Render some template parts
   $template = $event->get_template();
-  $subject = $template->build_subject();
+  // Add current user so we can see some token replacement in action
+  global $user;
+  if (($method = messaging_method_default($user)) && ($destination = messaging_send_method($method)->user_destination($user))) {
+    $template->set_destination($destination);
+  }
+  $template->set_format(MESSAGING_FORMAT_HTML);
   $form['message'] = array(
     '#type' => 'fieldset',
-    '#title' => t('Message preview'),
+    '#title' => t('Message preview (HTML)'),
     '#collapsible' => TRUE,
   );
   $form['message']['subject'] = array(
     '#title' => t('Subject'),
     '#type' => 'item',
-    '#markup' => drupal_render($subject),
+    '#markup' => $template->render('subject'),
   );
 
   // @todo Is this text safe for display without later filtering?
-  $body = $template->build_body();
   $form['message']['body'] = array(
     '#type' => 'item',
     '#title' => t('Body'),
-    '#markup' => drupal_render($body),
+    '#markup' => $template->render('body'),
+  );
+  $template->set_format(MESSAGING_FORMAT_PLAIN);
+  $form['plaintext'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Message preview (Plaintext)'),
+    '#collapsible' => TRUE, '#collapsed' => TRUE,
+  );
+  $form['plaintext']['subject'] = array(
+    '#title' => t('Subject'),
+    '#type' => 'item',
+    '#markup' => '<pre>' . check_plain($template->render('subject')) . '</pre>',
+  );
+
+  // @todo Is this text safe for display without later filtering?
+  $form['plaintext']['body'] = array(
+    '#type' => 'item',
+    '#title' => t('Body'),
+    '#markup' => '<pre>' . check_plain($template->render('body')) . '</pre>',
   );
   if (count($sids)) {
     $form['send'] = array(
@@ -210,9 +226,12 @@ function _notifications_scheduler_batch_send($event, $sids, &$context) {
  * Batch send finished
  */
 function _notifications_scheduler_batch_send_finished($success, $results) {
+  $event = $results['event'];
+  $event->done();
   $total = count($results['processed']);
   $sent = count($results['sent']);
   $skip = count($results['skip']);
   $success = count(array_filter($results['sent']));
+  
   drupal_set_message(t('Sent notifications to @count subscriptions: @success success, @errors errors, @skip skipped.', array('@count' => $total, '@success' => $success, '@errors' => $sent - $success, '@skip' => $skip)));
 }

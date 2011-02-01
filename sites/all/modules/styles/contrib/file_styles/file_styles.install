@@ -1,8 +1,8 @@
 <?php
-// $Id: file_styles.install,v 1.1.2.2.2.2 2011/01/05 15:51:48 aaron Exp $
+// $Id: file_styles.install,v 1.1.2.2.2.7 2011/01/12 21:49:17 aaron Exp $
 
 /**
- * @file
+ * @file styles/contrib/file_styles/file_styles.install
  * Install, update and uninstall functions for the file styles module.
  */
 
@@ -106,9 +106,23 @@ function file_styles_schema() {
 }
 
 /**
- * Rebuild themes and catch included file_styles.styles.inc.
+ * Add labels to file styles.
  */
-function file_styles_update_7201() {
+function file_styles_update_7202() {
+  return array();
+}
+
+/**
+ * Rebuild themes.
+ */
+function file_styles_update_7203() {
   drupal_theme_rebuild();
+  return array();
+}
+
+/**
+ * Add new presets.
+ */
+function file_styles_update_7206() {
   return array();
 }

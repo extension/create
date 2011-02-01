@@ -181,7 +181,9 @@ class Messaging_Send_Method extends Messaging_Method {
    * Here we can clone and alter the template or just return the same
    */  
   function message_render($message) {
-    return $message->get_template();
+    $message->get_template()
+      ->set_method($this->method)
+      ->set_format($this->format);
   }
   /**
    * Send message to a single or multiple destination
@@ -198,10 +200,12 @@ class Messaging_Send_Method extends Messaging_Method {
    * Send message to destination
    */
   function send_destination($destination, $message) {
+    // Set destination to message template
+    $message->get_template()->set_destination($destination);
     return $this->send_address($destination->get_address(), $message);
   }
   /**
-   * Send message to address
+   * Send message to address, to be implemented by send method
    */
   function send_address($address, $message) {
     return FALSE;
