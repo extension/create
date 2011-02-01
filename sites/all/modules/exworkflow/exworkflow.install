@@ -81,6 +81,12 @@ function exworkflow_schema() {
       'not null' => FALSE,
     ),
     
+    'unpublished_at' => array(
+      'description' => 'The Unix timestamp of when the node was unpublished.',
+      'type' => 'int',
+      'not null' => FALSE,
+    ),
+    
     'published_revision_id' => array(
       'description' => 'The id of the published revision associated with this node whether it is the current revision or not.',
       'type' => 'int',
