@@ -353,7 +353,7 @@ function eximport_entry_create($atom_entry) {
       // if it is news, change content-type
       $entry->type = 'news';
     } elseif ($cat['term'] == 'originalnews') {
-      $entry->type = 'original_news';
+      $entry->type = 'news';
     }
     
     if ($cat['term'] == 'published') {
@@ -672,7 +672,17 @@ function eximport_process_url(&$url) {
     $url['host'] = 'people.extension.org';
     unset($url['port']);
     $path = '/' . $exuser;
-  } elseif (preg_match('#^/wiki/(File|Image|Calendars|Talk)\:.*#', $path)) {
+  } elseif (preg_match('#^/wiki/File\:(.*)#', $path, $matches)) {
+    // replace 'File:blah' w/ 'sites/default/files/w'
+    $fname = html_entity_decode($matches[1]);
+    $fname = str_replace(' ', '_', $fname);
+    $hash = md5($fname);
+    $path = '/sites/default/files/w/'
+          . substr($hash, 0, 1) . '/'
+          . substr($hash, 0, 2) . '/'
+          . $matches[1];
+    $modified = TRUE;
+  } elseif (preg_match('#^/wiki/(Image|Calendars|Talk)\:.*#', $path)) {
     // zap it
     $url = NULL;
     return;
