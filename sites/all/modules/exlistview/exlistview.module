@@ -134,7 +134,6 @@ function exlistview_show() {
       $node_records = $listview_query->execute();
     }
     
-    
     else {
       $tag_array = explode(',', $tag_string);
       $tag_count = count($tag_array);
@@ -228,7 +227,11 @@ function exlistview_show() {
       }
     }
     
-    $listview_query->condition(db_or()->condition('n.type', 'article')->condition('n.type', 'faq')->condition('n.type', 'event'))
+    $listview_query->condition(db_or()
+                   ->condition('n.type', 'article')
+                   ->condition('n.type', 'faq')
+                   ->condition('n.type', 'event')
+                   ->condition('n.type', 'news'))
                    ->limit(15) 
                    ->orderBy($order_by, $order_direction);   
     

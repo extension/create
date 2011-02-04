@@ -23,7 +23,7 @@ function exworkflow_node_view($node, $view_mode) {
     }
   }
   
-  if(($node->type == 'article' || $node->type == 'faq' || $node->type == 'event') && $view_mode == 'full') {
+  if(($node->type == 'article' || $node->type == 'faq' || $node->type == 'event' || $node->type == 'news') && $view_mode == 'full') {
     $workflow_list = get_workflow_states();
     
     // find existing workflow
@@ -314,7 +314,7 @@ function exworkflow_activate_form_submit($form, &$form_state) {
  * We also need to capture the new current revision id for workflow reference here.
  */
 function exworkflow_node_update($node) {
-  if($node->type == 'article' || $node->type == 'faq' || $node->type == 'event') {
+  if($node->type == 'article' || $node->type == 'faq' || $node->type == 'event' || $node->type == 'news') {
     // get the node's workflow
     $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
       
@@ -364,7 +364,7 @@ function exworkflow_menu() {
 function workflow_menu_permissions($node) {
   global $user;
   
-  if(($user != NULL && $user->uid != NULL) && ($node->type == 'article' || $node->type == 'faq' || $node->type == 'event')) { 
+  if(($user != NULL && $user->uid != NULL) && ($node->type == 'article' || $node->type == 'faq' || $node->type == 'event' ||  $node->type == 'news')) { 
     // see if the node has a workflow event
     $node_workflow_event = db_query('SELECT * FROM {node_workflow_events} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
     if($node_workflow_event != false) {
