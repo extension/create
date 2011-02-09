@@ -1,4 +1,4 @@
-/* $Id: field_group.css,v 1.1.2.11 2010/11/08 21:30:56 stalski Exp $ */
+/* $Id: field_group.css,v 1.1.2.12 2010/12/22 22:22:35 stalski Exp $ */
 @CHARSET "UTF-8";
 
 /**
@@ -16,7 +16,7 @@
 /**
  * Override the accordion default style for view_modes.
  */
-.ui-accordion h3, .ui-accordion h3.ui-state-active {
+form .ui-accordion h3, form .ui-accordion h3.ui-state-active {
   padding-left: 2em;
 }
 
