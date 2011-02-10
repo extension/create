@@ -5,3 +5,5 @@ version = VERSION
 core = 7.x
 package = eXtension
 files[] = mathwork.module
+dependencies[] = field
+dependencies[] = date_api
