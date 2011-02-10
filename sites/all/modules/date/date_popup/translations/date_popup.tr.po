@@ -68,4 +68,3 @@ msgstr "Tarih ve saat seçmek için jquery takvim ve saat giriş araçlarını e
 #: date_popup.info:0
 msgid "Date/Time"
 msgstr "Tarih/Saat"
-

@@ -170,4 +170,3 @@ msgstr ""
 #: includes/date_navigation_plugin_style.inc:34
 msgid "The %style requires the Date: Date argument."
 msgstr ""
-

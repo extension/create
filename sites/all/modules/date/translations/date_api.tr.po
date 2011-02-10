@@ -164,4 +164,3 @@ msgstr "Başka eklentiler tarafından kullanılabilen bir Date API"
 #: date_api.info:0
 msgid "Date/Time"
 msgstr "Tarih/Saat"
-

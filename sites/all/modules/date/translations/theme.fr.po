@@ -1,4 +1,4 @@
-# $Id: theme.fr.po,v 1.3 2010/02/28 14:28:01 karens Exp $
+# $Id: theme.fr.po,v 1.4 2011/01/18 00:37:35 karens Exp $
 #
 # French translation of Drupal (general)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
@@ -61,4 +61,3 @@ msgstr "Semaine du @date"
 #: theme/theme.inc:327
 msgid "Timezone"
 msgstr "Fuseau Horaire"
-

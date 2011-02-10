@@ -1,5 +1,5 @@
 # translation of theme.po to
-# $Id: theme.es.po,v 1.3 2010/02/28 14:28:01 karens Exp $
+# $Id: theme.es.po,v 1.4 2011/01/18 00:37:35 karens Exp $
 # LANGUAGE translation of Drupal (theme)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
 # Generated from file: theme.inc,v 1.1.4.33 2009/02/17 17:04:31 karens
@@ -25,4 +25,3 @@ msgstr "Semana de @date"
 #: theme/theme.inc:327
 msgid "Timezone"
 msgstr "Zona horaria"
-

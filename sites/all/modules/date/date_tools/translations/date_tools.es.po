@@ -1,5 +1,5 @@
 # translation of date_tools.es.po to
-# $Id: date_tools.es.po,v 1.3 2010/02/28 14:28:01 karens Exp $
+# $Id: date_tools.es.po,v 1.4 2011/01/18 00:37:35 karens Exp $
 # LANGUAGE translation of Drupal (date_tools)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
 # Generated from files:
@@ -460,4 +460,3 @@ msgstr "Importación de eventos"
 #: date_tools/date_tools.module:84
 msgid "CSV import"
 msgstr "Importación CSV"
-

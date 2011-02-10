@@ -1,5 +1,5 @@
 # translation of date_repeat.po to
-# $Id: date_repeat.es.po,v 1.3 2010/02/28 14:28:00 karens Exp $
+# $Id: date_repeat.es.po,v 1.4 2011/01/18 00:37:34 karens Exp $
 # LANGUAGE translation of Drupal (date_repeat)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
 # Generated from files:
@@ -160,4 +160,3 @@ msgstr "Date Repeat API"
 #: date_repeat/date_repeat.info:0
 msgid "A Date Repeat API to calculate repeating dates and times from iCal rules."
 msgstr "Date Repeat API para calcular fechas y horas repetidas a partir de reglas iCal."
-

@@ -1,4 +1,4 @@
-# $Id: general.he.po,v 1.2 2010/02/28 20:53:56 karens Exp $
+# $Id: general.he.po,v 1.3 2011/01/18 00:37:35 karens Exp $
 #
 # LANGUAGE translation of Drupal (general)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
@@ -64,5 +64,3 @@ msgstr "שמור"
 #: date_tools/date_tools.module:419 includes/date_api_filter_handler.inc:77
 msgid "Text"
 msgstr "טקסט"
-
-
