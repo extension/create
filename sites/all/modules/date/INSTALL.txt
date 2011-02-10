@@ -28,7 +28,6 @@ You should end up with a structure like:
    /drupal/sites/all/modules/date/date_copy/date_copy.module
    ...
 
-
 ==================================================================================
 Install CCK Date Fields:
 ==================================================================================
@@ -44,9 +43,7 @@ Install CCK Date Fields:
 
 5) While viewing a content type, select the option to add a new field from the tabs at
    the top of the page. Several options for date fields should be visible.
-   
+
 ==================================================================================
 More documentation is available at http://drupal.org/node/92460.
 ==================================================================================   
-   
-

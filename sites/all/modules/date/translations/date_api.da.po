@@ -3469,4 +3469,3 @@ msgstr "Navigér til næste dag"
 #: theme/theme.inc:125
 msgid "View full page month"
 msgstr "Vis måned på fuld side"
-

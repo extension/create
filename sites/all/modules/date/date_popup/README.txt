@@ -52,7 +52,6 @@ are:
 
   The default format uses the short site default format.
 
-
 #date_year_range
   the number of years to go backwards and forwards from current year 
   in year selector, in the format -{years back}:+{years forward},

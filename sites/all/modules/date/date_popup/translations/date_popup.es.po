@@ -90,4 +90,3 @@ msgstr "Habilita calendarios emergentes y widgets de ingreso y selección de fec
 #: date_popup.info:0
 msgid "Date/Time"
 msgstr "Fecha/Hora"
-

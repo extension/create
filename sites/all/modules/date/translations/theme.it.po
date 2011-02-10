@@ -23,4 +23,3 @@ msgstr "Fuso-orario"
 #~ msgstr "avanti »"
 #~ msgid "am/pm"
 #~ msgstr "am/pm"
-

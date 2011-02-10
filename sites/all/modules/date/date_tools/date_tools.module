@@ -1,5 +1,5 @@
 <?php
-// $Id: date_tools.module,v 1.20 2010/11/07 12:10:52 karens Exp $
+// $Id: date_tools.module,v 1.23 2011/01/18 00:37:34 karens Exp $
 
 /**
  * Implementation of hook_help().
@@ -11,7 +11,7 @@ function date_tools_help($section, $arg) {
 
     case 'admin/structure/date/change':
       return '<p>'. t('Change a date field from one type to another. Very experimental, use at your own risk!') .'</p>';
-                 
+
     case 'admin/structure/date/date_wizard':
 
       $output =        
@@ -45,7 +45,6 @@ function date_tools_menu() {
     'description' => 'Tools to import and auto-create dates and calendars. ',
     'access arguments'   => array('administer date tools'),
     'page callback' => 'date_tools_page',
-    'type' => MENU_NORMAL_ITEM,
   );
   $items['admin/structure/date/about'] = array(
     'title' => 'About',
@@ -114,11 +113,11 @@ function date_tools_page() {
       }
     }
     if (!empty($calendars)) {
-      $headers = array(t('Content Type'), t('Calendar'), t('Description'), t('Operations'));
-      $content .= theme('table', $headers, $calendars);
+      $header = array(t('Content Type'), t('Calendar'), t('Description'), t('Operations'));
+      $content .= theme('table', array('header' => $header, 'rows' => $calendars));
     }
   }
-  
+
   return $content;
 }
 
@@ -147,7 +146,7 @@ function date_tools_remove_form(&$form_state, $view_name) {
 function date_tools_remove_form_submit($form, &$form_state) {
   $form_values = $form_state['values'];
   $view_name = $form_values['view_name'];
-  
+
   if ($view_name && $form_values['confirm']) {
     calendar_remove($view_name);
     drupal_set_message(t('Removed calendar %calendar. ', array(

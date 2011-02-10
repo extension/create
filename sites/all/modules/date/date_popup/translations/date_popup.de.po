@@ -1,4 +1,4 @@
-# $Id: date_popup.de.po,v 1.3 2010/02/28 14:28:00 karens Exp $
+# $Id: date_popup.de.po,v 1.4 2011/01/18 00:37:34 karens Exp $
 #
 # LANGUAGE translation of Drupal (general)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
@@ -66,4 +66,3 @@ msgstr "Datumspopup"
 #: date_popup/date_popup.info:0
 msgid "Enables jquery popup calendars and time entry widgets for selecting dates and times."
 msgstr "Aktiviert jQuery-Popup-Kalender und Zeit-Steuerelemente für die Auswahl von Terminen und Zeiten."
-

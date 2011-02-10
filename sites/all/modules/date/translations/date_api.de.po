@@ -1,4 +1,4 @@
-# $Id: date_api.de.po,v 1.5 2010/02/28 14:28:01 karens Exp $
+# $Id: date_api.de.po,v 1.6 2011/01/18 00:37:35 karens Exp $
 #
 # LANGUAGE translation of Drupal (root)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
@@ -312,4 +312,3 @@ msgstr "Ein Datum-API kann von anderen Modulen verwendet werden."
 #: date_tools/date_tools.info:0
 msgid "Date/Time"
 msgstr "Datum/Zeit"
-
