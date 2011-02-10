@@ -24,6 +24,7 @@ require_once 'http_build_url.php';
      a. news (cop)
      b. article (cop)
      c. originalnews (cop)
+     Need title, body, and tags. 
   3. check filter weights and configuration at /admin/config/content/formats
      a. see screenshot -
 https://skitch.com/jerobins/rdsqe/text-formats-extension-content-management-system
@@ -292,7 +293,22 @@ function eximport_node_create($entry) {
   
   // mark as published
   if ($entry->published) {
-    
+    $node_status = 'published';
+    $event_status = 'published';
+    $draft_status = null;
+    $publish_fields = array('published_at' => $entry->created, 
+                            'published_revision_id' => $node->vid, 
+                            'unpublished_at' => null);
+
+    // record workflow  
+    exworkflow_change_state($node, 
+                            $node_status, 
+                            $draft_status, 
+                            $event_status, 
+                            $user->uid, 
+                            null, 
+                            $publish_fields);
+  
   }
   
   $GLOBALS['user'] = $saved_user;
