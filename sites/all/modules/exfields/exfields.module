@@ -116,11 +116,11 @@ function exfields_field_formatter_info() {
   return array(
     'contributionformat' => array(
       'label' => t('Default'),
-      'field types' => array('contribution_role'),
+      'field types' => array('contribution', ),
     ),
     'relationformat' => array(
       'label' => t('Default'),
-      'field types' => array('relation_role'),
+      'field types' => array('relation'),
     ),
   );
 }
@@ -133,26 +133,21 @@ function exfields_field_formatter_view($object_type, $object, $field, $instance,
   
   if($display['type']=='contributionformat') {
       foreach ($items as $delta => $item) {
-	    $output = $item['contribution_role'];
-        $element[$delta] = '<p>' . $output . '</p>';
+	    $output = t('<em>Role:</em> @role<br /><em>Author:</em> @author<br /><em>Date:</em> @date ', 
+						array('@role' =>$item['contribution_role'], '@author' =>$item['contribution_author'], '@date' =>_dateToString($item['contribution_date']) ) );
+        $element[$delta]['#markup'] = '<p>' . $output . '</p>';
       }
   }
   if($display['type']=='relationformat') {
       foreach ($items as $delta => $item) {
-	    $output = factorial($item['relation_kind']);
-        $element[$delta] = '<p>' . $output . '</p>';
+		 	$output = t('<em>Kind:</em> @kind<br /><em>Source:</em> @source', 
+						array('@kind' =>$item['relation_kind'], '@source' =>$item['relation_source'] ) );
+        	$element[$delta]['#markup'] = '<p>' . $output . '</p>';
       }
   }
   return $element;
 }
 
-function factorial($input){
-  $output = 1;
-  for($x = $input; $x >= 1; $x--){
-    $output *= $x;
-  }
-  return($output);
-}
 /**************************************************************************
  * Field Type API: Widget
  **************************************************************************/
@@ -163,34 +158,14 @@ function factorial($input){
 function exfields_field_widget_info() {
   return array(
     'contributionfield' => array(
-	  'label' => t('Text field'),
+	  'label' => t('Multiple Fields'),
 	  'field types' => array('contribution'),
-      'settings' => array('size' => 60),
 	),
     'relationfield' => array(
-	  'label' => t('Text field'),
+	  'label' => t('Multiple Fields'),
 	  'field types' => array('relation'),
-      'settings' => array('size' => 60),
 	),
   );
-}
-
-/**
- * Implements hook_field_widget_settings_form().
- */
-function exfields_field_widget_settings_form($field, $instance) {
-  $widget = $instance['widget'];
-  $settings = $widget['settings'];
-
-    $form['size'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Size of textfield'),
-      '#default_value' => $settings['size'],
-      '#required' => TRUE,
-      '#element_validate' => array('_element_validate_integer_positive'),
-    );
-
-  return $form;
 }
 
 
@@ -239,25 +214,6 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
   }
   return $element;
 }
-
-
-/**
- * Implements hook_field_widget_error().
- */
-function exfields_field_widget_error($element, $error) {
-  switch ($error['error']) {
-    case 'mathwork_square_invalid':
-      form_error($element['contribution'], $error['message']);
-	  break;
-    case 'mathwork_fact_invalid':
-      form_error($element['relation'], $error['message']);
-	  break;
-  }
-}
-
-
-
-
 
 
 
