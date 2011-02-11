@@ -1,5 +1,6 @@
 <?php
-class DateTestCase extends DrupalWebTestCase {
+// $Id: date.test,v 1.8 2011/01/18 00:37:35 karens Exp $
+class DateUITestCase extends DrupalWebTestCase {
   protected $privileged_user;
 
   public static function getInfo() {
@@ -12,14 +13,14 @@ class DateTestCase extends DrupalWebTestCase {
 
   public function setUp() {
     // Load the date_api module.
-    parent::setUp('field', 'field_ui', 'date_api', 'date', 'date_popup');
+    parent::setUp('field', 'field_ui', 'date_api', 'date', 'date_popup', 'date_tools');
 
     // Create and log in our privileged user.
     $this->privileged_user = $this->drupalCreateUser(array(
-      'administer content types', 'administer nodes', 'bypass node access'
+      'administer content types', 'administer nodes', 'bypass node access', 'administer date tools'
     ));
     $this->drupalLogin($this->privileged_user);
-    
+
     variable_set('date_format_long', 'D, m/d/Y - H:i');
   }
 
@@ -29,6 +30,7 @@ class DateTestCase extends DrupalWebTestCase {
     $edit['type'] = 'story';
     $this->drupalPost('admin/structure/types/add', $edit, t('Save content type'));
     $this->assertText('The content type Story has been added.', 'Content type added.');
+
     // Creates select list date field stored as a date with default settings.
     $this->createDateField($type = 'date', $widget = 'date_select');
     $edit = array();
@@ -94,16 +96,6 @@ class DateTestCase extends DrupalWebTestCase {
     $this->deleteDateField();
   }
 
-  function createDateField($type, $widget) {
-    $edit = array();
-    $edit['fields[_add_new_field][label]'] = 'Test';
-    $edit['fields[_add_new_field][field_name]'] = 'test';
-    $edit['fields[_add_new_field][weight]'] = '-4';
-    $edit['fields[_add_new_field][type]'] = $type;
-    $edit['fields[_add_new_field][widget_type]'] = $widget;
-    $this->drupalPost('admin/structure/types/manage/story/fields', $edit, t('Save'));
-  }
-
   function dateForm($options) {
     // Tests that date field functions properly.
     $edit = array();
@@ -127,10 +119,20 @@ class DateTestCase extends DrupalWebTestCase {
     $this->assertText($edit['body[und][0][value]'], 'Test node has been created');
   }
 
+  function createDateField($type, $widget) {
+    $edit = array();
+    $edit['fields[_add_new_field][label]'] = 'Test';
+    $edit['fields[_add_new_field][field_name]'] = 'test';
+    $edit['fields[_add_new_field][weight]'] = '-4';
+    $edit['fields[_add_new_field][type]'] = $type;
+    $edit['fields[_add_new_field][widget_type]'] = $widget;
+    $this->drupalPost('admin/structure/types/manage/story/fields', $edit, t('Save'));
+  }
+
   function deleteDateField() {
     $this->drupalGet('admin/structure/types/manage/story/fields');
     $this->clickLink('delete');
     $this->drupalPost(NULL, NULL, t('Delete'));
     $this->assertText('The field Test has been deleted from the Story content type.', 'Removed date field.');
-  }
+  }  
 }

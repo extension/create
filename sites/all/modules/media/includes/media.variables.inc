@@ -1,5 +1,5 @@
 <?php
-// $Id: media.variables.inc,v 1.12 2010/10/26 13:36:36 JacobSingh Exp $
+// $Id: media.variables.inc,v 1.13 2011/01/13 00:27:06 effulgentsia Exp $
 
 
 /* ***************************************** */
@@ -125,6 +125,7 @@ function media_variable_default($name = NULL) {
       'wysiwyg_allowed_attributes' => array('height', 'width', 'hspace', 'vspace', 'border', 'align', 'style', 'alt', 'title', 'class', 'id'),
 
       'field_select_media_text' => 'Select media',
+      'field_remove_media_text' => 'Remove media',
 
       // Name of the theme to use in media popup dialogs
       'dialog_get_theme_name' => 'seven',

@@ -1,4 +1,4 @@
-# $Id: general.de.po,v 1.4 2010/02/28 14:28:01 karens Exp $
+# $Id: general.de.po,v 1.5 2011/01/18 00:37:35 karens Exp $
 #
 # LANGUAGE translation of Drupal (general)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
@@ -80,4 +80,3 @@ msgstr "Speichern"
 #: includes/date_api_filter_handler.inc:77
 msgid "Text"
 msgstr "Text"
-

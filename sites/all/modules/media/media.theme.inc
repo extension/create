@@ -1,5 +1,5 @@
 <?php
-// $Id: media.theme.inc,v 1.14 2010/10/26 22:45:53 JacobSingh Exp $
+// $Id: media.theme.inc,v 1.15 2011/01/14 03:25:09 effulgentsia Exp $
 
 /**
  * @file
@@ -88,7 +88,8 @@ function theme_media_browser_content_frame($variables) {
    // Render the results limiter
   $html[] = theme('media_browser_control_result_limit', array('parameters' => $parameters));
   // Render the actual content
-  $html[] = drupal_render(drupal_get_form('media_file_listing_form', $files, $parameters));
+  $form = drupal_get_form('media_file_listing_form', $files, $parameters);
+  $html[] = drupal_render($form);
 
   // Make sure to close the wrapping div
   if ($invoke) {

@@ -1,5 +1,5 @@
 # translation of general.po to
-# $Id: general.es.po,v 1.3 2010/02/28 14:28:01 karens Exp $
+# $Id: general.es.po,v 1.4 2011/01/18 00:37:35 karens Exp $
 # LANGUAGE translation of Drupal (general)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
 # Generated from files:
@@ -64,4 +64,3 @@ msgstr "Guardar"
 #: date_tools/date_tools.module:419 includes/date_api_filter_handler.inc:77
 msgid "Text"
 msgstr "Texto"
-

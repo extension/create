@@ -1,0 +1,9 @@
+; $Id: text.info,v 1.5 2009/06/12 08:39:37 dries Exp $
+name = eXtension Fields
+description = Fields used for specific eXtension content
+version = VERSION
+core = 7.x
+package = eXtension
+files[] = mathwork.module
+dependencies[] = field
+dependencies[] = date_api

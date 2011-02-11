@@ -1,3 +1,9 @@
+// $Id: media_youtube.js,v 1.1.2.4 2011/01/04 19:50:41 aaron Exp $
+
+/**
+ * @file media_youtube/js/media_youtube.js
+ */
+
 (function ($) {
 
 Drupal.media_youtube = {};
@@ -55,8 +61,8 @@ Drupal.media_youtube.insertEmbed = function (embed_id) {
   // Set up the iframe with its contents and add it to the page.
   video
     .attr('id', settings.id)
-    .attr('width', settings.height)
-    .attr('height', settings.width)
+    .attr('width', settings.width)
+    .attr('height', settings.height)
     .attr('src', src);
   videoWrapper.html(video);
 

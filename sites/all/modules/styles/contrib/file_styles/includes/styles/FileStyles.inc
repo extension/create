@@ -1,8 +1,8 @@
 <?php
-// $Id: FileStyles.inc,v 1.1.2.9 2011/01/05 19:37:30 aaron Exp $
+// $Id: FileStyles.inc,v 1.1.2.11 2011/01/11 16:40:36 aaron Exp $
 
 /**
- * @file
+ * @file styles/contrib/file_styles/includes/styles/FileStyles.inc
  * Styles definitions for file styles.
  */
 
@@ -56,26 +56,26 @@ class FileStyles extends StylesDefault {
     return $this->set('uri', $value);
   }
   function get_title() {
-    return $this->get('title');
+    return $this->override('title');
   }
   function set_title($value) {
     // @TODO: Token support.
     return $this->set('title', $value);
   }
   function get_alt() {
-    return $this->get('alt');
+    return $this->override('alt');
   }
   function set_alt($value) {
     return $this->set('alt', $value);
   }
   function get_width() {
-    return $this->get('width');
+    return $this->override('width');
   }
   function set_width($value) {
     return $this->set('width', $value);
   }
   function get_height() {
-    return $this->get('height');
+    return $this->override('height');
   }
   function set_height($value) {
     return $this->set('height', $value);
@@ -93,7 +93,7 @@ class FileStyles extends StylesDefault {
     return $this->set('link', $value);
   }
   function get_float() {
-    return $this->get('float');
+    return $this->override('float');
   }
   function set_float($value) {
     if ($value) {
@@ -113,6 +113,15 @@ class FileStyles extends StylesDefault {
       return $image_uri;
     }
     return $this->get_uri();
+  }
+
+  // Allow WYSIWYG to override the values.
+  public function override($attribute) {
+    $object = $this->get_object();
+    if (isset($object->override) && is_array($object->override) && isset($object->override[$attribute])) {
+      return $object->override[$attribute];
+    }
+    return $this->get($attribute);
   }
 
   // Effect callbacks when rendering.

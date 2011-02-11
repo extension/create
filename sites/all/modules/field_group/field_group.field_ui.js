@@ -1,4 +1,4 @@
-// $Id: field_group.field_ui.js,v 1.1.2.3 2010/11/06 00:08:00 stalski Exp $
+// $Id: field_group.field_ui.js,v 1.1.2.4 2010/12/31 09:56:56 zuuperman Exp $
 
 (function($) {
 
@@ -32,6 +32,9 @@ Drupal.fieldUIFieldOverview.group.prototype = {
   getRegion: function () {
     return 'main';
   },
+  regionChange: function (region, recurse) {
+    return {};
+  }
 };
   
   

@@ -1,4 +1,4 @@
-# $Id: date_repeat.fr.po,v 1.3 2010/02/28 14:28:00 karens Exp $
+# $Id: date_repeat.fr.po,v 1.4 2011/01/18 00:37:34 karens Exp $
 #
 # French translation of Drupal (general)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
@@ -193,4 +193,3 @@ msgstr "Date Repeat API"
 #: date_repeat/date_repeat.info:0
 msgid "A Date Repeat API to calculate repeating dates and times from iCal rules."
 msgstr "Une API de Répétition de Date pour calculer les dates et heures se répétant à partir de règles iCal"
-

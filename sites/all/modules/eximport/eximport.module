@@ -24,6 +24,7 @@ require_once 'http_build_url.php';
      a. news (cop)
      b. article (cop)
      c. originalnews (cop)
+     Need title, body, and tags. 
   3. check filter weights and configuration at /admin/config/content/formats
      a. see screenshot -
 https://skitch.com/jerobins/rdsqe/text-formats-extension-content-management-system
@@ -292,7 +293,22 @@ function eximport_node_create($entry) {
   
   // mark as published
   if ($entry->published) {
-    
+    $node_status = 'published';
+    $event_status = 'published';
+    $draft_status = null;
+    $publish_fields = array('published_at' => $entry->created, 
+                            'published_revision_id' => $node->vid, 
+                            'unpublished_at' => null);
+
+    // record workflow  
+    exworkflow_change_state($node, 
+                            $node_status, 
+                            $draft_status, 
+                            $event_status, 
+                            $user->uid, 
+                            null, 
+                            $publish_fields);
+  
   }
   
   $GLOBALS['user'] = $saved_user;
@@ -353,7 +369,7 @@ function eximport_entry_create($atom_entry) {
       // if it is news, change content-type
       $entry->type = 'news';
     } elseif ($cat['term'] == 'originalnews') {
-      $entry->type = 'original_news';
+      $entry->type = 'news';
     }
     
     if ($cat['term'] == 'published') {
@@ -672,7 +688,17 @@ function eximport_process_url(&$url) {
     $url['host'] = 'people.extension.org';
     unset($url['port']);
     $path = '/' . $exuser;
-  } elseif (preg_match('#^/wiki/(File|Image|Calendars|Talk)\:.*#', $path)) {
+  } elseif (preg_match('#^/wiki/File\:(.*)#', $path, $matches)) {
+    // replace 'File:blah' w/ 'sites/default/files/w'
+    $fname = html_entity_decode($matches[1]);
+    $fname = str_replace(' ', '_', $fname);
+    $hash = md5($fname);
+    $path = '/sites/default/files/w/'
+          . substr($hash, 0, 1) . '/'
+          . substr($hash, 0, 2) . '/'
+          . $matches[1];
+    $modified = TRUE;
+  } elseif (preg_match('#^/wiki/(Image|Calendars|Talk)\:.*#', $path)) {
     // zap it
     $url = NULL;
     return;

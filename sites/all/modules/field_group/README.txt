@@ -1,4 +1,4 @@
-/* $Id: README.txt,v 1.4.2.2 2010/11/07 21:36:25 stalski Exp $ */
+/* $Id: README.txt,v 1.4.2.3 2011/01/08 20:56:10 stalski Exp $ */
 
 History:
   Field_group was written for Drupal 7. For drupal 6, the module is 
@@ -19,6 +19,10 @@ Description:
 
 Module project page:
   http://drupal.org/project/field_group
+  
+Documentation page: 
+  http://drupal.org/node/1017838
+  http://drupal.org/node/1017962
   
 To submit bug reports and feature suggestions, or to track changes:
   http://drupal.org/project/issues/field_group

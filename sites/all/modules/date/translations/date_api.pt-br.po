@@ -1,4 +1,4 @@
-# $Id: date_api.pt-br.po,v 1.3 2010/02/28 14:28:01 karens Exp $
+# $Id: date_api.pt-br.po,v 1.4 2011/01/18 00:37:35 karens Exp $
 #
 # LANGUAGE translation of Drupal (root)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
@@ -294,4 +294,3 @@ msgstr "Uma API de Data que pode ser utilizada por outros módulos."
 #: date_api.info:0 date/date.info:0 date_locale/date_locale.info:0 date_php4/date_php4.info:0 date_popup/date_popup.info:0 date_repeat/date_repeat.info:0 date_timezone/date_timezone.info:0 date_tools/date_tools.info:0
 msgid "Date/Time"
 msgstr "Data/Hora"
-
