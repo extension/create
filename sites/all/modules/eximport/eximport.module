@@ -689,10 +689,11 @@ function eximport_process_url(&$url) {
     $fname = html_entity_decode($matches[1]);
     $fname = str_replace(' ', '_', $fname);
     $hash = md5($fname);
+    $fname = htmlentities($fname);
     $path = '/sites/default/files/w/'
           . substr($hash, 0, 1) . '/'
           . substr($hash, 0, 2) . '/'
-          . $matches[1];
+          . $fname;
     $modified = TRUE;
   } elseif (preg_match('#^/wiki/(Image|Calendars|Talk)\:.*#', $path)) {
     // zap it
