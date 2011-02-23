@@ -207,6 +207,56 @@ function exworkflow_schema() {
     
   );
   
+  $schema['node_workflow_preferences'] = array(
+    'description' => 'Table for storing workflow preferences per user.',
+    'fields' => array(
+      
+      'nwpid' => array(
+        'description' => 'Unique identifier for the workflow preference',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+    
+      'user_id' => array(
+        'description' => 'Id of the user with this preference set.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+  
+      'show_workflow' => array(
+        'description' => 'Boolean of whether to show the workflow or not for publishable nodes.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,  
+      ),
+  
+      'created' => array(
+        'description' => 'The Unix timestamp when the workflow preference was set.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+
+      'changed' => array(
+        'description' => 'The Unix timestamp when the workflow preference was most recently updated.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      ),
+      
+      'primary key' => array('nwpid'),
+      
+      'foreign keys' => array(
+        'user' => array(
+        'table' => 'users',
+        'columns' => array('user_id' => 'uid'),
+        ),
+      ),
+    
+  );
+  
   return $schema;
   
 }

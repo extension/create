@@ -24,50 +24,65 @@ function exworkflow_node_view($node, $view_mode) {
   }
   
   if(($node->type == 'article' || $node->type == 'faq' || $node->type == 'event' || $node->type == 'news') && $view_mode == 'full') {
-    $workflow_list = get_workflow_states();
+    // get current user
+    global $user;
+
+    // get workflow preference to show or hide it
+    $workflow_show_pref = db_query('SELECT * FROM {node_workflow_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
     
-    // find existing workflow
-    $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
-    
-    // if no workflow to be found yet, start it at a draft state
-    if($node_workflow == false) {
-      $review_count = "Review Count: 0";
-      $node_status = "Status: {$workflow_list[1]}";
+    // if they've elected to not see the workflow, only display the button to show the workflow
+    if($workflow_show_pref != false && $workflow_show_pref->show_workflow == false) {
+      $workflow_content = '<p>'.drupal_render(drupal_get_form('exworkflow_toggle_form')).'</p>';
     }
+    // otherwise, show the workflow
     else {
-      // check to see if the node has been set to inactive
-      if($node_workflow->active == false) {
-        $workflow_content = '<p>This content has been set to inactive.</p>'.drupal_render(drupal_get_form('exworkflow_activate_form'));
-        $node->content['additional_field'] = array('#markup' => $workflow_content);
-        return;
+      $workflow_list = get_workflow_states();
+    
+      // find existing workflow
+      $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
+    
+      // if no workflow to be found yet, start it at a draft state
+      if($node_workflow == false) {
+        $review_count = "Review Count: 0";
+        $node_status = "Status: {$workflow_list[1]}";
       }
-        
-      $review_count = "Review Count: {$node_workflow->review_count}";
-      $node_status = "Status: {$workflow_list[$node_workflow->status]}";
-      
-      # is the node published
-      if(isset($node_workflow->published_at)) {
-        // if the current revision of the node is published, notify 
-        // the user of that
-        if($node_workflow->published_revision_id == $node->vid) {
-          $node_status .= "<br /><small>The current version is published. You can either start a new draft revision by editing or  unpublish.
-          </small>";
+      else {
+        // check to see if the node has been set to inactive
+        if($node_workflow->active == false) {
+          $workflow_content = '<p>This content has been set to   inactive.</p>'.drupal_render(drupal_get_form('exworkflow_activate_form'));
+          $node->content['additional_field'] = array('#markup' => $workflow_content);
+          return;
         }
-        else {
-          $node_status .= "<br /><small>A previous version of this content is published.</small>";
-        }  
+        
+        $review_count = "Review Count: {$node_workflow->review_count}";
+        $node_status = "Status: {$workflow_list[$node_workflow->status]}";
+      
+        # is the node published
+        if(isset($node_workflow->published_at)) {
+          // if the current revision of the node is published, notify 
+          // the user of that
+          if($node_workflow->published_revision_id == $node->vid) {
+            $node_status .= "<br /><small>The current version is published. You can either start a new draft revision by editing   or unpublish.
+            </small>";
+          }
+          else {
+            $node_status .= "<br /><small>A previous version of this content is published.</small>";
+          }  
+        }
       }
-    }
     
-    if(($node_workflow != false) && (isset($node_workflow->draft_status))) {
-      $draft_status_string = "<br />Draft Status: {$workflow_list[$node_workflow->draft_status]}";
-    }
-    else {
-      $draft_status_string = '';
-    }
+      if(($node_workflow != false) && (isset($node_workflow->draft_status))) {
+        $draft_status_string = "<br />Draft Status: {$workflow_list[$node_workflow->draft_status]}";
+      }
+      else {
+        $draft_status_string = '';
+      }
     
-    $workflow_content = '<h2>Publishing Workflow</h2>'.$node_status.$draft_status_string."<br/>{$review_count}"."<p>".
-    drupal_render(drupal_get_form('exworkflow_form')).drupal_render(drupal_get_form('exworkflow_inactivate_form'))."</p>";
+    
+      $workflow_content = '<p>'.drupal_render(drupal_get_form('exworkflow_toggle_form')).'</p>'.'<h2>Publishing Workflow</h2>'.$node_status.$draft_status_string."<br/>{$review_count}"."<p>".
+      drupal_render(drupal_get_form('exworkflow_form')).drupal_render(drupal_get_form('exworkflow_inactivate_form'))."</p>";
+  } // end of are we displaying the workflow 'else' statement
+    
     $node->content['additional_field'] = array('#markup' => $workflow_content);
   }
   
@@ -174,6 +189,34 @@ function exworkflow_activate_form($form, &$form_state) {
 function exworkflow_activate_form_validate($form, &$form_state) {
   if (!isset($form_state['values']['activate'])) {
     form_set_error('activate', "You must submit a valid activation.");
+  }
+}
+
+// build the form to show/hide workflow
+function exworkflow_toggle_form($form, &$form_state) {
+  // get current user
+  global $user;
+  
+  // get workflow preference to show or hide it
+  $workflow_show_pref = db_query('SELECT * FROM {node_workflow_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
+  
+  if($workflow_show_pref != false && $workflow_show_pref->show_workflow == false) {
+    $button_text = 'Show Publishing Workflow';
+  }
+  else {
+    $button_text = "Hide Workflow";
+  }
+  
+  $form['toggle_pref'] = array('#type' => 'value', '#value' => true);
+  $form['submit'] = array('#type' => 'submit', '#value' => t($button_text));
+  return $form;
+}
+
+// probably not necessary, but will check anyways
+// workflow toggle validation
+function exworkflow_toggle_form_validate($form, &$form_state) {
+  if (!isset($form_state['values']['toggle_pref'])) {
+    form_set_error('toggle_pref', "You must submit a preference.");
   }
 }
 
@@ -303,6 +346,48 @@ function exworkflow_activate_form_submit($form, &$form_state) {
   exworkflow_record_event($node, 'moved back to draft', $workflow_obj->nwid, $user->uid);
 
   drupal_set_message("Node updated successfully!");
+}
+
+// submission of the show_hide workflow form
+function exworkflow_toggle_form_submit($form, &$form_state) {
+  // get current user
+  global $user;
+  
+  // get workflow preference to show or hide it
+  $workflow_show_pref = db_query('SELECT * FROM {node_workflow_preferences} WHERE user_id = :uid', array(':uid' =>  $user->uid))->fetchObject();
+  
+  
+  // if the workflow pref exists and the show is set to false, then toggle the show to true,
+  // otherwise, if the workflow pref exists and the show is set to true, toggle to false,
+  // and if the workflow pref does not exist at all, then they've never set the pref 
+  // and since it defaults to showing, you create a new record and set the show to false (toggle from default)
+  if($workflow_show_pref != false && $workflow_show_pref->show_workflow == false) {
+    $show_workflow = 1;
+  }
+  else {
+    $show_workflow = 0;
+  }
+  
+  if($workflow_show_pref != false) {
+    // update existing record
+    db_update('node_workflow_preferences')
+    ->fields(array(
+             'show_workflow' => $show_workflow,
+             'changed' => REQUEST_TIME))
+    ->condition('nwpid', $workflow_show_pref->nwpid)
+    ->execute();  
+  } 
+  //create new record
+  else {
+    $fields = array(
+      'user_id' => $user->uid,
+      'show_workflow' => $show_workflow,
+      'created' => REQUEST_TIME,
+      'changed' => REQUEST_TIME);
+    db_insert('node_workflow_preferences')->fields($fields)->execute();
+  }
+  
+  drupal_set_message("Workflow pref updated successfully!");
 }
 
 /**
