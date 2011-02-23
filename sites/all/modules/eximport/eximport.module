@@ -293,20 +293,16 @@ function eximport_node_create($entry) {
   
   // mark as published
   if ($entry->published) {
-    $node_status = 'published';
-    $event_status = 'published';
-    $draft_status = null;
     $publish_fields = array('published_at' => $entry->created, 
-                            'published_revision_id' => $node->vid, 
-                            'unpublished_at' => null);
+                            'published_revision_id' => $node->vid);
 
     // record workflow  
     exworkflow_change_state($node, 
-                            $node_status, 
-                            $draft_status, 
-                            $event_status, 
-                            $user->uid, 
-                            null, 
+                            'published',// node status
+                            null, // draft status
+                            'published', // event status
+                            $entry->user->uid, // user id
+                            $entry->created, // workflow tstamp
                             $publish_fields);
   
   }
@@ -693,10 +689,11 @@ function eximport_process_url(&$url) {
     $fname = html_entity_decode($matches[1]);
     $fname = str_replace(' ', '_', $fname);
     $hash = md5($fname);
+    $fname = htmlentities($fname);
     $path = '/sites/default/files/w/'
           . substr($hash, 0, 1) . '/'
           . substr($hash, 0, 2) . '/'
-          . $matches[1];
+          . $fname;
     $modified = TRUE;
   } elseif (preg_match('#^/wiki/(Image|Calendars|Talk)\:.*#', $path)) {
     // zap it
