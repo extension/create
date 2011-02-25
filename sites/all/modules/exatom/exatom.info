@@ -1,0 +1,12 @@
+; exatom - content feed and seed
+;
+; Will export content in Atom feed; however, some feed elements
+; are added to support publishing to www.extension.org
+name = exatom
+description = "Provides an eXtension style Atom 1.0 publishing feed"
+package = eXtension
+version = VERSION
+dependencies[] = path
+dependencies[] = exworkflow
+core = 7.x
+files[] = exatom.module
