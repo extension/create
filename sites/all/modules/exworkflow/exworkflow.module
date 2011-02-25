@@ -288,16 +288,15 @@ function exworkflow_inactivate_form_submit($form, &$form_state) {
   // find node workflow
   $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
   
-  if($node_workflow != false) {
-    // check and see if the node was published
-    if($node_workflow->published_at != null) {
+  // check and see if the node was published
+  if($node_workflow != false && $node_workflow->published_at != null) {
       $is_published = true;
       $unpublished_at_array = array('unpublished_at' => REQUEST_TIME);
-    }
-    else {
-      $is_published = false;
-      $unpublished_at_array = array();
-    }
+  }
+  // else if there was no node workflow or doesn't have a published_at, it obviously isn't published 
+  else {
+    $is_published = false;
+    $unpublished_at_array = array();
   }
   
   // record new workflow
@@ -310,10 +309,13 @@ function exworkflow_inactivate_form_submit($form, &$form_state) {
                                           array('published_at' => null, 'published_revision_id' => null, 'active' => 0) + $unpublished_at_array);
                           
   if($workflow_obj == null) { return; }
-                          
-  // it's being set back to draft, 
-  // record that event along with the made inactive event from the exworkflow_change_state call
-  exworkflow_record_event($node, 'moved back to draft', $node_workflow->nwid, $user->uid);
+  
+  // if the workflow's draft_status existed and was greater than the draft state, record the set back to draft event
+  if($node_workflow != false && $node_workflow->draft_status != null && $node_workflow->draft_status > 1) {                        
+    // it's being set back to draft, 
+    // record that event along with the made inactive event from the exworkflow_change_state call
+    exworkflow_record_event($node, 'moved back to draft', $node_workflow->nwid, $user->uid);
+  }
   
   // set event to unpublish if it was published
   if($is_published == true) {
@@ -538,25 +540,28 @@ function exworkflow_change_state($node_obj, $node_status_text, $draft_status_tex
   if($node_workflow == false) {   
     // handle review counts if no node workflow was found
     // if a review event occured, we need to set the number of reviews
-    if($workflow_list[$draft_status_number] == 'Reviewed') { 
+    if($draft_status_number != null && $workflow_list[$draft_status_number] == 'Reviewed') { 
       $review_count = 1; 
     }
     else { 
       $review_count = 0; 
     }
     
-    if($workflow_list[$draft_status_number] == 'Published') {
-      $additional_fields = array('published_at' => REQUEST_TIME, 'published_revision_id' => $node->vid);
+    if($workflow_list[$status_number] == 'Published') {
+      $additional_fields = array('published_at' => REQUEST_TIME, 'published_revision_id' => $node_obj->vid);
     }
      
     // if no workflow record exists and the current state is greater than 1, record a new workflow. 
     // if the current state is 1, we do not record anything as everything starts out as draft 
     // (this should not happen b/c draft state (1) isn't allowed on dropdown selection for nodes that do not have a workflow yet)
-    if($draft_status_number > 1) {
+    if($draft_status_number != null && $draft_status_number <= 1) {
+      return null;
+    }
+     
+    else { 
       $fields = array(
         'node_id' => $node_obj->nid, 
         'current_revision_id' => $node_obj->vid,
-        'active' => 1,
         'review_count' => $review_count, 
         'status' => $status_number, 
         'status_text' => $workflow_list[$status_number],
@@ -573,10 +578,7 @@ function exworkflow_change_state($node_obj, $node_status_text, $draft_status_tex
       exworkflow_record_event($node_obj, $event_text, $workflow_object->nwid, $creator_id, $workflow_time);
       return $workflow_object;
     }
-    else {
-      return null;
-    }
-  }
+  } // end of does the workflow exist
   
   // workflow record exists
   // update current workflow record
@@ -605,6 +607,11 @@ function exworkflow_change_state($node_obj, $node_status_text, $draft_status_tex
         $review_count = $node_workflow->review_count;
       }
     }
+    // if we published, keep the review count the same
+    else if($workflow_list[$status_number] == 'Published') {
+      $review_count = $node_workflow->review_count;
+    }
+    
     // else, the draft status was null possibly due to unpublishing or inactivation of the content
     else {
       $review_count = 0;
