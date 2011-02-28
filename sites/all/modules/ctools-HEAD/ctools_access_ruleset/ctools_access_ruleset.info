@@ -1,7 +1,0 @@
-; $Id: ctools_access_ruleset.info,v 1.2 2010/10/11 22:18:24 sdboyer Exp $
-name = Custom rulesets
-description = Create custom, exportable, reusable access rulesets for applications like Panels.
-core = 7.x
-package = Chaos tool suite
-dependencies[] = ctools
-files[] = ctools_access_ruleset.module
