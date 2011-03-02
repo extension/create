@@ -1,5 +1,5 @@
 <?php
-// $Id: notifications_content.pages.inc,v 1.1.2.3.2.3.2.7 2010/07/22 11:57:49 jareyero Exp $
+// $Id: notifications_content.admin.inc,v 1.1.2.1 2011/01/18 01:36:24 jareyero Exp $
 /**
  * @file
  * Subscriptions to content events

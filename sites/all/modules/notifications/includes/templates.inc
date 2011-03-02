@@ -1,5 +1,5 @@
 <?php
-// $Id: templates.inc,v 1.1.2.1 2010/04/29 23:12:01 jareyero Exp $
+// $Id: templates.inc,v 1.1.2.1.2.1 2011/01/18 01:36:24 jareyero Exp $
 /**
  * @file
  *   Notifications templates

@@ -1,5 +1,5 @@
 <?php
-// $Id: messaging_mail.module,v 1.2.2.4.2.8.6.7 2010/06/04 17:57:11 jareyero Exp $
+// $Id: messaging_htmlmail.module,v 1.1.2.1 2011/01/18 00:41:36 jareyero Exp $
 /**
  * @file
  * HTML Mail using Mime-Mail. Messaging method plug-in

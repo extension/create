@@ -1,5 +1,5 @@
 <?php
-// $Id: messaging_debug.module,v 1.1.2.4 2010/05/24 23:01:55 jareyero Exp $
+// $Id: messaging_devel.module,v 1.1.2.1 2011/01/18 00:41:37 jareyero Exp $
 /**
  * @file
  * Simple messaging using html page. Messaging method plug-in

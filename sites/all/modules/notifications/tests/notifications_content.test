@@ -102,12 +102,17 @@ class NotificationsContentTests extends NotificationsTestCase {
       'log' => '', // If not set, token module produces a notice
     ));
 
-    $subs_thread = notifications_subscription_build(array(
+    $subs_thread = notifications_build_subscription(array(
       'type' => 'thread',
       'event_type' => 'node',
       'fields' => array('nid' => $node->nid),
     ));
-        
+    
+    // Check generic info hooks with some random values
+    $this->assertEqual(notifications_subscription_types('thread', 'event_type'), 'node', 'Types hook retrieves right value.');
+    $event_type = notifications_event_types('node-update');
+    $this->assertEqual($event_type['digest'], array('node', 'nid'), 'Event types hook retrieves right value.');
+    
     // Try permissions with anonymous user
     $user = drupal_anonymous_user();
     $this->assertEqual(notifications_user_allowed_subscription($user, $subs_thread), FALSE, 'Subscription not allowed for anonymous user');
@@ -193,7 +198,7 @@ class NotificationsContentTests extends NotificationsTestCase {
     variable_set('notifications_event_enabled', $events);
     
     // Trigger a node update event, with node unpublished
-    drupal_static_reset('notifications_content_nodeapi');
+    messaging_static_reset('notifications_content_nodeapi');
     $node = node_load($node->nid, NULL, TRUE);   
     $node->body .= 'Updated.';
     node_save($node);
@@ -207,7 +212,7 @@ class NotificationsContentTests extends NotificationsTestCase {
     variable_set('notifications_event_enabled', $events);
 
     // Trigger a node update event
-    drupal_static_reset('notifications_content_nodeapi');
+    messaging_static_reset('notifications_content_nodeapi');
     $node = node_load($node->nid, NULL, TRUE);   
     $node->body .= 'Updated.';
     node_save($node);

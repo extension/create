@@ -1,5 +1,5 @@
 <?php
-// $Id: messaging_message.class.inc,v 1.1.2.17 2010/06/21 12:05:28 jareyero Exp $
+// $Id: messaging.message.inc,v 1.1.2.1 2011/01/18 00:41:36 jareyero Exp $
 /**
  * @file
  * Drupal Messaging Framework - Message class file
