@@ -80,7 +80,7 @@ function exworkflow_node_view($node, $view_mode) {
       
       $toggle_form = drupal_get_form('exworkflow_toggle_form');
       $workflow_form = drupal_get_form('exworkflow_form');
-      $inactive_form drupal_get_form('exworkflow_inactivate_form');
+      $inactive_form = drupal_get_form('exworkflow_inactivate_form');
       $workflow_content = '<p>'.drupal_render($toggle_form).'</p>'
                         . '<h2>Publishing Workflow</h2>'
                         . $node_status.$draft_status_string
