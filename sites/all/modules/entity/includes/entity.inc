@@ -1,12 +1,9 @@
 <?php
-// $Id: entity.db.inc,v 1.1.2.10 2010/12/16 11:13:26 fago Exp $
+// $Id: entity.inc,v 1.1.2.6 2011/02/04 14:57:35 fago Exp $
 
 /**
  * @file
- * Deprecated. This is only here to ease upgrading from previous versions of the
- * entity API, which shipped with this file. This is required, such that the
- * Entity class can be loaded during the drupal bootstrap when updating. After
- * updating, this file and its directory can be safely removed.
+ * Provides a base class for entities.
  */
 
 /**
@@ -15,15 +12,18 @@
  * It's suggested, but not required, to extend this class and to override
  * __construct() in order to specify a fixed entity type.
  *
- * It is suggested to also implement the label() and uri() methods for the
- * respective callbacks in hook_entity_info(). For that case the provided
- * callbacks entity_class_label() and entity_class_uri() may be specified.
+ * For providing an entity label and URI it is suggested to override the
+ * defaultLabel() and defaultUri() methods, and to specify the
+ * entity_class_label() and entity_class_uri() as respective callbacks in
+ * hook_entity_info(). That way modules are able to override your defaults
+ * by altering the hook_entity_info() callbacks, while $entity->label() and
+ * $entity->uri() reflect this changes as well.
  */
 class Entity {
 
   protected $entityType;
   protected $entityInfo;
-  protected $idKey, $nameKey;
+  protected $idKey, $nameKey, $statusKey;
 
   /**
    * Creates a new entity.
@@ -38,6 +38,7 @@ class Entity {
     $this->entityInfo = entity_get_info($entityType);
     $this->idKey = $this->entityInfo['entity keys']['id'];
     $this->nameKey = isset($this->entityInfo['entity keys']['name']) ? $this->entityInfo['entity keys']['name'] : $this->idKey;
+    $this->statusKey = empty($info['entity keys']['status']) ? 'status' : $info['entity keys']['status'];
 
     // Set initial values.
     foreach ($values as $key => $value) {
@@ -49,11 +50,9 @@ class Entity {
    * Returns the internal, numeric identifier.
    *
    * For exportable entities, this differs to the uniform identifier returned
-   * by Entity::identifier(). The internal identifier is supposed to be used
-   * internally in order to refer to a specify, stored (ENTITY_IN_DB)
-   * entity. For referring to entities which might not live in the DB, use the
-   * uniform identifier.
-   * If unsure, use Entity:identifier().
+   * by Entity::identifier(). The internal identifier is supposed to be only
+   * used internally to refer to an entity, i.e. in the database. If unsure, use
+   * Entity:identifier().
    */
   public function internalIdentifier() {
     return isset($this->{$this->idKey}) ? $this->{$this->idKey} : NULL;
@@ -124,7 +123,7 @@ class Entity {
     if (isset($this->entityInfo['uri callback']) && $this->entityInfo['uri callback'] == 'entity_class_uri') {
       return $this->defaultUri();
     }
-    return entity_uri($entity_type, $entity);
+    return entity_uri($this->entityType, $this);
   }
 
   /**
@@ -132,7 +131,26 @@ class Entity {
    * 'entity_class_uri' as 'uri callback' hook_entity_info().
    */
   protected function defaultUri() {
-    return array('path' => 'default/' . $entity->identifier());
+    return array('path' => 'default/' . $this->identifier());
+  }
+
+  /**
+   * Checks if the entity has a certain exportable status.
+   *
+   * @param $status
+   *   A status constant, i.e. one of ENTITY_CUSTOM, ENTITY_IN_CODE,
+   *   ENTITY_OVERRIDDEN or ENTITY_FIXED.
+   *
+   * @return
+   *   For exportable entities TRUE if the entity has the status, else FALSE.
+   *   In case the entity is not exportable, NULL is returned.
+   *
+   * @see entity_has_status()
+   */
+  public function hasStatus($status) {
+    if (!empty($this->entityInfo['exportable'])) {
+      return isset($this->{$this->statusKey}) && ($this->{$this->statusKey} & $status) == $status;
+    }
   }
 
   /**
