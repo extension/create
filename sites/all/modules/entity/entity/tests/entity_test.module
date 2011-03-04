@@ -1,0 +1,182 @@
+<?php
+// $Id: entity_test.module,v 1.1.2.8 2010/12/02 13:25:59 fago Exp $
+
+/**
+ * @file
+ * Test moduel for the entity API.
+ */
+
+/**
+ * Implement hook_entity_info().
+ */
+function entity_test_entity_info() {
+  $return = array(
+    'entity_test' => array(
+      'label' => t('Test Entity'),
+      'entity class' => 'EntityClass',
+      'controller class' => 'EntityAPIController',
+      'base table' => 'entity_test',
+      'fieldable' => TRUE,
+      'entity keys' => array(
+        'id' => 'pid',
+        'bundle' => 'name',
+      ),
+      // Make use the class' label() and uri() implementation by default.
+      'label callback' => 'entity_class_label',
+      'uri callback' => 'entity_class_uri',
+      'bundles' => array(),
+      'bundle keys' => array(
+        'bundle' => 'name',
+      ),
+    ),
+  );
+  $return['entity_test_type'] = array(
+    'label' => t('Test entity type'),
+    'entity class' => 'Entity',
+    'controller class' => 'EntityAPIController',
+    'base table' => 'entity_test_type',
+    'fieldable' => FALSE,
+    'bundle of' => 'entity_test',
+    'exportable' => TRUE,
+    'entity keys' => array(
+      'id' => 'id',
+      'name' => 'name',
+    ),
+  );
+  return $return;
+}
+
+/**
+ * Implement hook_entity_info_alter().
+ *
+ * Use this hook to specify entity test bundles to avoid a recursion, as loading
+ * the entity test types needs the entity info too.
+ */
+function entity_test_entity_info_alter(&$entity_info) {
+  foreach (entity_test_get_types() as $name => $info) {
+    $entity_info['entity_test']['bundles'][$name] = array(
+      'label' => $info->label,
+    );
+  }
+}
+
+/**
+ * Gets an array of all test entity types, keyed by the name.
+ *
+ * @param $name
+ *   If set, the type with the given name is returned.
+ */
+function entity_test_get_types($name = NULL) {
+  $types = entity_load('entity_test_type', isset($name) ? array($name) : FALSE);
+  if (isset($name)) {
+    return isset($types[$name]) ? $types[$name] : FALSE;
+  }
+  return $types;
+}
+
+/**
+ * Load multiple test entities based on certain conditions.
+ *
+ * @param $pids
+ *   An array of entity IDs.
+ * @param $conditions
+ *   An array of conditions to match against the {entity} table.
+ * @param $reset
+ *   A boolean indicating that the internal cache should be reset.
+ * @return
+ *   An array of test entity objects, indexed by pid.
+ */
+function entity_test_load_multiple($pids = array(), $conditions = array(), $reset = FALSE) {
+  return entity_load('entity_test', $pids, $conditions, $reset);
+}
+
+/**
+ * Delete multiple test entities.
+ *
+ * @param $pids
+ *   An array of test entity IDs.
+ */
+function entity_test_delete_multiple(array $pids) {
+  entity_get_controller('entity_test')->delete($pids);
+}
+
+/**
+ * Implement hook_entity_test_type_presave().
+ */
+function entity_test_entity_test_type_presave($type) {
+  $data = get_object_vars($type);
+  unset($data['name'], $data['label'], $data['weight'], $data['locked'], $data['data'], $data['status']);
+  $type->data = $data;
+}
+
+/**
+ * Main class for test entities.
+ */
+class EntityClass extends Entity {
+
+  public function __construct(array $values = array(), $entityType = NULL) {
+    parent::__construct($values, 'entity_test');
+  }
+
+  /**
+   * Override buildContent() to add the username to the output.
+   */
+  public function buildContent($view_mode = 'full', $langcode = NULL) {
+    $content['user'] = array(
+      '#markup' => "User: ". format_username(user_load($this->uid)),
+    );
+    return entity_get_controller($this->entityType)->buildContent($this, $view_mode, $langcode, $content);
+  }
+
+  /**
+   * Specifies the default label, which is picked up by label() by default.
+   */
+  protected function defaultLabel() {
+    return "my custom label";
+  }
+
+  /**
+   * Specifies the default uri, which is picked up by uri() by default.
+   */
+  protected function defaultURI() {
+    return array('path' => 'custom/' . $this->identifier());
+  }
+}
+
+
+/**
+ *
+ *
+ * Some hook implementations used by the tests.
+ *
+ *
+ */
+
+
+/**
+ * Implements hook_entity_enabled().
+ */
+function entity_test_entity_enabled($entities) {
+  $_SESSION['entity_hook_test']['entity_enabled'][] = array_keys($entities);
+}
+
+/**
+ * Implements hook_entity_disabled().
+ */
+function entity_test_entity_disabled($entities) {
+  $_SESSION['entity_hook_test']['entity_disabled'][] = array_keys($entities);
+}
+
+/**
+ * Implements hook_entity_test_type_enabled().
+ */
+function entity_test_entity_test_type_enabled($entities) {
+  $_SESSION['entity_hook_test']['entity_test_type_enabled'][] = array_keys($entities);
+}
+
+/**
+ * Implements hook_entity_test_type_disabled().
+ */
+function entity_test_entity_test_type_disabled($entities) {
+  $_SESSION['entity_hook_test']['entity_test_type_disabled'][] = array_keys($entities);
+}

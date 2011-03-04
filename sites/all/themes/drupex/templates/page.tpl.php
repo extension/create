@@ -19,13 +19,14 @@ Drupex addition is the #extensionNav div
              </li>
              <li class="group"><span>Wikis</span>
                  <ul>
-                     <li><a href="http://create.extension.org/" title="Create">Create</a></li>
+                     <li><a href="http://about.extension.org/wiki/" title="The About wiki: Organizational information, resources and updates about the eXtension initiative">About wiki</a></li>
                      <li><a href="http://cop.extension.org/wiki/" title="CoP wiki for content creation">CoP</a></li>
                      <li><a href="http://collaborate.extension.org/wiki/" title="A wiki for professionals from the land-grant universities to collaborate on topics of interest.">Collaborate</a></li>
                  </ul>
              </li>
              <li class="group"><span>Content Tools and People</span>
                  <ul>
+                    <li><a href="http://create.extension.org/" title="Create">Create</a></li>
                      <li><a href="http://aae.extension.org/" title="Ask an Expert">AaE</a></li>
                      <li><a href="http://events.extension.org/" title="Events">Events</a></li>
                      <li><a href="http://faq.extension.org/" title="FAQ">FAQ</a></li>
@@ -36,6 +37,7 @@ Drupex addition is the #extensionNav div
              <li class="group last"><span>Moodle</span>
                  <ul>
                      <li><a href="http://campus.extension.org/" title="Moodle courses developed by eXtension Communities of Practice, as well as Extension professionals throughout the Cooperative Extension System, for use by the general public">Campus</a></li>
+                     <li><a href="http://pdc.extension.org/" title="Moodle courses developed by Extension professionals for internal staff development and training.">PDC</a></li>
                  </ul>
              </li>
       </ul>
