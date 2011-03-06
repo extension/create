@@ -1,5 +1,5 @@
 <?php
-// $Id: notifications.admin.inc,v 1.5.2.6.2.19.2.12.2.15 2010/07/22 11:57:49 jareyero Exp $
+// $Id: notifications_scheduler.admin.inc,v 1.1.2.1 2011/01/18 01:36:25 jareyero Exp $
 
 // Library for managing subscriptions, pages and forms
 require_once drupal_get_path('module', 'notifications') . '/notifications.admin.inc';

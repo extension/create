@@ -1,5 +1,5 @@
 <?php
-// $Id: notifications.pages.inc,v 1.1.2.8.2.9.2.25 2010/07/21 10:55:30 jareyero Exp $
+// $Id: notifications.pages.inc,v 1.1.2.8.2.9.2.25.2.1 2011/01/18 01:36:24 jareyero Exp $
 /**
  * @file
  * User pages for Notifications

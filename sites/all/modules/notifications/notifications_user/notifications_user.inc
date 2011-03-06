@@ -1,5 +1,5 @@
 <?php
-// $Id: notifications_user.inc,v 1.1.2.8.2.9.2.25 2010/07/21 10:55:30 jareyero Exp $
+// $Id: notifications_user.inc,v 1.1.2.1 2011/01/18 01:39:53 jareyero Exp $
 /**
  * @file
  * User subscriptions for Notifications

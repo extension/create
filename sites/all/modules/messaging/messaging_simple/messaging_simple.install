@@ -1,5 +1,5 @@
 <?php
-// $Id: messaging_simple.install,v 1.1.4.2 2010/03/25 15:51:49 jareyero Exp $
+// $Id: messaging_simple.install,v 1.1.4.2.2.1 2011/01/18 00:41:37 jareyero Exp $
 
 /**
 * Implementation of hook_schema().

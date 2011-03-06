@@ -1,5 +1,5 @@
 <?php
-// $Id: text.inc,v 1.1.2.4 2010/04/26 01:34:27 jareyero Exp $
+// $Id: messaging_template.inc,v 1.1.4.2 2011/01/18 00:41:36 jareyero Exp $
 /**
  * @file
  * Drupal Messaging Framework - Text filtering functions

@@ -1,5 +1,5 @@
 <?php
-// $Id: messaging.admin.inc,v 1.1.2.13.2.3.2.13 2010/05/24 16:45:01 jareyero Exp $
+// $Id: messaging.admin.inc,v 1.1.2.13.2.3.2.13.2.1 2011/01/18 00:41:36 jareyero Exp $
 /**
  * @file
  * Messaging Framework - Admin UI

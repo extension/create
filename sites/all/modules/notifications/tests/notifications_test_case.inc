@@ -44,14 +44,14 @@ class NotificationsTestCase extends MessagingTestCase {
   }
   // Enable all UI optional pages
   function enableUIPages($enable = TRUE) {    
-    $settings = array_keys(notifications_subscription_type());
+    $settings = array_keys(notifications_subscription_types());
     variable_set('notifications_ui_types', $enable ? $settings : array());
     variable_set('notifications_ui_user_options', $enable ? array('page', 'create'): array());
     menu_rebuild();
   }
   // Enable content Subscriptions for all
   function enableSubscriptionTypes($enable = TRUE) {
-    $settings = array_keys(notifications_subscription_type());
+    $settings = array_keys(notifications_subscription_types());
     variable_set('notifications_content_type', $enable ? $settings : array());
   }
   // Create comment

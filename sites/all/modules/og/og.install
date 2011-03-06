@@ -1,5 +1,5 @@
 <?php
-// $Id$
+
 
 /**
  * @file
@@ -7,17 +7,15 @@
  */
 
 /**
- * Implements hook_enable().
+ * Implements hook_install().
  *
- * Add group audience to users by default. This can't be in hook_install() as
- * the field isn't known yet.
+ * Add group audience to users by default.
  */
-function og_enable() {
+function og_install() {
   _field_info_collate_fields(TRUE);
   _field_info_collate_types(TRUE);
   og_create_field(OG_AUDIENCE_FIELD, 'user', 'user');
 }
-
 
 /**
  * Implements hook_uninstall().
@@ -31,6 +29,22 @@ function og_uninstall() {
   foreach ($vars as $var) {
     variable_del($var);
   }
+  // Remove all fields owned by organic groups.
+  foreach (field_read_fields(array('module' => 'og'), array('include_inactive' => TRUE)) as $field){
+    // We need to invoke the storage_delete hook and the field_delete_instance
+    // here, even though this should be done by field_delete_field().
+    // The current version of this function only works on active fields,
+    // and during uninstall, the fields will be inactive.
+    // Can be removed once
+    // http://drupal.org/node/943772
+    // is fixed.
+    module_invoke($field['storage']['module'], 'field_storage_delete_field', $field);
+    $instances = field_read_instances(array('field_id' => $field['id']), array('include_inactive' => TRUE));
+    foreach ($instances as $instance) {
+      field_delete_instance($instance, FALSE);
+    }
+    field_delete_field($field['field_name']);
+  }
 }
 
 
@@ -39,14 +53,6 @@ function og_uninstall() {
  */
 function og_schema() {
   $schema = array();
-
-  if (db_field_exists('og', 'nid') && !db_table_exists('d6_og')) {
-    // Rename the old table, so we can populate the new {og} table using API
-    // functions, that assume the new DB structure.
-    db_rename_table('og', 'd6_og');
-    db_rename_table('og_ancestry', 'd6_og_ancestry');
-    db_rename_table('og_uid', 'd6_og_uid');
-  }
 
   $schema['og'] = array(
     'description'     => 'Store information related to the groups.',
@@ -123,7 +129,10 @@ function og_schema() {
       'permission' => array('permission'),
     ),
     'foreign keys' => array(
-      'rid' => array('role' => 'rid'),
+      'og_role' => array(
+        'table' => 'og_role',
+        'columns' => array('rid' => 'rid'),
+      ),
     ),
   );
 
@@ -182,8 +191,14 @@ function og_schema() {
       'rid' => array('rid'),
     ),
     'foreign keys' => array(
-      'uid' => array('users' => 'uid'),
-      'rid' => array('og_role' => 'rid'),
+      'user' => array(
+        'table' => 'users',
+        'columns' => array('uid' => 'uid'),
+      ),
+      'og_role' => array(
+        'table' => 'og_role',
+        'columns' => array('rid' => 'rid'),
+      ),
     ),
   );
 
@@ -194,6 +209,23 @@ function og_schema() {
  * Upgrade from Organic groups 6 to 7.
  */
 function og_update_7000(&$sandbox) {
+  if (!module_exists('og')) {
+    // If OG module isn't enabled we can't create the OG specific fields.
+    throw new DrupalUpdateException('You must enable Organic groups module to perform an upgrade from Drupal 6.');
+  }
+  if (db_field_exists('og', 'nid') && !db_table_exists('d6_og')) {
+    // Rename the old table, so we can populate the new {og} table using API
+    // functions, that assume the new DB structure.
+    db_rename_table('og', 'd6_og');
+    db_rename_table('og_ancestry', 'd6_og_ancestry');
+    db_rename_table('og_uid', 'd6_og_uid');
+
+    // Install the new database.
+    drupal_install_schema('og');
+    og_install();
+    // Set global roles and permissions.
+    og_set_global_access_module('og');
+  }
   // Some patterns taken from node_update_7006().
   // - Add group fields to nodes.
   // - Move Organic groups' data into the corresponding fields.
@@ -225,12 +257,21 @@ function og_update_7000(&$sandbox) {
               break;
 
           }
-
-          // TODO: Delete variables.
         }
       }
 
       if ($content_type) {
+        // Create a description field. This field isn't part of OG7, however we help
+        // migrate the data from OG6.
+
+        $field = array(
+          'field_name' => 'og_description',
+          'type' => 'text',
+          'entity_types' => array('node'),
+          'cardinality' => 1,
+        );
+        $field = field_create_field($field);
+
         // Add group and group content fields to content types.
         $fields = array(
           'group' => OG_GROUP_FIELD,
@@ -239,6 +280,18 @@ function og_update_7000(&$sandbox) {
         foreach ($fields as $key => $field_name) {
           foreach ($content_type[$key] as $type) {
             og_create_field($field_name, 'node', $type);
+
+            if ($key == 'group') {
+              // Create the "description" field for the bundle.
+              $instance = array(
+                'field_name' => 'og_description',
+                'bundle' => $type,
+                'entity_type' => 'node',
+                'label' => t('Group description'),
+                'description' => t('This is description of the group.'),
+              );
+              field_create_instance($instance);
+            }
           }
         }
       }
@@ -254,7 +307,10 @@ function og_update_7000(&$sandbox) {
       $query = db_select('node_revision', 'nr');
       $query->innerJoin('node', 'n', 'n.vid = nr.vid');
       $query->innerJoin('d6_og', 'og', 'n.nid = og.nid');
-      $sandbox['group total'] = $query->countQuery()->execute()->fetchField();
+      $sandbox['group total'] = $query
+        ->countQuery()
+        ->execute()
+        ->fetchField();
 
       $query = db_select('node_revision', 'nr');
       $query->innerJoin('node', 'n', 'n.vid = nr.vid');
@@ -294,7 +350,7 @@ function og_update_7000(&$sandbox) {
     if (empty($sandbox['group upgrade'])) {
       // All nodes and users are processed.
       $sandbox['#finished'] = 1;
-      return t("!number groups and group content converted to use new Group fields.", array('!number' => $sandbox['total']));
+      return t('Organic groups converted to use new schema.');
     }
   }
 }
@@ -313,6 +369,7 @@ function _og_upgrade_group(&$sandbox) {
   $query
     ->fields('nr', array('nid', 'vid'))
     ->fields('n', array('type', 'created'))
+    ->fields('og', array('og_description'))
     ->condition('nr.vid', $sandbox['last'], '>')
     ->orderBy('nr.vid', 'ASC')
     ->range(0, $batch_size);
@@ -336,6 +393,10 @@ function _og_upgrade_group(&$sandbox) {
 
     // Set field values.
     $node->{OG_GROUP_FIELD}[LANGUAGE_NONE][0]['value'] = TRUE;
+
+    if (!empty($revision->og_description)) {
+      $node->og_description[LANGUAGE_NONE][0]['value'] = $revision->og_description;
+    }
 
     field_attach_update('node', $node);
 
@@ -387,7 +448,7 @@ function _og_upgrade_group_content(&$sandbox) {
     $node = node_load($revision->nid, $revision->vid);
     og_group($group->gid, 'node', $node);
 
-    $sandbox['last'] = $account->nid;
+    $sandbox['last'] = $node->nid;
     // User subscribed to group.
     $sandbox['count'] += 1;
   }
@@ -425,7 +486,7 @@ function _og_upgrade_user(&$sandbox) {
     og_group($group->gid, 'user', $account, $state);
 
     if ($account->is_admin) {
-      og_users_roles_grant($group->gid, $account->uid, $rid);
+      og_role_grant($group->gid, $account->uid, $rid);
     }
     $sandbox['last'] = $account->nid;
     // User subscribed to group.

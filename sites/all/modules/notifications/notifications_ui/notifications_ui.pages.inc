@@ -1,5 +1,5 @@
 <?php
-// $Id: notifications_ui.pages.inc,v 1.1.2.3.6.8 2010/05/18 16:32:57 jareyero Exp $
+// $Id: notifications_ui.pages.inc,v 1.1.2.3.6.8.2.1 2011/01/18 01:36:24 jareyero Exp $
 /**
  * @file
  *   User pages for User Interface for subscriptions modules

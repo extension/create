@@ -1,5 +1,5 @@
 <?php
-// $Id: notifications_tags.module,v 1.1.2.5.2.12.2.5.2.8 2010/05/11 10:38:20 jareyero Exp $
+// $Id: notifications_tags.admin.inc,v 1.1.2.1 2011/01/18 01:36:24 jareyero Exp $
 /**
  * @file
  * Subscriptions to taxonomy terms
