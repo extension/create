@@ -7,7 +7,7 @@
  * @version 0.1
  * @author James E. Robinson, III <james.robinson@extension.org>
  * @copyright North Carolina State University 2010
- * @author Based, in part, on module by David Kent Norman and Kristjan Jansen
+ * @author Based, in part, on work by David Kent Norman and Kristjan Jansen
  */
 
 /**
@@ -200,10 +200,10 @@ function _exatom_print_feed(array $nids, array $feed_info) {
     $item = array(
       'published' => $node->created,
       'updated' => $node->changed,
-      'author' => $node->name ? $node->name : variable_get('anonymous', 'Anonymous'),
+      'author' => $node->name ? $node->name : variable_get('anonymous',
+                                                           'Anonymous'),
       'content' => $item_text
     );
-
 
     $output .= theme('exatom_feed_item',
                      array('title' => $node->title, 
