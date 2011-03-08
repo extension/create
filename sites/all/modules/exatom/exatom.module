@@ -199,6 +199,20 @@ function _exatom_print_feed(array $nids, array $feed_info) {
           }
         }
       }
+      
+      // add any categories to the feed as category terms
+      if (!empty($node->field_article_category)) {
+        $field_cat_list = array_values($node->field_article_category);
+        $field_cats = array_pop($field_cat_list);
+        
+        foreach ($field_cats as $cat) {
+          $term = taxonomy_term_load($cat['tid']);
+          if ($term) {
+            $extra[] = array('key' => 'category',
+                             'attributes' => array('term' => $term->name));
+          }
+        }
+      }
     }
 
     // add the node type as a term so pubsite can seperate FAQs from articles
