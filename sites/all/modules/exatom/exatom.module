@@ -77,9 +77,15 @@ function exatom_feed() {
     // get nodes from workflow    
     $query = db_select('node_workflow');
     $query->addField('node_workflow', 'node_id');
-    $query->addField('node_workflow', 'published_at');
-    $query->addField('node_workflow', 'unpublished_at');
-    $query->addField('node_workflow', 'published_revision_id');
+    
+    if ($published) {
+      $query->addField('node_workflow', 'published_at');
+      $query->addField('node_workflow', 'published_revision_id');
+    }
+    
+    if ($unpublished) {
+      $query->addField('node_workflow', 'unpublished_at');
+    }
     
     if (!empty($updated_min)) {
       $updated_min = strtotime($updated_min);
@@ -149,10 +155,12 @@ function _exatom_print_feed(array $nids, array $feed_info) {
     
     // loop thru and load revisions we need
     foreach ($feed_info['publishing'] as $nid => $ndata) {
-      if ($ndata->published_at) {
+      if (property_exists($ndata, 'published_at')
+          and !empty($ndata->published_at)) {
         $node = node_load($nid, $ndata->published_revision_id);
         $nodes[] = $node;
-      } elseif ($ndata->unpublished_at) {
+      } elseif (property_exists($ndata, 'unpublished_at')
+                and !empty($ndata->unpublished_at)) {
         $goner = node_load($nid);
         $goner->unpublished = TRUE;
         $nodes[] = $goner;
