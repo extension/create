@@ -746,11 +746,11 @@ function eximport_get_wiki_meta() {
   // get imported node list
   $path_list = _eximport_load_imported_node_data();
   
-  $total = count($nodes);
+  $total = count($path_list);
   $processed = 0;
   $errors = 0;
   
-  dvm(array("original url", $nodes));
+  dvm(array("original url", $path_list));
   
   // loop thru all nodes and see if metadata exists
   foreach ($path_list as $path) {
