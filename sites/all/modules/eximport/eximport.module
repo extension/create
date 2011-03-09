@@ -738,6 +738,7 @@ function eximport_process_url(&$url) {
 
 /**
  * Try to load existing BettaMeta metadata into drupal fields
+ * TODO: NEED TO ONLY OPERATE ON NODES THAT COME FROM THE COP WIKI (will also operate on imported about content and fail)
  *
  * @return array Total number, number added, number errors.
  * @see SimpleXML
@@ -754,7 +755,7 @@ function eximport_get_wiki_meta() {
   
   // loop thru all nodes and see if metadata exists
   foreach ($path_list as $path) {
-    set_time_limit(30);
+    set_time_limit(30); // resets the php process timer for every iteration so that the script doesn't blow up and stop
     $xml_url = $path->orig_url . "?action=meta&mode=feed";
     $xml = new simple_html_dom();
     $rc = $xml->load($xml_url);
