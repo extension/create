@@ -7,7 +7,7 @@
  * @version 0.1
  * @author James E. Robinson, III <james.robinson@extension.org>
  * @copyright North Carolina State University 2010
- * @author Based, in part, on module by David Kent Norman and Kristjan Jansen
+ * @author Based, in part, on work by David Kent Norman and Kristjan Jansen
  */
 
 /**
@@ -63,19 +63,29 @@ function _exatom_get_param($name, $default_value) {
 function exatom_feed() {
   $author = _exatom_get_param('author', '');
   $start_index = _exatom_get_param('start-index', 0);
-  $max_results = _exatom_get_param('max-results', 20);
+  $max_results = _exatom_get_param('max-results', 5000);
   $updated_min = _exatom_get_param('updated-min', '');
   $updated_max = _exatom_get_param('updated-max', '');
   $published = _exatom_get_param('published', 0);
   $unpublished = _exatom_get_param('unpublished', 0);
   
+  $feed_info = array();
+  $feed_info['html_url'] = url('', array('absolute' => TRUE));
+  $feed_info['atom_url'] = url('exatom.xml', array('absolute' => TRUE));
+  
   if ($published or $unpublished) {
     // get nodes from workflow    
     $query = db_select('node_workflow');
     $query->addField('node_workflow', 'node_id');
-    //$query->addField('node_workflow', 'published_at');
-    //$query->addField('node_workflow', 'unpublished_at');
-    //$query->addField('node_workflow', 'published_revision_id');
+    
+    if ($published) {
+      $query->addField('node_workflow', 'published_at');
+      $query->addField('node_workflow', 'published_revision_id');
+    }
+    
+    if ($unpublished) {
+      $query->addField('node_workflow', 'unpublished_at');
+    }
     
     if (!empty($updated_min)) {
       $updated_min = strtotime($updated_min);
@@ -88,6 +98,7 @@ function exatom_feed() {
       }
       $query->condition($or);
     }
+    
     if (!empty($updated_max)) {
       $updated_max = strtotime($updated_max);
       $or = db_or();
@@ -99,36 +110,39 @@ function exatom_feed() {
       }
       $query->condition($or);
     }
+    
     $query->orderBy('node_id', 'ASC');
     $query->range($start_index, $start_index + $max_results);
-    $nodes = $query->execute()->fetchCol();
+    $result = $query->execute()->fetchAllAssoc('node_id');
+    $nodes = array_keys($result);
+    $feed_info['publishing'] = $result;
   } else {
     // just get nodes
     $query = db_select('node');
     $query->addField('node', 'nid');
+    
     if (!empty($author)) {
       $user = user_load_by_name($author);
       if ($user) {
         $query->condition('uid', $user->uid, '=');
       }
     }
+    
     if (!empty($updated_min)) {
       $updated_min = strtotime($updated_min);
       $query->condition('changed', $updated_min, '>');
     }
+    
     if (!empty($updated_max)) {
       $updated_max = strtotime($updated_max);
       $query->condition('changed', $updated_max, '<');
     }
+    
     $query->orderBy('created', 'DESC');
     $query->range($start_index, $start_index + $max_results);
     $nodes = $query->execute()->fetchCol();
   }
 
-
-  $feed_info = array();
-  $feed_info['html_url'] = url('', array('absolute' => TRUE));
-  $feed_info['atom_url'] = url('exatom.xml', array('absolute' => TRUE));
   _exatom_print_feed($nodes, $feed_info);
 }
 
@@ -136,38 +150,88 @@ function _exatom_print_feed(array $nids, array $feed_info) {
   $output = '';
   $last_mod = 0;
 
-  $nodes = node_load_multiple($nids);
+  if (isset($feed_info['publishing'])) {
+    $nodes = array();
+    
+    // loop thru and load revisions we need
+    foreach ($feed_info['publishing'] as $nid => $ndata) {
+      if (property_exists($ndata, 'published_at')
+          and !empty($ndata->published_at)) {
+        $node = node_load($nid, $ndata->published_revision_id);
+        $nodes[] = $node;
+      } elseif (property_exists($ndata, 'unpublished_at')
+                and !empty($ndata->unpublished_at)) {
+        $goner = node_load($nid);
+        $goner->unpublished = TRUE;
+        $nodes[] = $goner;
+      }
+    }
+  } else {
+    // load current revisions for all
+    $nodes = node_load_multiple($nids);
+  }
+  
   foreach ($nodes as $node) {
     $item_text = '';
-
+    $links = '';
+    $extra = array();
+    
     $node->link = url("node/$node->nid", array('absolute' => TRUE));
 
-    node_build_content($node, 'rss');
-
-    if (!empty($node->content)) {
-      // We render node contents and force links to be last.
-      $links = drupal_render($node->content['links']);
-      $item_text .= drupal_render($node->content) . $links;
+    if (property_exists($node, 'unpublished') and $node->unpublished) {
+      $item_text .= 'unpublished';
+      $extra[] = array('key' => 'category',
+                       'attributes' => array('term' => 'delete'));
+    } else {
+      $item_text .= $node->body[LANGUAGE_NONE][0]['value'];
+      $item_text .= drupal_render($node->content['links']);
+      
+      // add any tags to the feed as category terms
+      if (!empty($node->field_tags)) {
+        $field_tag_list = array_values($node->field_tags);
+        $field_tags = array_pop($field_tag_list);
+        
+        foreach ($field_tags as $tag) {
+          $term = taxonomy_term_load($tag['tid']);
+          if ($term) {
+            $extra[] = array('key' => 'category',
+                             'attributes' => array('term' => $term->name));
+          }
+        }
+      }
+      
+      // add any categories to the feed as category terms
+      if (!empty($node->field_article_category)) {
+        $field_cat_list = array_values($node->field_article_category);
+        $field_cats = array_pop($field_cat_list);
+        
+        foreach ($field_cats as $cat) {
+          $term = taxonomy_term_load($cat['tid']);
+          if ($term) {
+            $extra[] = array('key' => 'category',
+                             'attributes' => array('term' => $term->name));
+          }
+        }
+      }
     }
+
+    // add the node type as a term so pubsite can seperate FAQs from articles
+    $extra[] = array('key' => 'category',
+                     'attributes' => array('term' => $node->type));
 
     $item = array(
       'published' => $node->created,
       'updated' => $node->changed,
-      'author' => $node->name ? $node->name : variable_get('anonymous', 'Anonymous'),
-      'content' => $item_text,
-      // @todo How to have summary and/or full body?
+      'author' => $node->name ? $node->name : variable_get('anonymous',
+                                                           'Anonymous'),
+      'content' => $item_text
     );
 
-    // @todo Now that taxonomy terms are fields, this does not work.
-    //if (module_exists('taxonomy')) {
-    //  $terms = taxonomy_node_get_terms($node);
-    //  foreach ($terms as $term) {
-    //    $extra[] = array('key' => 'category', 'attributes' => array('term' => $term->name));
-    //  }
-    //}
-    $extra = '';
-    
-    $output .= theme('exatom_feed_item', array('title' => $node->title, 'link' => $node->link, 'item' => $item, 'extra' => $extra));
+    $output .= theme('exatom_feed_item',
+                     array('title' => $node->title, 
+                           'link' => $node->link,
+                           'item' => $item,
+                           'extra' => $extra));
   }
 
   // Merge some default values.
@@ -176,9 +240,11 @@ function _exatom_print_feed(array $nids, array $feed_info) {
     'subtitle' => variable_get('site_slogan', ''),
   );
 
-  $output = theme('exatom_feed', array('feed_info' => $feed_info, 'items' => $output));
+  $output = theme('exatom_feed', array('feed_info' => $feed_info,
+                                       'items' => $output));
 
-  drupal_add_http_header('Content-Type', 'application/atom+xml; charset=utf-8');
+  drupal_add_http_header('Content-Type',
+                         'application/atom+xml; charset=utf-8');
   print $output;
 }
 
@@ -188,15 +254,26 @@ function _exatom_print_feed(array $nids, array $feed_info) {
 function theme_exatom_feed($variables) {
   $output = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
   $output .= '<feed xmlns="http://www.w3.org/2005/Atom">' . "\n";
-  $output .= '  <title type="text">' . check_plain($variables['feed_info']['title']) . "</title>\n";
+  $output .= '  <title type="text">'
+          . check_plain($variables['feed_info']['title'])
+          . "</title>\n";
   if ($variables['feed_info']['subtitle']) {
-    $output .= '  <subtitle type="text">' . check_plain($variables['feed_info']['subtitle']) . "</subtitle>\n";
+    $output .= '  <subtitle type="text">'
+            . check_plain($variables['feed_info']['subtitle'])
+            . "</subtitle>\n";
   }
-  $output .= '  <link rel="alternate" type="text/html" href="' . check_plain($variables['feed_info']['html_url']) . '" />' . "\n";
-  $output .= '  <link rel="self" type="application/atom+xml" href="' . check_plain($variables['feed_info']['atom_url']) . '" />' . "\n";
-  //$output .= '  <generator version="' . VERSION . '" uri="http://drupal.org">Drupal</generator>'."\n";
-  $output .= '  <id>' . check_plain($variables['feed_info']['atom_url']) . "</id>\n";
-  $output .= '  <updated>' . gmdate(DATE_ATOM, REQUEST_TIME) . "</updated>\n";
+  $output .= '  <link rel="alternate" type="text/html" href="'
+          . check_plain($variables['feed_info']['html_url'])
+          . '" />' . "\n";
+  $output .= '  <link rel="self" type="application/atom+xml" href="'
+          . check_plain($variables['feed_info']['atom_url'])
+          . '" />' . "\n";
+  $output .= '  <id>'
+          . check_plain($variables['feed_info']['atom_url'])
+          . "</id>\n";
+  $output .= '  <updated>'
+          . gmdate(DATE_ATOM, REQUEST_TIME)
+          . "</updated>\n";
   $output .= $variables['items'];
   $output .= "</feed>\n";
   return $output;
@@ -214,19 +291,37 @@ function theme_exatom_feed_item($variables) {
   );
 
   $output = "  <entry>\n";
-  $output .= "    <id>" . check_plain($variables['item']['id']) . "</id>\n";
-  $output .= "    <link rel=\"alternate\" type=\"text/html\" href=\"" . check_plain($variables['link']) . "\" />\n";
-  $output .= "    <published>" . gmdate(DATE_ATOM, $variables['item']['published']) . "</published>\n";
-  $output .= "    <updated>" . gmdate(DATE_ATOM, $variables['item']['updated']) . "</updated>\n";
-  $output .= "    <title type=\"text\">" . check_plain($variables['title']) . "</title>\n";
+  $output .= "    <id>"
+          . check_plain($variables['item']['id'])
+          . "</id>\n";
+  $output .= '    <link rel="alternate" type="text/html" href="'
+          . check_plain($variables['link'])
+          . '" />' . "\n";
+  $output .= "    <published>"
+          . gmdate(DATE_ATOM, $variables['item']['published'])
+          . "</published>\n";
+  $output .= "    <updated>"
+          . gmdate(DATE_ATOM, $variables['item']['updated'])
+          . "</updated>\n";
+  $output .= "    <title type=\"text\">"
+          . check_plain($variables['title'])
+          . "</title>\n";
   if ($variables['item']['author']) {
-    $output .= "    <author><name>" . check_plain($variables['item']['author']) . "</name></author>\n";
+    $output .= "    <author><name>"
+            . check_plain($variables['item']['author'])
+            . "</name></author>\n";
   }
   if ($variables['item']['summary']) {
-    $output .= "    <summary type=\"xhtml\"><div xmlns=\"http://www.w3.org/1999/xhtml\">" . $variables['item']['summary'] . "</div></summary>\n";
+    $output .= '    <summary type="xhtml">'
+            . '<div xmlns="http://www.w3.org/1999/xhtml">'
+            . $variables['item']['summary']
+            . "</div></summary>\n";
   }
   if ($variables['item']['content']) {
-    $output .= "    <content type=\"xhtml\"><div xmlns=\"http://www.w3.org/1999/xhtml\">" . $variables['item']['content'] . "</div></content>\n";
+    $output .= '    <content type="xhtml">'
+            . '<div xmlns="http://www.w3.org/1999/xhtml">'
+            . $variables['item']['content']
+            . "</div></content>\n";
   }
   if ($variables['extra']) {
     $output .= format_xml_elements($variables['extra']);

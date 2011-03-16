@@ -1,5 +1,4 @@
 <?php
-// $Id: views_handler_field.inc,v 1.33.4.44 2010/12/23 22:38:54 dereine Exp $
 /**
  * @defgroup views_field_handlers Views' field handlers
  * @{
@@ -279,7 +278,11 @@ class views_handler_field extends views_handler {
    * Return the class of the field's wrapper.
    */
   function element_wrapper_classes() {
-    return drupal_clean_css_identifier($this->options['element_wrapper_class']);
+    $classes = explode(' ', $this->options['element_wrapper_class']);
+    foreach ($classes as $key => $class) {
+      $classes[$key] = drupal_clean_css_identifier($class);
+    }
+    return implode(' ', $classes);
   }
 
   function option_definition() {
@@ -294,6 +297,7 @@ class views_handler_field extends views_handler {
         'make_link' => array('default' => FALSE),
         'path' => array('default' => '', 'translatable' => TRUE),
         'absolute' => array('default' => '', 'translatable' => FALSE),
+        'external' => array('default' => '', 'translatable' => FALSE),
         'alt' => array('default' => '', 'translatable' => TRUE),
         'rel' => array('default' => ''),
         'link_class' => array('default' => ''),
@@ -301,6 +305,7 @@ class views_handler_field extends views_handler {
         'suffix' => array('default' => '', 'translatable' => TRUE),
         'target' => array('default' => '', 'translatable' => TRUE),
         'trim' => array('default' => FALSE),
+        'nl2br' => array('default' => FALSE),
         'max_length' => array('default' => ''),
         'word_boundary' => array('default' => TRUE),
         'ellipsis' => array('default' => TRUE),
@@ -337,7 +342,7 @@ class views_handler_field extends views_handler {
 
     // Use prefix and suffix to fake a fieldset because we use #tree.
     $form['style_prefix'] = array(
-      '#value' => '<fieldset id="views-validator-options"><legend>' . t('Style settings') . '</legend>',
+      '#markup' => '<fieldset class="form-wrapper" id="views-validator-options"><legend><span class="fieldset-legend">' . t('Style settings') . '</span></legend>',
     );
 
     $form['exclude'] = array(
@@ -401,7 +406,7 @@ class views_handler_field extends views_handler {
 
     $form['element_wrapper_class'] = array(
       '#title' => t('Wrapper class'),
-      '#description' => t('The class to provide on the wrapper element.'),
+      '#description' => t('The class to provide on the wrapper element. Separate multiple classes with a space.'),
       '#type' => 'textfield',
       '#default_value' => $this->options['element_wrapper_class'],
     );
@@ -414,7 +419,7 @@ class views_handler_field extends views_handler {
     );
 
     $form['style_suffix'] = array(
-      '#value' => '</fieldset>',
+      '#markup' => '</fieldset>',
     );
 
     $form['alter'] = array(
@@ -459,15 +464,25 @@ class views_handler_field extends views_handler {
         ),
         '#maxlength' => 255,
       );
-       $form['alter']['absolute'] = array(
-         '#type' => 'checkbox',
-         '#title' => t('Use absolute path'),
-         '#default_value' => $this->options['alter']['absolute'],
-         '#process' => array('form_process_checkbox', 'ctools_dependent_process'),
-         '#dependency' => array(
-           'edit-options-alter-make-link' => array(1)
-         ),
-       );
+      $form['alter']['absolute'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Use absolute path'),
+        '#default_value' => $this->options['alter']['absolute'],
+        '#process' => array('form_process_checkbox', 'ctools_dependent_process'),
+        '#dependency' => array(
+          'edit-options-alter-make-link' => array(1)
+        ),
+      );
+      $form['alter']['external'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('External server URL'),
+        '#default_value' => $this->options['alter']['external'],
+        '#description' => t("Links to an external server using a full URL: e.g. 'http://www.example.com' or 'www.example.com'."),
+        '#process' => array('form_process_checkbox', 'ctools_dependent_process'),
+        '#dependency' => array(
+          'edit-options-alter-make-link' => array(1)
+        ),
+      );
 
       $form['alter']['link_class'] = array(
         '#title' => t('Link class'),
@@ -651,11 +666,19 @@ If you would like to have the characters %5B and %5D please use the html entity 
         ),
         '#process' => array('ctools_dependent_process'),
       );
+
+      $form['alter']['nl2br'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Convert newlines to HTML &lt;br&gt; tags'),
+        '#description' => t('If checked, all newlines chars (e.g. \n) are converted into HTML &lt;br&gt; tags.'),
+        '#default_value' => $this->options['alter']['nl2br'],
+        '#process' => array('ctools_dependent_process'),
+      );
     }
 
     // Use prefix and suffix to fake a fieldset because we use #tree.
     $form['empty_prefix'] = array(
-      '#value' => '<fieldset id="views-validator-options"><legend>' . t('Empty field behavior') . '</legend>',
+      '#markup' => '<fieldset class="form-wrapper" id="views-validator-options"><legend><span class="fieldset-legend">' . t('Empty field behavior') . '</span></legend>',
     );
 
     $form['empty'] = array(
@@ -680,7 +703,7 @@ If you would like to have the characters %5B and %5D please use the html entity 
     );
 
     $form['empty_suffix'] = array(
-      '#value' => '</fieldset>',
+      '#markup' => '</fieldset>',
     );
 
   }
@@ -704,14 +727,52 @@ If you would like to have the characters %5B and %5D please use the html entity 
   function pre_render(&$values) { }
 
   /**
+   * Get the value that's supposed to be rendered.
+   *
+   * @param $values
+   *   An object containing all retrieved values.
+   * @param $field
+   *   Optional name of the field where the value is stored.
+   */
+  function get_value($values, $field = NULL) {
+    $alias = isset($field) ? $this->aliases[$field] : $this->field_alias;
+    if (isset($values->{$alias})) {
+      return $values->{$alias};
+    }
+  }
+
+  /**
+   * Sanitize the value for output.
+   *
+   * @param $value
+   *   The value being rendered.
+   * @param $type
+   *   The type of sanitization needed. If not provided, check_plain() is used.
+   */
+  function sanitize_value($value, $type = NULL) {
+    switch ($type) {
+      case 'xss':
+        $value = filter_xss($value);
+        break;
+      case 'url':
+        $value = check_url($value);
+        break;
+      default:
+        $value = check_plain($value);
+        break;
+    }
+    return $value;
+  }
+
+  /**
    * Render the field.
    *
    * @param $values
    *   The values retrieved from the database.
    */
   function render($values) {
-    $value = $values->{$this->field_alias};
-    return check_plain($value);
+    $value = $this->get_value($values);
+    return $this->sanitize_value($value);
   }
 
   /**
@@ -790,6 +851,10 @@ If you would like to have the characters %5B and %5D please use the html entity 
       $value = $this->render_trim_text($alter, $value);
     }
 
+    if (!empty($alter['nl2br'])) {
+      $value = nl2br($value);
+    }
+
     if (!empty($alter['make_link']) && !empty($alter['path'])) {
       if (!isset($tokens)) {
        $tokens = $this->get_render_tokens($alter);
@@ -852,14 +917,33 @@ If you would like to have the characters %5B and %5D please use the html entity 
       $path = strip_tags(html_entity_decode(strtr($path, $tokens)));
     }
 
-    // If the path is empty do not build a link around the given text and return
-    // it as is.
-    if (empty($path)) {
+    // Parse the URL and move any query and fragment parameters out of the path.
+    $url = parse_url($path);
+
+    // Seriously malformed URLs may return FALSE or empty arrays.
+    if (empty($url)) {
       return $text;
     }
 
-    // Parse the URL and move any query and fragment parameters out of the path.
-    $url = parse_url($path);
+    // If the path is empty do not build a link around the given text and return
+    // it as is.
+    // http://www.example.com URLs will not have a $url['path'], so check host as well.
+    if (empty($url['path']) && empty($url['host'])) {
+      return $text;
+    }
+
+    // If no scheme is provided in the $path, assign the default 'http://'.
+    // This allows a url of 'www.example.com' to be converted to 'http://www.example.com'.
+    // Only do this on for external URLs.
+    if ($alter['external']){
+      if (!isset($url['scheme'])) {
+        // There is no scheme, add the default 'http://' to the $path.
+        $path = "http://$path";
+        // Reset the $url array to include the new scheme.
+        $url = parse_url($path);
+      }
+    }
+
     if (isset($url['query'])) {
       $path = strtr($path, array('?' . $url['query'] => ''));
       $options['query'] = drupal_get_query_array($url['query']);
@@ -891,6 +975,16 @@ If you would like to have the characters %5B and %5D please use the html entity 
     $target = check_plain(trim(strtr($alter['target'],$tokens)));
     if (!empty($target)) {
       $options['attributes']['target'] = $target;
+    }
+
+    // Allow the addition of arbitrary attributes to links. Additional attributes
+    // currently can only be altered in preprocessors and not within the UI.
+    if (isset($alter['link_attributes']) && is_array($alter['link_attributes'])) {
+      foreach ($alter['link_attributes'] as $key => $attribute) {
+        if (!isset($options['attributes'][$key])) {
+          $options['attributes'][$key] = strtr($attribute, $tokens);
+        }
+      }
     }
 
     // If the query and fragment were programatically assigned overwrite any
@@ -1082,13 +1176,14 @@ class views_handler_field_file_size extends views_handler_field {
   }
 
   function render($values) {
-    if ($values->{$this->field_alias}) {
+    $value = $this->get_value($values);
+    if ($value) {
       switch ($this->options['file_size_display']) {
         case 'bytes':
-          return $values->{$this->field_alias};
+          return $value;
         case 'formatted':
         default:
-          return format_size($values->{$this->field_alias});
+          return format_size($value);
       }
     }
     else {
@@ -1102,8 +1197,8 @@ class views_handler_field_file_size extends views_handler_field {
  */
 class views_handler_field_xss extends views_handler_field {
   function render($values) {
-    $value = $values->{$this->field_alias};
-    return filter_xss($value);
+    $value = $this->get_value($values);
+    return $this->sanitize_value($value, 'xss');
   }
 }
 

@@ -1,5 +1,4 @@
 <?php
-//$Id: user.views.inc,v 1.59.4.13 2010/09/22 21:31:29 dereine Exp $
 /**
  * @file
  * Provide views data and handlers for user.module
@@ -158,7 +157,7 @@ function user_views_data() {
       'handler' => 'views_handler_sort',
     ),
     'filter' => array(
-      'handler' => 'views_handler_filter_boolean_operator_string',
+      'handler' => 'views_handler_filter_boolean_operator',
       'label' => t('Has Avatar'),
       'type' => 'yes-no',
     ),
@@ -253,11 +252,19 @@ function user_views_data() {
     ),
   );
 
-  $data['users']['delete_node'] = array(
+  $data['users']['cancel_node'] = array(
     'field' => array(
-      'title' => t('Delete link'),
-      'help' => t('Provide a simple link to delete the user.'),
-      'handler' => 'views_handler_field_user_link_delete',
+      'title' => t('Cancel link'),
+      'help' => t('Provide a simple link to cancel the user.'),
+      'handler' => 'views_handler_field_user_link_cancel',
+    ),
+  );
+
+  $data['users']['data'] = array(
+    'title' => t('Data'),
+    'help' => t('Provide serialized data of the user'),
+    'field' => array(
+      'handler' => 'views_handler_field_serialized',
     ),
   );
 

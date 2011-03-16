@@ -1,5 +1,4 @@
 <?php
-// $Id: taxonomy.views.inc,v 1.57.4.18 2010/12/04 07:46:13 dereine Exp $
 /**
  * @file
  *
@@ -162,6 +161,9 @@ function taxonomy_views_data() {
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
     ),
   );
 
@@ -429,7 +431,7 @@ function views_taxonomy_set_breadcrumb(&$breadcrumb, &$argument) {
       continue;
     }
     if ($argument->options['use_taxonomy_term_path']) {
-      $path = taxonomy_term_path($parent);
+      $path = taxonomy_term_uri($parent);
     }
     else {
       $args[$argument->position] = $parent->tid;

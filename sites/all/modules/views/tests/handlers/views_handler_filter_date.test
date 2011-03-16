@@ -1,11 +1,7 @@
 <?php
-// $Id: views_handler_filter_date.test,v 1.1.4.3 2010/11/25 20:07:44 dereine Exp $
 
 /**
  * Tests the handler filter_date.
- *
- * @TODO
- *   Convert to "beatles".
  */
 class ViewsHandlerFilterDateTest extends ViewsSqlTest {
   public static function getInfo() {
@@ -47,7 +43,7 @@ class ViewsHandlerFilterDateTest extends ViewsSqlTest {
       array('nid' => $this->nodes[3]->nid),
     );
     $this->assertIdenticalResultset($view, $expected_result, $this->map);
-    $view->delete();
+    $view->destroy();
 
     // Test offset for between operator.
     $view->set_display('default');
@@ -61,7 +57,7 @@ class ViewsHandlerFilterDateTest extends ViewsSqlTest {
       array('nid' => $this->nodes[3]->nid),
     );
     $this->assertIdenticalResultset($view, $expected_result, $this->map);
-    $view->delete();
+    $view->destroy();
   }
 
 
@@ -81,9 +77,9 @@ class ViewsHandlerFilterDateTest extends ViewsSqlTest {
       array('nid' => $this->nodes[1]->nid),
     );
     $this->assertIdenticalResultset($view, $expected_result, $this->map);
-    $view->delete();
+    $view->destroy();
 
-    // Test between with just min.
+    // Test between with just max.
     $view = $this->views_test_between();
     $view->set_display('default');
     $view->init_handlers();
@@ -95,7 +91,7 @@ class ViewsHandlerFilterDateTest extends ViewsSqlTest {
       array('nid' => $this->nodes[1]->nid),
     );
     $this->assertIdenticalResultset($view, $expected_result, $this->map);
-    $view->delete();
+    $view->destroy();
 
     // Test not between with min and max.
     $view = $this->views_test_between();
@@ -111,9 +107,9 @@ class ViewsHandlerFilterDateTest extends ViewsSqlTest {
       array('nid' => $this->nodes[3]->nid),
     );
     $this->assertIdenticalResultset($view, $expected_result, $this->map);
-    $view->delete();
+    $view->destroy();
 
-    // Test not between with min.
+    // Test not between with just max.
     $view = $this->views_test_between();
     $view->set_display('default');
     $view->init_handlers();
@@ -126,7 +122,7 @@ class ViewsHandlerFilterDateTest extends ViewsSqlTest {
       array('nid' => $this->nodes[3]->nid),
     );
     $this->assertIdenticalResultset($view, $expected_result, $this->map);
-    $view->delete();
+    $view->destroy();
   }
 
   /**
@@ -178,7 +174,7 @@ class ViewsHandlerFilterDateTest extends ViewsSqlTest {
 
     return $view;
   }
-  
+
   function views_test_offset() {
     $view = $this->views_test_between();
     return $view;

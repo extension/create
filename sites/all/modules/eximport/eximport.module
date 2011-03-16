@@ -143,6 +143,8 @@ function eximport_admin_form($form, &$form_state) {
   
   $form['rewrite'] = array('#type' => 'submit', '#value' => t('Update URLs'));
   
+  $form['getmeta'] = array('#type' => 'submit', '#value' => t('Import Metadata'));
+  
   return $form;
 }
 
@@ -166,6 +168,8 @@ function eximport_admin_form_validate($form, &$form_state) {
       }
       break;
     case 'Update URLs':
+      break;
+    case 'Import Metadata':
       break;
     default:
       form_set_error('', t('Invalid button pushed.'));
@@ -217,6 +221,9 @@ function eximport_admin_form_submit($form, &$form_state) {
       break;
     case 'Update URLs':
       list($total, $added, $errors) = eximport_rewrite_imported_urls();
+      break;
+    case 'Import Metadata':
+      list($total, $added, $errors) = eximport_get_wiki_meta();
       break;
     default:
       form_set_error('', t('Invalid button pushed.'));
@@ -483,7 +490,7 @@ function eximport_import_from_file($filename) {
  */
 function eximport_rewrite_imported_urls() {
   // get imported node list (list of nids)
-  $nids = eximport_load_imported_node_list();
+  $nids = _eximport_load_imported_node_list();
   
   $total = 0;
   $processed = 0;
@@ -499,7 +506,7 @@ function eximport_rewrite_imported_urls() {
       set_time_limit(30);
       $node = node_load($nid, $vid);
       $GLOBALS['eximport_nid'] = $node->nid;
-      eximport_rewrite_urls($node);
+      _eximport_rewrite_urls($node);
       eximport_node_update_revision($node);
       $processed++;
     }
@@ -507,10 +514,16 @@ function eximport_rewrite_imported_urls() {
   return array($total, $processed, $errors);
 }
 
-function eximport_load_imported_node_list() {
+function _eximport_load_imported_node_list() {
   return db_query("SELECT source 
              FROM url_alias 
              WHERE source RLIKE '^[[:digit:]]+$'")->fetchCol();
+}
+
+function _eximport_load_imported_node_data() {
+  return db_query("SELECT source as nid, alias as orig_url 
+             FROM url_alias 
+             WHERE source RLIKE '^[[:digit:]]+$'")->fetchAssoc();
 }
 
 /**
@@ -547,7 +560,7 @@ function eximport_node_update_revision(&$node) {
  * @param object $node Reference to a node object
  * @return N/A
  */
-function eximport_rewrite_urls(&$node) {
+function _eximport_rewrite_urls(&$node) {
   $html = new simple_html_dom();
   $html->set_callback('eximport_process_element');
   
@@ -721,4 +734,42 @@ function eximport_process_url(&$url) {
   
   // dvm(array("modified url", $url));
   return;
+}
+
+/**
+ * Try to load existing BettaMeta metadata into drupal fields
+ * TODO: NEED TO ONLY OPERATE ON NODES THAT COME FROM THE COP WIKI (will also operate on imported about content and fail)
+ *
+ * @return array Total number, number added, number errors.
+ * @see SimpleXML
+ */
+function eximport_get_wiki_meta() {
+  // get imported node list
+  $path_list = _eximport_load_imported_node_data();
+  
+  $total = count($path_list);
+  $processed = 0;
+  $errors = 0;
+  
+  dvm(array("original url", $path_list));
+  
+  // loop thru all nodes and see if metadata exists
+  foreach ($path_list as $path) {
+    set_time_limit(30); // resets the php process timer for every iteration so that the script doesn't blow up and stop
+    $xml_url = $path->orig_url . "?action=meta&mode=feed";
+    $xml = new simple_html_dom();
+    $rc = $xml->load($xml_url);
+    if ($rc === FALSE) {
+      $errors++;
+    } else {
+      // we have data, now squeeze it in
+      $node = node_load($path->nid);
+      // @JER - need to figure out how to add data from xml into drupal
+      // data structures
+      
+      $processed++;
+    }
+  }
+  
+  return array($total, $processed, $errors);
 }
