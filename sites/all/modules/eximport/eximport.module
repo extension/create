@@ -367,6 +367,48 @@ function eximport_entry_create($atom_entry) {
   $categories = array();
   $entry->published = FALSE;
   
+  
+  _eximport_process_entry_categories($atom_entry, &$entry);
+  
+  
+  // author
+  $entry->user = user_load_by_name((string)$atom_entry->author->name[0]);
+  
+  if (! $entry->user) {
+    $entry->user = user_load_by_name('eXtension');
+  }
+  
+  // duh
+  $entry->title = (string)$atom_entry->title;
+  
+  // create our body array
+  $teaser = eximport_get_teaser($atom_entry->content);
+  $body = (string)$atom_entry->content;
+  $entry->body = array(LANGUAGE_NONE =>
+                  array(0 =>
+                    array('summary' => $teaser,
+                          'value' => $body,
+                          'format' => filter_default_format()
+                          )));
+  
+  $entry->created = strtotime($atom_entry->updated);
+  
+  $entry->old_link = (string)$atom_entry->link['href'];
+  
+  return $entry;
+}
+
+/**
+ * Implement logic of categories used in current articles
+ * Some of the tags has a logic that can be transfered into 
+ * content types, taxonomy structures and organic groups in Drupal terms.
+ *
+ * @param object $atom_entry SimpleXML Atom entry object
+ * @param object $node Reference to a node object
+ * @return N/A
+ */
+
+function _eximport_process_entry_categories($atom_entry, &$entry){
   foreach ($atom_entry->category as $cat) {
     if ($cat['term'] == 'news') {
       // if it is news, change content-type
@@ -399,32 +441,8 @@ function eximport_entry_create($atom_entry) {
   
   $entry->field_tags = array(LANGUAGE_NONE => $categories);
   
-  // author
-  $entry->user = user_load_by_name((string)$atom_entry->author->name[0]);
-  
-  if (! $entry->user) {
-    $entry->user = user_load_by_name('eXtension');
-  }
-  
-  // duh
-  $entry->title = (string)$atom_entry->title;
-  
-  // create our body array
-  $teaser = eximport_get_teaser($atom_entry->content);
-  $body = (string)$atom_entry->content;
-  $entry->body = array(LANGUAGE_NONE =>
-                  array(0 =>
-                    array('summary' => $teaser,
-                          'value' => $body,
-                          'format' => filter_default_format()
-                          )));
-  
-  $entry->created = strtotime($atom_entry->updated);
-  
-  $entry->old_link = (string)$atom_entry->link['href'];
-  
-  return $entry;
 }
+
 
 /**
  * Some existing eXtension articles have a teaser/summary embeded.
