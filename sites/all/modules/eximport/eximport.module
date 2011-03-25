@@ -211,7 +211,6 @@ function eximport_verify_filename($filename) {
  */
 function eximport_admin_form_submit($form, &$form_state) {
   $cmd = $form_state['values']['op'];
-  
   switch ($cmd) {
       case 'Import':
       $filename = $form_state['values']['filename'];
@@ -252,7 +251,6 @@ function eximport_admin_form_submit($form, &$form_state) {
  * @see SimpleXML
  */
 function eximport_import_from_file($filename) {
-	
   $added = 0;
   $errors = 0;
   
@@ -516,11 +514,18 @@ function _eximport_process_entry_categories($atom_entry, &$entry){
  */
 
 function _eximport_create_category($tree, $vid = 5){
+	
 	$parent = false;
 	for($i=0; $i < count($tree); $i++){
 		$term = taxonomy_get_term_by_name($tree[$i]);
-		if(count($term) != 0){
-			$parent = array_shift($term);
+		$found_terms = array();
+		foreach($term AS $tm){
+			if($tm->vid == $vid){
+				$found_terms[] = $tm;
+			}
+		}
+		if(count($found_terms) != 0){
+			$parent = array_shift($found_terms);
 			$parent = $parent->tid;
 		}else{
 			$new_term = new stdClass();
@@ -531,7 +536,9 @@ function _eximport_create_category($tree, $vid = 5){
 			$parent = $new_term->tid;
 		}
 	}
-	return array($parent, $tree[$i-1]);		
+	$last_term = array_pop($tree);
+	// $parent in this case is the id of the last created term.
+	return array($parent, $last_term);		
 }
 
 
@@ -557,11 +564,11 @@ function _eximport_category_exists($tree, $vid = 5){
 		// Cycle thrugh them
 		foreach($terms AS $term){
 			if($term->vid == $vid){
-				// Create an array with the term id-s of terms with a given name and belonging to given vocabulary
+				// Create an array with the term id-s with a given name and belonging to given vocabulary
 				$result_terms[] = $term->tid;
 			}
 		}
-		// If there are no terms in this vocabulary with this name than return FALSE
+		// If there are no terms in this vocabulary with this name, than return FALSE
 		if(count($result_terms) == 0){
 			return FALSE;
 		}
@@ -585,8 +592,8 @@ function _eximport_category_exists($tree, $vid = 5){
 			if(!$is_a_child) return FALSE;
 		}
 	}
-	// There should is no chance this function to come here
-	// but if this is the case, the reward should be to return TRUE
+	// There should be no chance this function to come here
+	// but if this is the case, the reward should be TRUE
 	return TRUE;
 }
 
