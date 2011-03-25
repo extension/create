@@ -321,6 +321,7 @@ function eximport_node_create($entry) {
   }
   
   $node->uid = $entry->user->uid;
+  
   $node->title = $entry->title;
   
   $node->changed = $entry->created;
@@ -330,6 +331,8 @@ function eximport_node_create($entry) {
   $node->field_tags = $entry->field_tags;
   
   $node->group_audience = $entry->group_audience;
+  
+  $node->field_article_category = $entry->field_article_category;
   
   $saved_user = $GLOBALS['user'];
   drupal_save_session(FALSE);
@@ -394,7 +397,7 @@ function eximport_entry_create($atom_entry) {
   $categories = array();
   $entry->published = FALSE;
   
-  
+  // process tags, categories and groups
   _eximport_process_entry_categories($atom_entry, $entry);
   
   
@@ -430,7 +433,7 @@ function eximport_entry_create($atom_entry) {
 /**
  * Implement logic of categories used in current articles
  * Some of the tags has a logic that can be transfered into 
- * content types, taxonomy structures and organic groups in Drupal terms.
+ * content types, taxonomy structures and organic groups.
  *
  * @param object $atom_entry SimpleXML Atom entry object
  * @param object $node Reference to a node object
@@ -439,9 +442,9 @@ function eximport_entry_create($atom_entry) {
 
 function _eximport_process_entry_categories($atom_entry, &$entry){
   $group_tags = _eximport_get_group_tags();
-  $groups = $categories = array();
+  $arrticle_categories = $groups = $categories = array();
   foreach ($atom_entry->category as $cat) {
-	  $test_var[]= $cat['term'];
+	  
     if ($cat['term'] == 'news') {
       // if it is news, change content-type
       $entry->type = 'news';
@@ -459,17 +462,24 @@ function _eximport_process_entry_categories($atom_entry, &$entry){
 				'gid' => $group_tags[(string)$cat['term']]
 				);
 	}elseif( preg_match('@:@', (string)$cat['term']) ){
-		// If there is a colon in the tag's name, than this tag is supposed to be a part of category tree.
-		// Now, we can put it into "Categories" vocabulary
+		// If there is a colon in the tag's name, than this tag is supposed to be part of category tree.
+		// It is put into "Categories" vocabulary
 		$cats = explode(':', (string)$cat['term']);
 		$cats = array_map('trim', $cats);
-		if(_eximport_category_exists($cats)){
+		$vocabulary_id = 5;
+		// check if branch with this structure exist
+		if(_eximport_category_exists($cats, $vocabulary_id)){
+			$term_name = array_pop($cats);
+			$terms = taxonomy_get_term_by_name($term_name);	
+			$term = array_shift($terms);
+			$tid = $term->tid;
+		}else{
+			list($tid, $term_name) = _eximport_create_category($cats, $vocabulary_id);
 		}
-		if($found_terms = taxonomy_get_term_by_name($term)){
-			//There is a term with that name
-			// Let's see is this is the right one
-			
-		}
+		$cat_entry = array('vid' => $vocabulary_id,
+						   'tid' => $tid,
+						   'name' => $term_name);
+		$arrticle_categories[] = $cat_entry;
 	}else{
 		// if anything else is not taking place, the tag is considered a tag
 		$tid = 'autocreate';
@@ -487,40 +497,96 @@ function _eximport_process_entry_categories($atom_entry, &$entry){
 						   'tid' => $tid,
 						   'name' => $term_name);
 		$categories[] = $cat_entry;
-	  }
-   }
+	}
+  }
    $entry->group_audience = array(LANGUAGE_NONE =>$groups);
    $entry->field_tags = array(LANGUAGE_NONE => $categories);
+   $entry->field_article_category = array(LANGUAGE_NONE => $arrticle_categories);
 	
 }
 
 
 /**
- * As a parameters is given a set of taxonomy terms ordered according to their parent child relationship.
- * The function returns true if this set of terms exist in the taxonomy tree
- * (The true is that actually it gives just approximate answer. Needs to be rewriten for better precision)
+ * Create taxonomy terms in hierarchical relationship
+ * 
  *
-  * @param array $tree array of taxonomy branch terms
+ * @param array $tree array of taxonomy terms
+ * @param int $vid vocabulary id
+ * @return array term id and name of the newly created taxonomy term
+ */
+
+function _eximport_create_category($tree, $vid = 5){
+	$parent = false;
+	for($i=0; $i < count($tree); $i++){
+		$term = taxonomy_get_term_by_name($tree[$i]);
+		if(count($term) != 0){
+			$parent = array_shift($term);
+			$parent = $parent->tid;
+		}else{
+			$new_term = new stdClass();
+			$new_term->vid = $vid;
+			$new_term->name = $tree[$i];
+			if($parent) $new_term->parent =  $parent;
+			taxonomy_term_save($new_term);
+			$parent = $new_term->tid;
+		}
+	}
+	return array($parent, $tree[$i-1]);		
+}
+
+
+
+/**
+ * As a parameters is given a set of taxonomy terms ordered according to their parent child relationship.
+ * The function returns true if this sequence of terms exist in the taxonomy tree
+ * 
+ *
+ * @param array $tree array of taxonomy terms
+ * @param int $vid vocabulary id
  * @return bool true if the category exist in the taxonomy tree and and it has the same ancestors
  */
 
 
-function _eximport_category_exists($tree){
-	// Cycle through the tree in order from child to parent
-	for($i = (count($tree) - 1); $i >= 0; $i--){
-		// If the term exists proceed futher, otherwise return false
-		if($tids = taxonomy_get_term_by_name($tree[$i])){
-			// checks if the found first term has parents in case it is supposed to have according to the passed relationship
-			// (there is a problem with this approach because there could be several terms with this name and here is checked just the first one)
-			if( count($parents = taxonomy_get_parents($tids[0])) != 0 && $i != 0 ){
-				if(! in_array(taxonomy_get_term_by_name($tree[($i-1)]), $parents)){
-					return FALSE;
-				}
+function _eximport_category_exists($tree, $vid = 5){
+	
+	// cycle through terms
+	for($i = 0; $i < count($tree); $i++){
+		$terms = taxonomy_get_term_by_name($tree[$i]);
+		$result_terms = array();
+		// There could be several terms with a given name
+		// Cycle thrugh them
+		foreach($terms AS $term){
+			if($term->vid == $vid){
+				// Create an array with the term id-s of terms with a given name and belonging to given vocabulary
+				$result_terms[] = $term->tid;
 			}
-		}else{
+		}
+		// If there are no terms in this vocabulary with this name than return FALSE
+		if(count($result_terms) == 0){
 			return FALSE;
 		}
+		// If all pevious conditions are true and there are no children than return TRUE
+		if($i == (count($tree)-1)){
+			return TRUE;
+		}else{
+			// Cycle through result of terms and see if there is some term with a child that is 
+			// the same as the next element of the input array
+			foreach($result_terms AS $result_term){
+				$trm = taxonomy_get_children($result_term);
+				$is_a_child = FALSE;
+				foreach($trm AS $t){
+					if($t->name == $tree[($i+1)]){
+						$is_a_child = TRUE;
+						break;
+					}
+				}
+			}
+			// If there is no child with that name return FALSE
+			if(!$is_a_child) return FALSE;
+		}
 	}
+	// There should is no chance this function to come here
+	// but if this is the case, the reward should be to return TRUE
 	return TRUE;
 }
 
