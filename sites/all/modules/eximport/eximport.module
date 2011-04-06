@@ -132,9 +132,9 @@ function eximport_admin_form($form, &$form_state) {
   $form['filename'] = array(
     '#type' => 'textfield',
     '#title' => t('File to import'),
-    '#default_value' => 'import.xml',
-    '#size' => 40,
-    '#maxlength' => 80,
+    '#default_value' => 'http://cop.demo.extension.org/wiki/Special:Dadump?start-index=10000&max-results=100&category=horses',
+    '#size' => 140,
+    '#maxlength' => 280,
     '#description' => t("Filename of default import file."),
     '#required' => FALSE,
   );
@@ -160,12 +160,14 @@ function eximport_admin_form_validate($form, &$form_state) {
   
   switch ($form_state['values']['op']) {
     case 'Import':
+		/*
       $filename = $form_state['values']['filename'];
       if ( ! preg_match('/\.(xml|atom)$/i', $filename)) {
         form_set_error('', t('A valid filename is required.'));
       } elseif ( ! eximport_verify_filename($filename) ) {
         form_set_error('', t('File must exist in import directory.'));
       }
+	  */
       break;
     case 'Update URLs':
       break;
@@ -254,9 +256,9 @@ function eximport_import_from_file($filename) {
   $added = 0;
   $errors = 0;
   
-  $target = eximport_get_fullpath($filename);
+  //$target = eximport_get_fullpath($filename);
   
-  $xml = simplexml_load_file($target);
+  $xml = simplexml_load_file($filename);
   
   $nids = array();
   
