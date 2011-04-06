@@ -13,7 +13,7 @@ function exeditor_wysiwyg_editor_settings_alter(&$settings, &$context) {
       $settings['forcePasteAsPlainText'] = 'false';
       $settings['pasteFromWordPromptCleanup'] = 'false';
       $settings['protectedSource'] = '/\<code.*?\<\/code\>/g';
-	  $settings['removePlugins'] = 'contextmenu';
+	  //$settings['removePlugins'] = 'contextmenu';
 	  $settings['apply_source_formatting'] = 1;
       //$settings['uiColor'] = '#9AB8F3';
    }
