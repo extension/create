@@ -313,15 +313,13 @@ function theme_exatom_feed_item($variables) {
   }
   if ($variables['item']['summary']) {
     $output .= '    <summary type="html">'
-            . '<div xmlns="http://www.w3.org/1999/xhtml">'
             . check_plain($variables['item']['summary'])
-            . "</div></summary>\n";
+            . "</summary>\n";
   }
   if ($variables['item']['content']) {
     $output .= '    <content type="html">'
-            . '<div xmlns="http://www.w3.org/1999/xhtml">'
             . check_plain($variables['item']['content'])
-            . "</div></content>\n";
+            . "</content>\n";
   }
   if ($variables['extra']) {
     $output .= format_xml_elements($variables['extra']);
