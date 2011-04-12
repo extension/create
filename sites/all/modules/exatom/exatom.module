@@ -91,10 +91,16 @@ function exatom_feed() {
       $updated_min = strtotime($updated_min);
       $or = db_or();
       if ($published) {
-        $or->condition('published_at', $updated_min, '>');
+        $and = db_and();
+        $and->condition('published_at', $updated_min, '>');
+        $and->isNull('unpublished_at');        
+        $or->condition($and);
       }
       if ($unpublished) {
-        $or->condition('unpublished_at', $updated_min, '>');
+        $and = db_and();
+        $and->condition('unpublished_at', $updated_min, '>');
+        $and->isNull('published_at');
+        $or->condition($and);
       }
       $query->condition($or);
     }
@@ -103,10 +109,16 @@ function exatom_feed() {
       $updated_max = strtotime($updated_max);
       $or = db_or();
       if ($published) {
-        $or->condition('published_at', $updated_max, '<');
+        $and = db_and();
+        $and->condition('published_at', $updated_max, '<');
+        $and->isNull('unpublished_at');        
+        $or->condition($and);
       }
       if ($unpublished) {
-        $or->condition('unpublished_at', $updated_max, '<');
+        $and = db_and();
+        $and->condition('unpublished_at', $updated_max, '<');
+        $and->isNull('published_at');
+        $or->condition($and);
       }
       $query->condition($or);
     }
