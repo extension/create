@@ -59,6 +59,8 @@ namespace :deploy do
     run <<-CMD
     rm -rf #{release_path}/sites/default/settings.php &&
     rm -rf #{release_path}/sites/default/files &&
+    rm #{release_path}/robots.txt &&
+    ln -nfs /services/config/#{server_settings['host']}/robots.txt #{release_path}/robots.txt &&
     ln -nfs /services/config/#{server_settings['host']}/settings.php #{release_path}/sites/default/settings.php &&
     ln -nfs /services/nfs/drupalfiles/files #{release_path}/sites/default/files
     CMD
