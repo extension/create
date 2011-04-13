@@ -195,8 +195,20 @@ function _exatom_print_feed(array $nids, array $feed_info) {
       $extra[] = array('key' => 'category',
                        'attributes' => array('term' => 'delete'));
     } else {
-      $item_text .= $node->body[LANGUAGE_NONE][0]['value'];
-      $item_text .= drupal_render($node->content['links']);
+      $item_text .= $node->body[LANGUAGE_NONE][0]['safe_value'];
+
+      // another possible direction:
+      // the problem with this is that metadata information
+      // will be rendered, like the "Groups Audience" block
+      // as well as other items, like age-range
+      // this may be desired, or it may not.  I don't know
+      // so for now, let's just focus on the rendered body content
+      // above.
+      
+      // note, drupal_render actually will go to the cache which might be nice.
+      //node_build_content($node,'rss');
+      //$item_text .= drupal_render($node->content);
+
       
       // add any tags to the feed as category terms
       if (!empty($node->field_tags)) {
