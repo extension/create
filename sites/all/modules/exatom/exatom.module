@@ -336,14 +336,10 @@ function theme_exatom_feed_item($variables) {
             . "</name></author>\n";
   }
   if ($variables['item']['summary']) {
-    $output .= '    <summary type="html">'
-            . check_plain($variables['item']['summary'])
-            . "</summary>\n";
+    $output .= "    <summary type=\"xhtml\"><div xmlns=\"http://www.w3.org/1999/xhtml\">" . $variables['item']['summary'] . "</div></summary>\n";
   }
   if ($variables['item']['content']) {
-    $output .= '    <content type="html">'
-            . check_plain($variables['item']['content'])
-            . "</content>\n";
+    $output .= "    <content type=\"xhtml\"><div xmlns=\"http://www.w3.org/1999/xhtml\">" . $variables['item']['content'] . "</div></content>\n";
   }
   if ($variables['extra']) {
     $output .= format_xml_elements($variables['extra']);
