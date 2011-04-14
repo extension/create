@@ -127,10 +127,6 @@ function exlistview_show() {
       $node_type_or->condition('n.type', 'article');
     }
     
-    if($listview_preference->show_events == true) {
-      $node_type_or->condition('n.type', 'event');
-    }
-    
     if($listview_preference->show_news == true) {
       $node_type_or->condition('n.type', 'news');
     }
@@ -258,7 +254,6 @@ function exlistview_show() {
     $listview_query->condition(db_or()
                    ->condition('n.type', 'article')
                    ->condition('n.type', 'faq')
-                   ->condition('n.type', 'event')
                    ->condition('n.type', 'news'))
                    ->limit(15) 
                    ->orderBy($order_by, $order_direction);   
@@ -301,14 +296,12 @@ function exlistview_tag_form($form, &$form_state) {
     $tag_default_value = $listview_preference->tag_filter;
     $show_faqs = $listview_preference->show_faqs;
     $show_articles = $listview_preference->show_articles;
-    $show_events = $listview_preference->show_events;
     $show_news = $listview_preference->show_news;
   }
   else {
     $tag_default_value = '';
     $show_faqs = true;
     $show_articles = true;
-    $show_events = true;
     $show_news = false;
   }
   
@@ -336,12 +329,6 @@ function exlistview_tag_form($form, &$form_state) {
     '#default_value' => $show_articles,
   );
   
-  $form['show_events'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Events'),
-    '#default_value' => $show_events,
-  );
-  
   $form['show_news'] = array(
     '#type' => 'checkbox',
     '#title' => t('News'),
@@ -363,7 +350,6 @@ function exlistview_tag_form_submit($form, &$form_state) {
   
   $show_faqs = $form_state['values']['show_faqs'];
   $show_articles = $form_state['values']['show_articles'];
-  $show_events = $form_state['values']['show_events'];
   $show_news = $form_state['values']['show_news'];
   
   // find user preference for filtering if it exists
@@ -378,7 +364,6 @@ function exlistview_tag_form_submit($form, &$form_state) {
                'tag_filter' => $tags_to_save,
                'show_faqs' => $show_faqs,
                'show_articles' => $show_articles,
-               'show_events' => $show_events,
                'show_news' => $show_news,
                'changed' => REQUEST_TIME,
                ))
@@ -394,7 +379,6 @@ function exlistview_tag_form_submit($form, &$form_state) {
               'tag_filter' => $tags_to_save,
               'show_faqs' => $show_faqs,
               'show_articles' => $show_articles,
-              'show_events' => $show_events,
               'show_news' => $show_news,
               'created' => REQUEST_TIME,
               'changed' => REQUEST_TIME,
