@@ -80,12 +80,15 @@ function exworkflow_node_view($node, $view_mode) {
       
       $toggle_form = drupal_get_form('exworkflow_toggle_form');
       $workflow_form = drupal_get_form('exworkflow_form');
+      $unpublish_form = drupal_get_form('exworkflow_unpublish_form');
       $inactive_form = drupal_get_form('exworkflow_inactivate_form');
+
       $workflow_content = '<p>'.drupal_render($toggle_form).'</p>'
                         . '<h2>Publishing Workflow</h2>'
                         . $node_status.$draft_status_string
                         . "<br/>{$review_count}"."<p>"
                         . drupal_render($workflow_form)
+                        . drupal_render($unpublish_form)
                         . drupal_render($inactive_form)."</p>";
   } // end of are we displaying the workflow 'else' statement
     
@@ -115,9 +118,7 @@ function exworkflow_form($form, &$form_state) {
       // if it's published and we are currently on the published revision, only 
       // give the user the option to unpublish or they can start a new revision
       if($node_workflow->published_revision_id == $node->vid) {
-        $form['unpublish'] = array('#type' => 'value', '#value' => true);
-        $form['submit'] = array('#type' => 'submit', '#value' => t('Unpublish'));
-        return $form;
+        return;
       }
       
     }
@@ -154,6 +155,93 @@ function exworkflow_form_validate($form, &$form_state) {
   }
 }
 
+// handle form submission
+function exworkflow_form_submit($form, &$form_state) {
+  // get the current user
+  global $user;
+  // get current node
+  $node = menu_get_object();
+  
+  $workflow_list = get_workflow_states();
+  $workflow_event_list = get_workflow_events();
+  
+  // Receive workflow form input
+  if($workflow_list[$form_state['values']['wf_state']] == 'Published') {
+    $node_status = 'published';
+    $event_status = 'published';
+    $draft_status = null;
+    $publish_fields = array('published_at' => REQUEST_TIME, 'published_revision_id' => $node->vid, 'unpublished_at' => null);
+  }
+  else {
+    $node_status = 'draft';
+    $draft_status = $workflow_list[$form_state['values']['wf_state']];
+    $event_status = $workflow_event_list[$form_state['values']['wf_state']];
+    $publish_fields = array();
+  }
+  // record workflow  
+  $workflow_obj = exworkflow_change_state($node, 
+                                          $node_status, 
+                                          $draft_status, 
+                                          $event_status, 
+                                          $user->uid, 
+                                          null, 
+                                          $publish_fields);
+                            
+  if($workflow_obj == null) { return; }
+    
+  drupal_set_message("Node updated successfully!");
+}
+
+// build the form button to unpublish
+function exworkflow_unpublish_form($form, &$form_state) {
+  $node = menu_get_object();
+  $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
+  
+  // if the node is published, show the unpublish button
+  if($node_workflow != false && $node_workflow->published_at != null) {
+    $form['unpublish'] = array('#type' => 'value', '#value' => true);
+    $form['submit'] = array('#type' => 'submit', '#value' => t('Unpublish'));
+    return $form;  
+  }
+  
+  else { return null; }
+}
+
+//probably not necessary, but will do anyways
+//unpublish form validation
+function exworkflow_unpublish_form_validate($form, &$form_state) {
+  if (!isset($form_state['values']['unpublish'])) {
+    form_set_error('unpublish', "You must submit a valid unpublish value.");
+  }
+}
+
+// handle form submission
+function exworkflow_unpublish_form_submit($form, &$form_state) {
+  // get the current user
+  global $user;
+  // get current node
+  $node = menu_get_object();
+    
+  // if the unpublish value was selected
+  if(isset($form_state['values']['unpublish']) && ($form_state['values']['unpublish'] == 'true')) {
+    // record workflow
+    $workflow_obj = exworkflow_change_state($node, 
+                                            'draft', 
+                                            null, 
+                                            'unpublished', 
+                                            $user->uid, 
+                                            null,  
+                                            array('published_at' => null, 'published_revision_id' => null, 'unpublished_at' => REQUEST_TIME));
+    
+    if($workflow_obj == null) { return; }
+                                            
+    // record the additional side-effect event of being set back to draft
+    exworkflow_record_event($node, 'moved back to draft', $workflow_obj->nwid, $user->uid);
+  }
+  
+  drupal_set_message("Node updated successfully!");
+}
+
 // build the form button to inactivate
 function exworkflow_inactivate_form($form, &$form_state) {
   $node = menu_get_object();
@@ -174,113 +262,6 @@ function exworkflow_inactivate_form_validate($form, &$form_state) {
   if (!isset($form_state['values']['inactivate'])) {
     form_set_error('inactivate', "You must submit a valid inactivation.");
   }
-}
-
-// build the form button to activate
-function exworkflow_activate_form($form, &$form_state) {
-  $node = menu_get_object();
-  $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
-  
-  // show an activate button if it's inactive
-  if($node_workflow != false && $node_workflow->active == false) {
-    $form['activate'] = array('#type' => 'value', '#value' => true);
-    $form['submit'] = array('#type' => 'submit', '#value' => t('Activate'));
-    return $form;
-  }
-  else { return null; }  
-}
-
-// probably not necessary, but will do anyways
-// activate form validation
-function exworkflow_activate_form_validate($form, &$form_state) {
-  if (!isset($form_state['values']['activate'])) {
-    form_set_error('activate', "You must submit a valid activation.");
-  }
-}
-
-// build the form to show/hide workflow
-function exworkflow_toggle_form($form, &$form_state) {
-  // get current user
-  global $user;
-  
-  // get workflow preference to show or hide it
-  $workflow_show_pref = db_query('SELECT * FROM {node_workflow_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
-  
-  if($workflow_show_pref != false && $workflow_show_pref->show_workflow == false) {
-    $button_text = 'Show Publishing Workflow';
-  }
-  else {
-    $button_text = "Hide Workflow";
-  }
-  
-  $form['toggle_pref'] = array('#type' => 'value', '#value' => true);
-  $form['submit'] = array('#type' => 'submit', '#value' => t($button_text));
-  return $form;
-}
-
-// probably not necessary, but will check anyways
-// workflow toggle validation
-function exworkflow_toggle_form_validate($form, &$form_state) {
-  if (!isset($form_state['values']['toggle_pref'])) {
-    form_set_error('toggle_pref', "You must submit a preference.");
-  }
-}
-
-// handle form submission
-function exworkflow_form_submit($form, &$form_state) {
-  // get the current user
-  global $user;
-  // get current node
-  $node = menu_get_object();
-  
-  $workflow_list = get_workflow_states();
-  $workflow_event_list = get_workflow_events();
-  
-  // if the unpublish value was selected
-  if(isset($form_state['values']['unpublish']) && ($form_state['values']['unpublish'] == 'true')) {
-    // record workflow
-    $workflow_obj = exworkflow_change_state($node, 
-                                            'draft', 
-                                            null, 
-                                            'unpublished', 
-                                            $user->uid, 
-                                            null,  
-                                            array('published_at' => null, 'published_revision_id' => null, 'unpublished_at' => REQUEST_TIME));
-    
-    if($workflow_obj == null) { return; }
-                                            
-    // record the additional side-effect event of being set back to draft
-    exworkflow_record_event($node, 'moved back to draft', $workflow_obj->nwid, $user->uid);
-  }
-  // the unpublish value was not selected, receive workflow form input
-  else {
-    if($workflow_list[$form_state['values']['wf_state']] == 'Published') {
-      $node_status = 'published';
-      $event_status = 'published';
-      $draft_status = null;
-      $publish_fields = array('published_at' => REQUEST_TIME, 'published_revision_id' => $node->vid, 'unpublished_at' => null);
-    }
-    else {
-      $node_status = 'draft';
-      $draft_status = $workflow_list[$form_state['values']['wf_state']];
-      $event_status = $workflow_event_list[$form_state['values']['wf_state']];
-      $publish_fields = array();
-    }
-    // record workflow  
-    $workflow_obj = exworkflow_change_state($node, 
-                                            $node_status, 
-                                            $draft_status, 
-                                            $event_status, 
-                                            $user->uid, 
-                                            null, 
-                                            $publish_fields);
-                            
-    if($workflow_obj == null) { return; }
-    
-  }  // end of test for unpublish button click    
-  
-  drupal_set_message("Node updated successfully!");
-  
 }
 
 // submission of inactive form button
@@ -331,6 +312,28 @@ function exworkflow_inactivate_form_submit($form, &$form_state) {
   drupal_set_message("Node workflow updated successfully!");
 }
 
+// build the form button to activate
+function exworkflow_activate_form($form, &$form_state) {
+  $node = menu_get_object();
+  $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
+  
+  // show an activate button if it's inactive
+  if($node_workflow != false && $node_workflow->active == false) {
+    $form['activate'] = array('#type' => 'value', '#value' => true);
+    $form['submit'] = array('#type' => 'submit', '#value' => t('Activate'));
+    return $form;
+  }
+  else { return null; }  
+}
+
+// probably not necessary, but will do anyways
+// activate form validation
+function exworkflow_activate_form_validate($form, &$form_state) {
+  if (!isset($form_state['values']['activate'])) {
+    form_set_error('activate', "You must submit a valid activation.");
+  }
+}
+
 // submission of activate form button
 // sets everything back to draft
 function exworkflow_activate_form_submit($form, &$form_state) {
@@ -354,6 +357,34 @@ function exworkflow_activate_form_submit($form, &$form_state) {
   exworkflow_record_event($node, 'moved back to draft', $workflow_obj->nwid, $user->uid);
 
   drupal_set_message("Node updated successfully!");
+}
+
+// build the form to show/hide workflow
+function exworkflow_toggle_form($form, &$form_state) {
+  // get current user
+  global $user;
+  
+  // get workflow preference to show or hide it
+  $workflow_show_pref = db_query('SELECT * FROM {node_workflow_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
+  
+  if($workflow_show_pref != false && $workflow_show_pref->show_workflow == false) {
+    $button_text = 'Show Publishing Workflow';
+  }
+  else {
+    $button_text = "Hide Workflow";
+  }
+  
+  $form['toggle_pref'] = array('#type' => 'value', '#value' => true);
+  $form['submit'] = array('#type' => 'submit', '#value' => t($button_text));
+  return $form;
+}
+
+// probably not necessary, but will check anyways
+// workflow toggle validation
+function exworkflow_toggle_form_validate($form, &$form_state) {
+  if (!isset($form_state['values']['toggle_pref'])) {
+    form_set_error('toggle_pref', "You must submit a preference.");
+  }
 }
 
 // submission of the show_hide workflow form
