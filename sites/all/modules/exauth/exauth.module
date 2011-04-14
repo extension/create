@@ -13,10 +13,10 @@ function exauth_help($path, $arg) {
   return $output;
 }
 
-//check to see if the user is accessing a cop-created "article". these are the only pages currently classified as "protected"
+//check to see if the user is accessing a cop-created "article" or 'faq'. these are the only pages currently classified as "protected"
 function accessing_protected_page($node_type)
 {
-  if ($node_type == 'article' || $node_type == 'faq' ){
+  if (strpos($_SERVER['REQUEST_URI'], "exatom")=== FALSE && ($node_type == 'article' || $node_type == 'faq')){
     return TRUE;
   }
   return FALSE;
