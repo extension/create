@@ -12,6 +12,9 @@
 // Implements hook_node_view
 // Display the workflow form on node view
 function exworkflow_node_view($node, $view_mode) {
+  
+  drupal_add_css(drupal_get_path('module', 'exworkflow') . '/exworkflow.css', array('group' => CSS_DEFAULT));
+  
   // if it's a FAQ, see if it has an answer, and if not, denote that below the question
   if($node->type == 'faq') {
     // get the node's current revision id and use it to query the field_revision_body table
@@ -84,12 +87,12 @@ function exworkflow_node_view($node, $view_mode) {
       $inactive_form = drupal_get_form('exworkflow_inactivate_form');
 
       $workflow_content = '<p>'.drupal_render($toggle_form).'</p>'
-                        . '<h2>Publishing Workflow</h2>'
+                        . '<div id="workflow"><h2>Publishing Workflow</h2>'
                         . $node_status.$draft_status_string
                         . "<br/>{$review_count}"."<p>"
                         . drupal_render($workflow_form)
                         . drupal_render($unpublish_form)
-                        . drupal_render($inactive_form)."</p>";
+                        . drupal_render($inactive_form)."</p></div>";
   } // end of are we displaying the workflow 'else' statement
     
     $node->content['additional_field'] = array('#markup' => $workflow_content);
