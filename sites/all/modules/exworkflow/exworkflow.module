@@ -39,6 +39,7 @@ function exworkflow_node_view($node, $view_mode) {
     }
     // otherwise, show the workflow
     else {
+      $wrapper_class ="";
       $workflow_list = get_workflow_states();
     
       // find existing workflow
@@ -47,7 +48,7 @@ function exworkflow_node_view($node, $view_mode) {
       // if no workflow to be found yet, start it at a draft state
       if($node_workflow == false) {
         $review_count = "Review Count: 0";
-        $node_status = "Status: {$workflow_list[1]}";
+        $node_status = "Status: <strong>{$workflow_list[1]}</strong>";
       }
       else {
         // check to see if the node has been set to inactive
@@ -58,7 +59,7 @@ function exworkflow_node_view($node, $view_mode) {
         }
         
         $review_count = "Review Count: {$node_workflow->review_count}";
-        $node_status = "Status: {$workflow_list[$node_workflow->status]}";
+        $node_status = "Status: <strong>{$workflow_list[$node_workflow->status]}</strong>";
       
         # is the node published
         if(isset($node_workflow->published_at)) {
@@ -67,6 +68,7 @@ function exworkflow_node_view($node, $view_mode) {
           if($node_workflow->published_revision_id == $node->vid) {
             $node_status .= "<p class='published'>The current version is published. You can either start a new draft revision by editing or unpublish.
             </p>";
+            $wrapper_class="wide";
           }
           else {
             $node_status .= "<p class='published'>A previous version of this content is published.</p>";
@@ -75,7 +77,8 @@ function exworkflow_node_view($node, $view_mode) {
       }
     
       if(($node_workflow != false) && (isset($node_workflow->draft_status))) {
-        $draft_status_string = "<br />Draft Status: {$workflow_list[$node_workflow->draft_status]}";
+        $draft_status_string = "<br />Draft Status: <strong>{$workflow_list[$node_workflow->draft_status]}
+</strong>";
       }
       else {
         $draft_status_string = '';
@@ -87,7 +90,7 @@ function exworkflow_node_view($node, $view_mode) {
       $inactive_form = drupal_get_form('exworkflow_inactivate_form');
 
       $workflow_content = '<p>'.drupal_render($toggle_form).'</p>'
-                        . '<div id="workflow"><div class="gutter"><div id="wf_info"><h2>Publishing Workflow</h2>'
+                        . '<div id="workflow"><div class="gutter"><h2>Publishing Workflow</h2><div id="wf_info" class="'.$wrapper_class.'">'
                         . '<p>'.$node_status.$draft_status_string.'</p>'
                         . "<p>{$review_count}</p></div>"
                         . drupal_render($workflow_form)

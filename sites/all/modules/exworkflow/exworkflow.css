@@ -4,6 +4,7 @@
 #workflow h2 {margin:0;font-size:.9em !important; font-weight:bold;}
 
 #wf_info {float:left; width: 35%;}
+#wf_info.wide {width: 50%; margin-right:10%;}
 #wf_info p {margin:0 0 0;}
 #exworkflow-form {float:left; width:35%;}
 
