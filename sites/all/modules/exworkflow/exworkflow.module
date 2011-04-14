@@ -3,7 +3,7 @@
 /**
  * exworkflow - publishing workflow module
  *
- * Creates a publishing workflow for articles (including legacy mediawiki article types, FAQs and Events)  
+ * Creates a publishing workflow for articles (including legacy mediawiki article types, FAQs and News)  
  *
  * @copyright North Carolina State University 2010
  *
@@ -26,7 +26,7 @@ function exworkflow_node_view($node, $view_mode) {
     }
   }
   
-  if(($node->type == 'article' || $node->type == 'faq' || $node->type == 'event' || $node->type == 'news') && $view_mode == 'full') {
+  if(($node->type == 'article' || $node->type == 'faq' || $node->type == 'news') && $view_mode == 'full') {
     // get current user
     global $user;
 
@@ -218,31 +218,58 @@ function exworkflow_unpublish_form_validate($form, &$form_state) {
   }
 }
 
-// handle form submission
+// handle unpublish button submission
 function exworkflow_unpublish_form_submit($form, &$form_state) {
   // get the current user
   global $user;
   // get current node
   $node = menu_get_object();
-    
-  // if the unpublish value was selected
-  if(isset($form_state['values']['unpublish']) && ($form_state['values']['unpublish'] == 'true')) {
-    // record workflow
-    $workflow_obj = exworkflow_change_state($node, 
-                                            'draft', 
-                                            null, 
-                                            'unpublished', 
-                                            $user->uid, 
-                                            null,  
-                                            array('published_at' => null, 'published_revision_id' => null, 'unpublished_at' => REQUEST_TIME));
-    
-    if($workflow_obj == null) { return; }
-                                            
-    // record the additional side-effect event of being set back to draft
-    exworkflow_record_event($node, 'moved back to draft', $workflow_obj->nwid, $user->uid);
-  }
+  // find the current workflow for this node
+  $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
   
-  drupal_set_message("Node updated successfully!");
+  if($node_workflow != false) {  
+    // if the unpublish value was selected
+    if(isset($form_state['values']['unpublish']) && ($form_state['values']['unpublish'] == 'true')) {
+    
+      // first, see of the current revision is the published revision, because, if not,
+      // then the current draft status needs to be kept intact, ie. if you have published 
+      // revision 3 and are working on revision 5 that has 2 reviews in draft, we need to 
+      // keep this if it (revision 3 and the piece of content) gets unpublished.
+      if($node_workflow->published_revision_id == $node->vid) {
+        // record workflow 
+        $workflow_obj = exworkflow_change_state($node, 
+                                                'draft', 
+                                                null, 
+                                                'unpublished', 
+                                                $user->uid, 
+                                                null,  
+                                                array('published_at' => null, 
+                                                'published_revision_id' => null, 
+                                                'unpublished_at' => REQUEST_TIME));
+                                              
+        // record the additional side-effect event of being set back to draft
+        exworkflow_record_event($node, 'moved back to draft', $workflow_obj->nwid, $user->uid);
+      }
+      // the current revision is not the same as the published revision
+      else {
+        //record workflow     
+        $workflow_obj = exworkflow_change_state($node, 
+                                                $node_workflow->status_text, 
+                                                $node_workflow->draft_status_text, 
+                                                'unpublished', 
+                                                $user->uid, 
+                                                null, 
+                                                array('published_at' => null, 
+                                                      'published_revision_id' => null, 
+                                                      'unpublished_at' => REQUEST_TIME)
+                                                );
+
+      }    
+    }
+    
+    if($workflow_obj == null) { return; }                                            
+    drupal_set_message("Node updated successfully!");  
+  }
 }
 
 // build the form button to inactivate
@@ -441,7 +468,7 @@ function exworkflow_toggle_form_submit($form, &$form_state) {
  * We also need to capture the new current revision id for workflow reference here.
  */
 function exworkflow_node_update($node) {
-  if($node->type == 'article' || $node->type == 'faq' || $node->type == 'event' || $node->type == 'news') {
+  if($node->type == 'article' || $node->type == 'faq' || $node->type == 'news') {
     // get the node's workflow
     $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
       
@@ -491,7 +518,7 @@ function exworkflow_menu() {
 function workflow_menu_permissions($node) {
   global $user;
   
-  if(($user != NULL && $user->uid != NULL) && ($node->type == 'article' || $node->type == 'faq' || $node->type == 'event' ||  $node->type == 'news')) { 
+  if(($user != NULL && $user->uid != NULL) && ($node->type == 'article' || $node->type == 'faq' ||  $node->type == 'news')) { 
     // see if the node has a workflow event
     $node_workflow_event = db_query('SELECT * FROM {node_workflow_events} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
     if($node_workflow_event != false) {
