@@ -52,7 +52,7 @@ function exworkflow_node_view($node, $view_mode) {
       else {
         // check to see if the node has been set to inactive
         if($node_workflow->active == false) {
-          $workflow_content = '<p>This content has been set to   inactive.</p>'.drupal_render(drupal_get_form('exworkflow_activate_form'));
+          $workflow_content = '<div class="inactive"><p>This content has been set to inactive.</p>'.drupal_render(drupal_get_form('exworkflow_activate_form'))."</div>";
           $node->content['additional_field'] = array('#markup' => $workflow_content);
           return;
         }
@@ -65,11 +65,11 @@ function exworkflow_node_view($node, $view_mode) {
           // if the current revision of the node is published, notify 
           // the user of that
           if($node_workflow->published_revision_id == $node->vid) {
-            $node_status .= "<br /><small>The current version is published. You can either start a new draft revision by editing   or unpublish.
-            </small>";
+            $node_status .= "<p class='published'>The current version is published. You can either start a new draft revision by editing or unpublish.
+            </p>";
           }
           else {
-            $node_status .= "<br /><small>A previous version of this content is published.</small>";
+            $node_status .= "<p class='published'>A previous version of this content is published.</p>";
           }  
         }
       }
@@ -87,12 +87,12 @@ function exworkflow_node_view($node, $view_mode) {
       $inactive_form = drupal_get_form('exworkflow_inactivate_form');
 
       $workflow_content = '<p>'.drupal_render($toggle_form).'</p>'
-                        . '<div id="workflow"><h2>Publishing Workflow</h2>'
-                        . $node_status.$draft_status_string
-                        . "<br/>{$review_count}"."<p>"
+                        . '<div id="workflow"><div class="gutter"><div id="wf_info"><h2>Publishing Workflow</h2>'
+                        . '<p>'.$node_status.$draft_status_string.'</p>'
+                        . "<p>{$review_count}</p></div>"
                         . drupal_render($workflow_form)
                         . drupal_render($unpublish_form)
-                        . drupal_render($inactive_form)."</p></div>";
+                        . drupal_render($inactive_form)."</div></div>";
   } // end of are we displaying the workflow 'else' statement
     
     $node->content['additional_field'] = array('#markup' => $workflow_content);
@@ -280,7 +280,7 @@ function exworkflow_inactivate_form($form, &$form_state) {
   // show an inactivate button if it's active
   if(($node_workflow == false) || ($node_workflow != false && $node_workflow->active == true)) {
     $form['inactivate'] = array('#type' => 'value', '#value' => true);
-    $form['submit'] = array('#type' => 'submit', '#value' => t('Inactivate'));
+    $form['submit'] = array('#type' => 'submit', '#value' => t('Make Inactive'));
     return $form;
   }
   else { return null; }
