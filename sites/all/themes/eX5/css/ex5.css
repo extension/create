@@ -1,0 +1,196 @@
+/* CSS Document */
+/* === COPYRIGHT:
+  Copyright (c) 2011 University of Kentucky
+  Developed with funding for the National eXtension Initiative.
+ === LICENSE:
+  BSD(-compatible)
+  see LICENSE file or view at http://create.extension.org/node/1013
+*/
+
+
+/* Global eXtension navigation and search bar
+-----------------------------------------------------------------------------*/
+
+#top-bar{
+	background-image: url(../images/ex5-top-bar.gif);
+	background-repeat: repeat-x;
+	height: 29px;
+}
+#top-bar > div{
+	width: 960px;
+	margin: 0 auto;
+}
+#extensionNav{
+	list-style: none;
+	padding: 6px 0 0 20px;
+	margin: 0;
+	width: 600px;
+	float: left;
+}
+#extensionNav li{
+	list-style: none;
+	display:inline;
+	padding: 2px 4px 0 1px;
+	height: 12px;
+	border-right: 1px solid #c5cad1;
+	margin: 0;
+}
+#extensionNav li a{
+	color: #e5e7e9;
+	text-decoration: none;
+	font-size: 12px;
+}
+#extensionNav li a:hover{
+	color: #fff;
+}
+.region-global-nav-bar{
+	width: 200px;
+	float: right;
+}
+.region-global-nav-bar input{
+	width: 130px;
+	border: 1px solid #c5cad1;
+	height: 10px;
+	margin: 5px 0 0 0;
+	padding: 3px;
+}
+
+/* Top menu bar, logo and breadcrumb area
+-----------------------------------------------------------------------------*/
+header.menu-bar{
+	height: 80px;
+	background-image:url(../images/ex5-header-bg.gif);
+	background-repeat: repeat-x;
+}
+header.menu-bar > div{
+	width: 960px;
+	margin: 0 auto;
+}
+header.menu-bar div.logo{
+	width: 164px;
+	height: 80px;
+	float: left;
+	margin: 0 0 0 20px;
+}
+.region-menu-bar{
+	width: 500px;
+	float: left;
+}
+#block-system-main-menu > h2{
+	display: none;
+}
+#block-system-main-menu ul.menu{
+	margin: 0;
+	padding: 7px 0 0;
+	list-style: none;
+}
+#block-system-main-menu ul.menu li{
+	list-style: none;
+	display: inline;
+	height: 18px;
+	border-left: 1px solid #eee;
+	border-right: 1px solid #C4C0C0;
+	margin: 0;
+	float: left;
+	padding: 0 6px 0 6px;
+}
+#block-system-main-menu ul.menu li.first{
+	border-left: none;
+}
+#block-system-main-menu ul.menu li.last{
+	border-right: none;
+}
+#block-system-main-menu ul.menu li a{
+	display: block;
+	text-decoration: none;
+	color: #4D4D4D;
+	padding: 1px 10px;
+	height: 16px;
+}
+#block-system-main-menu ul.menu li a.active{
+	background-color: #C4C0C0;
+	color: #fff;
+	-moz-border-radius: 8px;
+	border-radius: 8px;
+}
+.breadcrumb{
+	float:left;
+	text-align: right;
+	width: 713px;
+	margin-top: 13px;
+	font-size: 11px;
+	color: #808080;
+}
+.breadcrumb a{
+	text-decoration: none;
+}
+
+/* Content frame
+-----------------------------------------------------------------------------*/
+#main-wrapper{
+	width: 960px;
+	margin: 0 auto;
+}	
+#main-content{
+	width: 630px;
+	margin: 0 20px;
+	float: left;
+}
+#main-content h1#page-title{
+	color: #6B82A5;
+	font-size: 21px;
+	font-weight: normal;
+	border-bottom: 1px solid #B3B3B3;
+	margin: 15px 0 3px 0;
+}
+
+/* Updated date and user name under the title
+-----------------------------------------------------------------------------*/
+footer.submitted{
+	color: #AAB8CB;
+	font-size: 11px;
+}
+
+
+/* Links for managing content (used to be tabs)
+-----------------------------------------------------------------------------*/
+ul.primary{
+	width: 350px;
+	float: right;
+	border: none;
+	margin: 0;
+	padding: 0;
+	text-align: right;
+	font-size: 12px;
+	padding: 2px 0;
+}
+ul.primary li a{
+	background-color: #fff;
+	border: none;
+	border-right: 1px solid #AAB8CB;
+	margin: 0;
+	padding: 0;
+	padding: 0 5px 0 3px;
+}
+ul.primary li.active a {
+	border: none;
+	border-right: 1px solid #AAB8CB;
+	
+}
+ul.primary li a.last{
+	border: none;
+	padding-right: 0;
+}
+ul.primary li a:hover{
+	background: none;
+	color: #AAB8CB;
+}
+
+
+
+
+.region-sidebar-second{
+	width: 240px;
+	margin: 0 0 0 20px;
+	float: left;
+}
