@@ -59,7 +59,7 @@
 		<h2></h2>
 	</section>
 	<section id="footers">
- 	<?php include path_to_theme().'/includes/footer_first.inc'; ?>
+ 	<?php include 'footer_first.inc'; ?>
   <?php if ($footer = render($page['footer'])): ?>
 	<footer><?php print $footer; ?></footer>
   <?php endif; ?>
