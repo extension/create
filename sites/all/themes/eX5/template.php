@@ -1,5 +1,8 @@
 <?php
 
+drupal_add_library('system', 'ui.accordion');
+drupal_add_js('jQuery(document).ready(function(){jQuery(".region-sidebar-second").accordion({ autoHeight: false});});', 'inline');
+
 function ex5_breadcrumb($variables){
 	$breadcrumb = $variables['breadcrumb'];
 
@@ -52,4 +55,9 @@ function ex5_menu_local_tasks(&$variables) {
   }
 
   return $output;
+}
+
+
+function ex5_menu_tree($variables){
+	return '<ul class="menu">' . $variables['tree'] . '</ul>';
 }

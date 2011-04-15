@@ -50,9 +50,19 @@
 	  <?php print $feed_icons; ?>
 
 	</section>
-	<?php if ($sidebar_second = render($page['sidebar_second'])): print $sidebar_second; endif; ?>
-  </div>
+	<section id="right-column">
+		<h1></h1>
+		<div id="right-column-content" class="clearfix">
+		<?php if ($sidebar_second = render($page['sidebar_second_user'])): print $sidebar_second; endif; ?>
+		<?php if ($sidebar_second = render($page['sidebar_second'])): print $sidebar_second; endif; ?>
+		</div>
+		<h2></h2>
+	</section>
+	<section id="footers">
+ 	<?php include path_to_theme().'/includes/footer_first.inc'; ?>
   <?php if ($footer = render($page['footer'])): ?>
 	<footer><?php print $footer; ?></footer>
   <?php endif; ?>
+  	</section>
+  </div>
 </div>
