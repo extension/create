@@ -62,6 +62,14 @@ function exlistview_menu() {
     'weight' => 5,
   );
   
+  $items['listviews/inactive'] = array(
+    'title' => 'Inactive Content',
+    'description' => 'List view of inactive content',
+    'page callback' => 'exlistview_show',
+    'access callback' => 'menu_permissions',
+    'weight' => 6,
+  );
+  
   return $items;
 }
 
@@ -94,38 +102,80 @@ function exlistview_show() {
       case 'published':
           $workflow_state = 5;
           break;
+      case 'inactive':
+          $node_active = 0;
+          $workflow_state = 1;
+          break;
       default:
           $workflow_state = 1;
   
   }
   
   // find user preference for tag filtering if it exists
-  $tag_preference = db_query('SELECT * FROM {tag_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
+  $listview_preference = db_query('SELECT * FROM {listview_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
   
-  if($tag_preference != false) {
-    $tag_string = $tag_preference->tag_filter;
-    $tag_array = explode(',', $tag_string);
-    $tag_count = count($tag_array);
+  if($listview_preference != false) {
+    $tag_string = $listview_preference->tag_filter;
+    
+    $node_type_or = db_or();
+    
+    if($listview_preference->show_faqs == true) {
+      $node_type_or->condition('n.type', 'faq');
+    }
+    
+    if($listview_preference->show_articles == true) {
+      $node_type_or->condition('n.type', 'article');
+    }
+    
+    if($listview_preference->show_events == true) {
+      $node_type_or->condition('n.type', 'event');
+    }
+    
+    if($listview_preference->show_news == true) {
+      $node_type_or->condition('n.type', 'news');
+    }
+    
+    // if no tags in filter, don't care about tags, just give me the nodes based on node type
+    if(trim($tag_string) == '') {
+      $listview_query = db_select('node', 'n');
+      $listview_query->addExpression('DISTINCT(n.nid)', 'node_id');
+      // if there were type conditions to be applied (ie, faq, article, etc.)
+      if($node_type_or != db_or()) {
+        $listview_query->condition($node_type_or);
+      }
+      $node_records = $listview_query->execute();
+    }
+    
+    else {
+      $tag_array = explode(',', $tag_string);
+      $tag_count = count($tag_array);
       
-    $tag_query = db_select('taxonomy_index', 'ti');
-    $tag_query->join('taxonomy_term_data', 'ttd', 'ttd.tid = ti.tid');
-    $tag_query->addExpression('DISTINCT(ti.nid)', 'node_id');
-    $tag_query->addExpression('COUNT(ti.nid)', 'node_count');
-    $tag_query->condition('ttd.name', $tag_array, 'IN')
-              ->groupBy('node_id')
-              ->having("node_count = {$tag_count}");
+      $listview_query = db_select('taxonomy_index', 'ti');
+      $listview_query->join('taxonomy_term_data', 'ttd', 'ttd.tid = ti.tid');
+      $listview_query->join('node', 'n', 'n.nid = ti.nid');
+      $listview_query->addExpression('DISTINCT(ti.nid)', 'node_id');
+      $listview_query->addExpression('COUNT(ti.nid)', 'node_count');
+      // if there were type conditions to be applied (ie, faq, article, etc.)
+      if($node_type_or != db_or()) {
+        $listview_query->condition($node_type_or);
+      }
+      $listview_query->condition('ttd.name', $tag_array, 'IN')
+                ->groupBy('node_id')
+                ->having("node_count = {$tag_count}");
                                 
-    $tagged_records = $tag_query->execute();
+      $node_records = $listview_query->execute();
+    }
+    
+    
     $node_id_array = array();
-    foreach ($tagged_records as $tagged_record) {
-      array_push($node_id_array, $tagged_record->node_id);
+    foreach ($node_records as $node_record) {
+      array_push($node_id_array, $node_record->node_id);
     }
   }
   
-  
-  // if there were no tag prefs set or tag prefs set and records were tagged with all of them, continue w/ query,
+  // if there were no listview prefs set or listview prefs set and records were found, continue w/ query,
   // otherwise, return no nodes
-  if(($tag_preference == false) || ($tag_preference != false && count($node_id_array) > 0)) {
+  if(($listview_preference == false) || ($listview_preference != false && count($node_id_array) > 0)) {
     
     $order_by = 'n.created';
     $order_direction = 'desc';
@@ -157,7 +207,7 @@ function exlistview_show() {
   
     $listview_query = db_select('node', 'n')->extend('PagerDefault');
     $listview_query->fields('n');
-    // if we have tag filtering going on here
+    // if we have filtering going on and we had returned nodes from it
     if(isset($node_id_array)) {
       $listview_query->condition('n.nid', $node_id_array, 'IN');
     }
@@ -166,15 +216,27 @@ function exlistview_show() {
     // or have no status at all, which would imply draft
     if($workflow_state == 1) {
       $listview_query->leftjoin('node_workflow', 'nw', 'nw.node_id = n.nid');
-      $listview_query->condition(db_or()
-                                 ->condition('nw.draft_status', $workflow_state)
-                                 ->condition(db_and()
-                                             ->condition('nw.draft_status', NULL)
-                                             ->condition('nw.published_at', NULL)
-                                            )
-                                 ->condition('nw.nwid', NULL)
-                                );
-    }
+      
+      // if the node list is active nodes
+      if(isset($node_active) && $node_active == 0) {
+        $listview_query->condition('nw.active', 0);
+      }
+      // else, we are looking for active nodes
+      else {
+        $listview_query->condition(db_or()
+                                   ->condition(db_and()
+                                               ->condition('nw.draft_status', $workflow_state)
+                                               ->condition('nw.active', 1)
+                                               )
+                                   ->condition(db_and()
+                                               ->condition('nw.draft_status', NULL)
+                                               ->condition('nw.published_at', NULL)
+                                               ->condition('nw.active', 1)
+                                              )
+                                   ->condition('nw.nwid', NULL)              
+                                  );
+      } // end of active node list conditional
+    } // end of is the workflow state 1
     else {
       $listview_query->join('node_workflow', 'nw', 'nw.node_id = n.nid');
       // handle the case of published listview where draft_status is null
@@ -182,14 +244,22 @@ function exlistview_show() {
         $listview_query->condition(db_and()
                                    ->condition('nw.status', $workflow_state)
                                    ->condition('nw.published_at', NULL, 'IS NOT NULL')
+                                   ->condition('nw.active', 1)
                                   );
       }
       else {
-        $listview_query->condition('nw.draft_status', $workflow_state);
+        $listview_query->condition(db_and()
+                                   ->condition('nw.draft_status', $workflow_state)
+                                   ->condition('nw.active', 1)
+                                   );
       }
     }
     
-    $listview_query->condition(db_or()->condition('n.type', 'article')->condition('n.type', 'faq')->condition('n.type', 'event'))
+    $listview_query->condition(db_or()
+                   ->condition('n.type', 'article')
+                   ->condition('n.type', 'faq')
+                   ->condition('n.type', 'event')
+                   ->condition('n.type', 'news'))
                    ->limit(15) 
                    ->orderBy($order_by, $order_direction);   
     
@@ -217,19 +287,29 @@ function exlistview_show() {
   return theme('exlistview_show', array('listview_nodes' => $record_array,  'sort_direction' => $next_sort_direction, 'page_number' => $page_number, 'pager' => theme('pager'), 'tag_form' => drupal_get_form('exlistview_tag_form')));
 }
 
-// build the tag filter form
+// build the tag and type filter form
+// this form provides the interface for searching on 
+// content based on multiple tags and content type selected
 function exlistview_tag_form($form, &$form_state) {
   // get current user
   global $user;
   
   // find user preference for tag filtering if it exists
-  $tag_preference = db_query('SELECT * FROM {tag_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
+  $listview_preference = db_query('SELECT * FROM {listview_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
   
-  if($tag_preference != false) {
-    $tag_default_value = $tag_preference->tag_filter;
+  if($listview_preference != false) {
+    $tag_default_value = $listview_preference->tag_filter;
+    $show_faqs = $listview_preference->show_faqs;
+    $show_articles = $listview_preference->show_articles;
+    $show_events = $listview_preference->show_events;
+    $show_news = $listview_preference->show_news;
   }
   else {
     $tag_default_value = '';
+    $show_faqs = true;
+    $show_articles = true;
+    $show_events = true;
+    $show_news = false;
   }
   
   // build the form
@@ -244,6 +324,30 @@ function exlistview_tag_form($form, &$form_state) {
     $form['sort_field'] = array('#type' => 'value', '#value' => $_GET['field']);
   }
   
+  $form['show_faqs'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Faqs'),
+    '#default_value' => $show_faqs,
+  );
+  
+  $form['show_articles'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Articles'),
+    '#default_value' => $show_articles,
+  );
+  
+  $form['show_events'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Events'),
+    '#default_value' => $show_events,
+  );
+  
+  $form['show_news'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('News'),
+    '#default_value' => $show_news,
+  );
+  
   $form['submit'] = array(
   '#type' => 'submit',
   '#value' => t('Filter'),
@@ -257,42 +361,47 @@ function exlistview_tag_form_submit($form, &$form_state) {
   global $user;
   $tags_to_filter_by = $form_state['values']['filter_tags'];
   
-  // find user preference for tag filtering if it exists
-  $tag_preference = db_query('SELECT * FROM {tag_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
+  $show_faqs = $form_state['values']['show_faqs'];
+  $show_articles = $form_state['values']['show_articles'];
+  $show_events = $form_state['values']['show_events'];
+  $show_news = $form_state['values']['show_news'];
+  
+  // find user preference for filtering if it exists
+  $listview_preference = db_query('SELECT * FROM {listview_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
+  
+  $tags_to_save = prepare_tags($tags_to_filter_by);
   
   // if a tag preference was found for this user, update it
-  if($tag_preference != false) {
-    $tags_to_save = prepare_tags($tags_to_filter_by);
-    // if they are clearing out their tag filter, then delete their tag pref row
-    if($tags_to_save == null) {
-      db_delete('tag_preferences')
-        ->condition('tpid', $tag_preference->tpid)
-        ->execute();
-    }
-    else {
-      db_update('tag_preferences')
+  if($listview_preference != false) {
+    db_update('listview_preferences')
       ->fields(array(
                'tag_filter' => $tags_to_save,
+               'show_faqs' => $show_faqs,
+               'show_articles' => $show_articles,
+               'show_events' => $show_events,
+               'show_news' => $show_news,
                'changed' => REQUEST_TIME,
                ))
-      ->condition('tpid', $tag_preference->tpid)
+      ->condition('lpid', $listview_preference->lpid)
       ->execute();
-    }
+    
   }
   // tag preference was not found, create a new one
-  else {
-    $tags_to_save = prepare_tags($tags_to_filter_by);
-    if($tags_to_save != null) {
-      // record the tag preference
-      $fields = array(
-                'user_id' => $user->uid, 
-                'tag_filter' => $tags_to_save,
-                'created' => REQUEST_TIME,
-                'changed' => REQUEST_TIME,
-      );
+  else {  
+    // record the tag preference
+    $fields = array(
+              'user_id' => $user->uid, 
+              'tag_filter' => $tags_to_save,
+              'show_faqs' => $show_faqs,
+              'show_articles' => $show_articles,
+              'show_events' => $show_events,
+              'show_news' => $show_news,
+              'created' => REQUEST_TIME,
+              'changed' => REQUEST_TIME,
+    );
   
-      db_insert('tag_preferences')->fields($fields)->execute();  
-    }
+    db_insert('listview_preferences')->fields($fields)->execute();  
+    
   }
   
   drupal_set_message("Tag preferences updated successfully!");
@@ -304,7 +413,7 @@ function prepare_tags($tag_string) {
   $return_string = '';
   // handle the case of an empty string (clearing the filter)
   if(trim($tag_string) == '') {
-    return null;
+    return '';
   }
   $tag_array = explode(',', $tag_string);
   foreach ($tag_array as $tag) {

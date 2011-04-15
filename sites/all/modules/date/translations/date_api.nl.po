@@ -168,4 +168,3 @@ msgstr "Een Date API dat gebruikt kan worden door andere modules."
 #, fuzzy
 msgid "Date/Time"
 msgstr "Datum/Tijd"
-

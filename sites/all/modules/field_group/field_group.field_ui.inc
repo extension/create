@@ -1,5 +1,5 @@
 <?php
-// $Id: field_group.field_ui.inc,v 1.1.2.12 2010/11/08 19:27:19 stalski Exp $
+// $Id: field_group.field_ui.inc,v 1.1.2.23 2011/01/18 23:07:03 stalski Exp $
 
 /**
  * @file
@@ -47,6 +47,14 @@ function field_group_field_ui_form_params($form, $display_overview) {
  * Function to alter the fields overview and display overview screen.
  */
 function field_group_field_ui_overview_form_alter(&$form, &$form_state, $display_overview = FALSE) {
+
+  // Add extra guidelines for webmaster.
+  $form['#prefix'] = (isset($form['#prefix']) ? $form['#prefix'] : '') . t('Fields can be dragged into groups with unlimited nesting. Each fieldgroup format comes with a configuration form, specific for that format type.<br />Note that some formats come in pair. These types have a html wrapper to nest its fieldgroup children. E.g. Place accordion items into the accordion, vertical tabs in vertical tab group and horizontal tabs in the horizontal tab group. There is one exception to this rule, you can use a vertical tab without a wrapper when the additional settings tabs are available. E.g. node forms.');
+
+  // Only start altering the form if we need to.
+  if (empty($form['#fields']) && empty($form['#extra'])) {
+    return;
+  }
 
   $params = field_group_field_ui_form_params($form, $display_overview);
 
@@ -132,7 +140,7 @@ function field_group_field_ui_overview_form_alter(&$form, &$form_state, $display
       '#region_callback' => $params->region_callback,
       '#js_settings' => array('rowHandler' => 'group'),
       'human_name' => array(
-        '#markup' => check_plain($group->label),
+        '#markup' => check_plain(t($group->label)),
         '#prefix' => '<span class="group-label">',
         '#suffix' => '</span>',
       ),
@@ -160,7 +168,9 @@ function field_group_field_ui_overview_form_alter(&$form, &$form_state, $display
     );
 
     $table[$name] += array(
-      'label' => array(),
+      'group_name' => array(
+        '#markup' => check_plain($name),
+      ),
       'format' => array(
         'type' => array(
           '#type' => 'select',
@@ -307,44 +317,6 @@ function field_group_field_formatter_options($type) {
 }
 
 /**
- * Returns the region to which a row in the 'Manage fields' screen belongs.
- * @param Array $row A field or field_group row
- * @return String the current region.
- */
-function field_group_field_overview_row_region($row) {
-  switch ($row['#row_type']) {
-    case 'group':
-      return 'main';
-    case 'add_new_group':
-      // If no input in 'label', assume the row has not been dragged out of the
-      // 'add new' section.
-      if (empty($row['label']['#value'])) {
-        return 'add_new';
-      }
-      return 'main';
-  }
-}
-
-/**
- * Returns the region to which a row in the 'Manage display' screen belongs.
- * @param Array $row A field or field_group row
- * @return String the current region.
- */
-function field_group_display_overview_row_region($row) {
-  switch ($row['#row_type']) {
-    case 'group':
-      return ($row['format']['type']['#value'] == 'hidden' ? 'hidden' : 'visible');
-    case 'add_new_group':
-      // If no input in 'label', assume the row has not been dragged out of the
-      // 'add new' section.
-      if (empty($row['label']['#value'])) {
-        return 'add_new';
-      }
-      return ($row['format']['type']['#value'] == 'hidden' ? 'hidden' : 'visible');
-  }
-}
-
-/**
  * Helper function to add a row in the overview forms.
  */
 function field_group_add_row($name, $parent_options, $params) {
@@ -472,6 +444,200 @@ function field_group_format_settings_summary($group_name, $group) {
 }
 
 /**
+ * Returns the region to which a row in the 'Manage fields' screen belongs.
+ * @param Array $row A field or field_group row
+ * @return String the current region.
+ */
+function field_group_field_overview_row_region($row) {
+  switch ($row['#row_type']) {
+    case 'group':
+      return 'main';
+    case 'add_new_group':
+      // If no input in 'label', assume the row has not been dragged out of the
+      // 'add new' section.
+      if (empty($row['label']['#value'])) {
+        return 'add_new';
+      }
+      return 'main';
+  }
+}
+
+/**
+ * Returns the region to which a row in the 'Manage display' screen belongs.
+ * @param Array $row A field or field_group row
+ * @return String the current region.
+ */
+function field_group_display_overview_row_region($row) {
+  switch ($row['#row_type']) {
+    case 'group':
+      return ($row['format']['type']['#value'] == 'hidden' ? 'hidden' : 'visible');
+    case 'add_new_group':
+      // If no input in 'label', assume the row has not been dragged out of the
+      // 'add new' section.
+      if (empty($row['label']['#value'])) {
+        return 'add_new';
+      }
+      return ($row['format']['type']['#value'] == 'hidden' ? 'hidden' : 'visible');
+  }
+}
+
+/**
+ * Validate handler for the overview screens.
+ * @param Array $form The complete form.
+ * @param Array $form_state The state of the form.
+ */
+function field_group_field_overview_validate($form, &$form_state) {
+  $form_values = $form_state['values']['fields'];
+  $entity_type = $form['#entity_type'];
+  $bundle = $form['#bundle'];
+  $mode = (isset($form['#view_mode']) ? $form['#view_mode'] : 'form');
+
+  $group = $form_values['_add_new_group'];
+
+  // Validate if any information was provided in the 'add new group' row.
+  if (array_filter(array($group['label'], $group['group_name']))) {
+    // Missing label.
+    if (!$group['label']) {
+      form_set_error('fields][_add_new_group][label', t('Add new group: you need to provide a label.'));
+    }
+
+    // Missing group name.
+    if (!$group['group_name']) {
+      form_set_error('fields][_add_new_group][group_name', t('Add new group: you need to provide a group name.'));
+    }
+    // Group name validation.
+    else {
+      $group_name = $group['group_name'];
+
+      // Add the 'group_' prefix.
+      if (substr($group_name, 0, 6) != 'group_') {
+        $group_name = 'group_' . $group_name;
+        form_set_value($form['fields']['_add_new_group']['group_name'], $group_name, $form_state);
+      }
+
+      // Invalid group name.
+      if (!preg_match('!^group_[a-z0-9_]+$!', $group_name)) {
+        form_set_error('fields][_add_new_group][group_name', t('Add new group: the group name %group_name is invalid. The name must include only lowercase unaccentuated letters, numbers, and underscores.', array('%group_name' => $group_name)));
+      }
+      if (strlen($group_name) > 32) {
+        form_set_error('fields][_add_new_group][group_name', t("Add new group: the group name %group_name is too long. The name is limited to 32 characters, including the 'group_' prefix.", array('%group_name' => $group_name)));
+      }
+
+      // Group name already exists.
+      $groups = field_group_read_groups();
+      if (!empty($groups[$entity_type][$bundle][$mode][$group_name])) {
+        form_set_error('fields][_add_new_group][group_name', t('Add new group: the group name %group_name already exists.', array('%group_name' => $group_name)));
+      }
+    }
+  }
+}
+
+/**
+ * Submit handler for the overview screens.
+ * @param Array $form The complete form.
+ * @param Array $form_state The state of the form.
+ */
+function field_group_field_overview_submit($form, &$form_state) {
+  $form_values = $form_state['values']['fields'];
+  $entity_type = $form['#entity_type'];
+  $bundle = $form['#bundle'];
+  $mode = (isset($form['#view_mode']) ? $form['#view_mode'] : 'form');
+
+  // Collect children.
+  $children = array_fill_keys($form['#groups'], array());
+  foreach ($form_values as $name => $value) {
+    if (!empty($value['parent'])) {
+      // Substitute newly added fields, in case they were dragged
+      // directly in a group.
+      if ($name == '_add_new_field' && isset($form_state['fields_added']['_add_new_field'])) {
+        $name = $form_state['fields_added']['_add_new_field'];
+      }
+      elseif ($name == '_add_existing_field' && isset($form_state['fields_added']['_add_existing_field'])) {
+        $name = $form_state['fields_added']['_add_existing_field'];
+      }
+      $children[$value['parent']][$name] = $name;
+    }
+  }
+
+  // Create new group.
+  if (!empty($form_values['_add_new_group']['group_name'])) {
+    $values = $form_values['_add_new_group'];
+
+    $field_group_types = field_group_formatter_info();
+    $formatter = $field_group_types[($mode == 'form' ? 'form' : 'display')][$values['format']['type']];
+
+    $new_group = (object) array(
+      'group_name' => $values['group_name'],
+      'entity_type' => $entity_type,
+      'bundle' => $bundle,
+      'mode' => $mode,
+      'children' => isset($children['_add_new_group']) ? array_keys($children['_add_new_group']) : array(),
+      'parent_name' => $values['parent'],
+      'weight' => $values['weight'],
+      'label' => $values['label'],
+      'format_type' => $values['format']['type'],
+    );
+    $new_group->format_settings = array('formatter' => isset($formatter['default_formatter']) ? $formatter['default_formatter'] : '');
+    if (isset($formatter['instance_settings'])) {
+      $new_group->format_settings['instance_settings'] = $formatter['instance_settings'];
+    }
+    field_group_create_field_group($new_group);
+
+    // Store new group information for any additional submit handlers.
+    $form_state['groups_added']['_add_new_group'] = $new_group->group_name;
+    drupal_set_message(t('New group %label succesfully created.', array('%label' => $new_group->label)));
+
+    // Replace the newly created group in the $children array, in case it was
+    // dragged directly in an existing field.
+    foreach (array_keys($children) as $parent) {
+      if (isset($children[$parent]['_add_new_group'])) {
+        unset($children[$parent]['_add_new_group']);
+        $children[$parent][$new_group->group_name] = $new_group->group_name;
+      }
+    }
+  }
+
+  // Update existing groups.
+  $groups = field_group_info_groups($entity_type, $bundle, $mode, TRUE);
+  foreach ($form['#groups'] as $group_name) {
+    $group = $groups[$group_name];
+    $group->label = $form_state['field_group'][$group_name]->label;
+    $group->children = array_keys($children[$group_name]);
+    $group->parent_name = $form_values[$group_name]['parent'];
+    $group->weight = $form_values[$group_name]['weight'];
+    $group->format_type = isset($form_values[$group_name]['format']['type']) ? $form_values[$group_name]['format']['type'] : 'visible';
+    if (isset($form_state['field_group'][$group_name]->format_settings)) {
+      $group->format_settings = $form_state['field_group'][$group_name]->format_settings;
+    }
+    field_group_update_field_group($group);
+  }
+
+  cache_clear_all('field_groups', 'cache_field');
+}
+
+/**
+ * Validate the entered css class from the submitted format settings.
+ * @param Array $element The validated element
+ * @param Array $form_state The state of the form.
+ */
+function field_group_validate_css_class($element, &$form_state) {
+  if (!empty($form_state['values']['fields'][$form_state['formatter_settings_edit']]['format_settings']['settings']['instance_settings']['classes']) && !preg_match('!^[A-Za-z0-9-_ ]+$!', $form_state['values']['fields'][$form_state['formatter_settings_edit']]['format_settings']['settings']['instance_settings']['classes'])) {
+    form_error($element, t('The css class must include only letters, numbers, underscores and dashes.'));
+  }
+}
+
+/**
+ * Implements hook_field_info_max_weight().
+ */
+function field_group_field_info_max_weight($entity_type, $bundle, $context) {
+  $weights = array();
+  foreach (field_group_info_groups($entity_type, $bundle, $context) as $group) {
+    $weights[] = $group->weight;
+  }
+  return $weights ? max($weights) : NULL;
+}
+
+/**
  * Menu callback; present a form for removing a group.
  */
 function field_group_delete_form($form, &$form_state, $group, $view_mode = 'form') {
@@ -486,7 +652,7 @@ function field_group_delete_form($form, &$form_state, $group, $view_mode = 'form
   }
   $form['#redirect'] = array($admin_path);
   $output = confirm_form($form,
-    t('Are you sure you want to delete the group %group?', array('%group' => $group->label)),
+    t('Are you sure you want to delete the group %group?', array('%group' => t($group->label))),
     $admin_path,
     t('This action cannot be undone.'),
     t('Delete'), t('Cancel'),
@@ -510,7 +676,7 @@ function field_group_delete_form_submit($form, &$form_state) {
   $bundle_label = $bundles[$entity_type][$bundle]['label'];
 
   field_group_delete_field_group($group, $mode);
-  drupal_set_message(t('The group %group has been deleted from the %type content type.', array('%group' => $group->label, '%type' => $bundle_label)));
+  drupal_set_message(t('The group %group has been deleted from the %type content type.', array('%group' => t($group->label), '%type' => $bundle_label)));
 
   // Redirect.
   $form_state['redirect'] = $form['#redirect'];

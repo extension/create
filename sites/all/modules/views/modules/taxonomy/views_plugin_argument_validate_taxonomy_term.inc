@@ -1,5 +1,4 @@
 <?php
-// $Id: views_plugin_argument_validate_taxonomy_term.inc,v 1.6.4.8 2010/12/14 22:32:11 dereine Exp $
 /**
  * @file
  * Contains the 'taxonomy term' argument validator plugin.
@@ -178,8 +177,8 @@ class views_plugin_argument_validate_taxonomy_term extends views_plugin_argument
         if ($term && (empty($vocabularies) || !empty($vocabularies[$term->machine_name]))) {
           if ($type == 'convert') {
             $this->argument->argument = $term->tid;
-            $this->argument->validated_title = check_plain($term->name);
           }
+          $this->argument->validated_title = check_plain($term->name);
           return TRUE;
         }
         return FALSE;

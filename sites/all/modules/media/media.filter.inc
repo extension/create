@@ -1,5 +1,5 @@
 <?php
-// $Id: media.filter.inc,v 1.13 2010/10/28 14:54:23 aaron Exp $
+// $Id: media.filter.inc,v 1.16 2011/01/13 18:52:41 effulgentsia Exp $
 
 /**
  * @file
@@ -27,7 +27,7 @@ function media_wysiwyg_include_directory($type) {
  */
 function media_filter($text) {
   $text = ' ' . $text . ' ';
-  $text = preg_replace_callback("/\[\[.*?]]/s",'_media_markup', $text);
+  $text = preg_replace_callback("/\[\[.*?]]/s",'media_token_to_markup', $text);
 
   return $text;
 }
@@ -112,6 +112,7 @@ function _media_url_curry($func, $arity) {
   ");
 }
 
+
 /**
  * Replace callback to convert tag into markup
  * @param string $match
@@ -121,7 +122,7 @@ function _media_url_curry($func, $arity) {
  * @return
  * Return the replaced markup
  */
-function _media_markup($match, $wysiwyg = FALSE) {
+function media_token_to_markup($match, $wysiwyg = FALSE) {
   $match = str_replace("[[","",$match);
   $match = str_replace("]]","",$match);
   $tag = $match[0];
@@ -130,7 +131,7 @@ function _media_markup($match, $wysiwyg = FALSE) {
     if (!is_string($tag)) {
       throw new Exception('Unable to find matching tag');
     }
-
+    
     $media = drupal_json_decode($tag);
 
     if (!isset($media['fid'])) {
@@ -145,6 +146,10 @@ function _media_markup($match, $wysiwyg = FALSE) {
     if (!$media_obj) {
      throw new Exception('Could not load media object');
     }
+
+    // Track the fid of this media object in the {media_filter_usage} table.
+    media_filter_track_usage($media['fid']);
+
     $settings = is_array($media['attributes']) ? $media['attributes'] : array();
     $attribute_whitelist = media_variable_get('wysiwyg_allowed_attributes');
     $settings = array_intersect_key($settings, array_flip($attribute_whitelist));
@@ -207,7 +212,7 @@ function media_pre_render_text_format($element) {
  *
  * @see
  * media_process_form
- * _media_markup
+ * media_token_to_markup
  */
 function _media_generate_tagMap($text) {
   // Making $tagmap static as this function is called many times and
@@ -226,7 +231,7 @@ function _media_generate_tagMap($text) {
     if(empty($tagmap[$match[0]])) {
       // @TODO: Total HACK, but better than nothing.
       // We should find a better way of cleaning this up.
-      if ($markup_for_media = _media_markup($match, TRUE)) {
+      if ($markup_for_media = media_token_to_markup($match, TRUE)) {
         $tagmap[$match[0]] = $markup_for_media;
       } else {
         $tagmap[$match[0]] = '<div><img src="/broken.jpg" height="50px" width="100px"/></div>';
@@ -259,7 +264,7 @@ function media_format_form($form, $form_state, $media) {
   drupal_alter('media_wysiwyg_allowed_view_modes', $media_type, $view_modes);
 
   foreach ($view_modes as $key => $title) {
-    $format = $instance_info['display'][$key];
+    $format = field_get_display($instance_info, $key, $media);
     //If the format is set to hidden, don't offer it
     if ($format['type'] == 'hidden') {
       continue;
@@ -352,9 +357,73 @@ function media_format_form($form, $form_state, $media) {
  */
 function media_get_file_without_label($media, $view_mode, $settings = array()) {
   $instance = field_info_instance('media', 'file', $media->type);
-  $format = $instance['display'][$view_mode];
+  $format = field_get_display($instance, $view_mode, $media);
   $format['label'] = 'hidden';
   $format['settings'] = array_merge($format['settings'], $settings);
   $media->override = $settings;
   return field_view_field('media', $media, 'file', $format);
+}
+
+/**
+ * Clears caches that may be affected by the media filter.
+ *
+ * The media filter calls media_load(). This means that if a media object
+ * is updated, the check_markup() and field caches could return stale content.
+ * There are several possible approaches to deal with this:
+ *  - Disable filter caching in media_filter_info(), this was found to cause a
+ *    30% performance hit from profiling four node teasers, due to both the
+ *    media filter itself, and other filters that can't be cached.
+ *  - Clear the filter and field caches whenever any media node is updated, this
+ *    would ensure cache coherency but would reduce the effectiveness of those
+ *    caches on high traffic sites with lots of media content updates.
+ *  - The approach taken here: Record the fid of all media objects that are
+ *    referenced by the media filter. Only clear the filter and field caches
+ *    when one of these is updated, as opposed to all media objects.
+ *  - @todo: consider an EntityFieldQuery to limit cache clearing to only those
+ *    entities that use a text format with the media filter, possibly checking
+ *    the contents of those fields to further limit this to fields referencing
+ *    the media object being updated. This would need to be implemented
+ *    carefully to avoid scalability issues with large result sets, and may
+ *    not be worth the effort.
+ *
+ * @param $fid
+ *   Optional media fid being updated. If not given, the cache will be cleared
+ *   as long as any file is referenced.
+ */
+function media_filter_invalidate_caches($fid = FALSE) {
+  // If fid is passed, confirm that it has previously been referenced by the
+  // media filter. If not, clear the cache if the {media_filter_usage} has any
+  // valid records.
+  if (($fid && db_query('SELECT fid FROM {media_filter_usage} WHERE fid = :fid', array(':fid' => $fid))->fetchField()) || (!$fid && media_filter_usage_has_records())) {
+    // @todo: support entity cache, either via a hook, or using module_exists().
+    cache_clear_all('*', 'cache_filter', TRUE);
+    cache_clear_all('*', 'cache_field', TRUE);
+  }
+}
+
+/**
+ * Determines if the {media_filter_usage} table has any entries.
+ */
+function media_filter_usage_has_records() {
+  return  (bool) db_query_range('SELECT 1 FROM {media_filter_usage} WHERE fid > :fid', 0, 1, array(':fid' => 0))->fetchField();
+}
+
+/**
+ * Tracks usage of media fids by the media filter.
+ *
+ * @param $fid
+ *   The media fid.
+ */
+function media_filter_track_usage($fid) {
+  // This function only tracks when fids are found by the media filter.
+  // It would be impractical to check when formatted text is edited to remove
+  // references to fids, however by keeping a timestamp, we can implement
+  // rudimentary garbage collection in hook_flush_caches().
+  // However we only need to track that an fid has ever been referenced,
+  // not every time, so avoid updating this table more than once per month,
+  // per fid.
+  $timestamp = db_query('SELECT timestamp FROM {media_filter_usage} WHERE fid = :fid', array(':fid' => $fid))->fetchField();
+  if (!$timestamp || $timestamp <= REQUEST_TIME - 86400 * 30) {
+    db_merge('media_filter_usage')->key(array('fid' => $fid))->fields(array('fid' => $fid, 'timestamp' => REQUEST_TIME))->execute();
+  }
 }

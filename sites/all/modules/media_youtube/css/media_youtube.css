@@ -1,4 +1,4 @@
-// $Id: media_youtube.css $
+/* $Id$ */
 
 .media-youtube-preview-wrapper {
   max-width: 100%;
@@ -9,7 +9,7 @@
 .media-youtube-preview-wrapper object,
 .media-youtube-preview-wrapper iframe {
   max-width: 100%;
-  position: absolute;
+  position: relative;
 }
 
 .media-youtube-preview-wrapper .js-fallback {

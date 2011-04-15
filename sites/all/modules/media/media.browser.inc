@@ -1,5 +1,5 @@
 <?php
-// $Id: media.browser.inc,v 1.25 2010/11/11 23:11:38 effulgentsia Exp $
+// $Id: media.browser.inc,v 1.29 2011/01/14 03:25:09 effulgentsia Exp $
 
 /**
  * @file
@@ -28,7 +28,7 @@ function media_browser($selected = NULL) {
     }
     $selectedMedia = entity_load('media', $selected);
     foreach ($selectedMedia as &$media) {
-      $media->preview = drupal_render(media_get_thumbnail_preview($media));
+      media_browser_build_media_item($media);
     }
     $setting = array('media' => array('selectedMedia' => array_values($selectedMedia)));
     drupal_add_js($setting, 'setting');
@@ -171,7 +171,14 @@ function media_browser_list() {
   if ($url_exclude_patterns) {
     $query->propertyCondition('uri', "%$v%", 'NOT LIKE');
   }
-  
+
+  // @todo Implement granular editorial access: http://drupal.org/node/696970.
+  //   In the meantime, protect information about private files from being
+  //   discovered by unprivileged users. See also media_file_view().
+  if (!user_access('administer media')) {
+    $query->propertyCondition('uri', 'private://%', 'NOT LIKE');
+  }
+
   $result = $query->execute();
   $ids = array_keys($result['media']);
   if ($ids) {
@@ -182,7 +189,7 @@ function media_browser_list() {
   }
   
   foreach ($media_entities as &$media) {
-    $media->preview = drupal_render(media_get_thumbnail_preview($media));
+    media_browser_build_media_item($media);
   }
   
   drupal_json_output(array('media' => array_values($media_entities)));
@@ -194,14 +201,18 @@ function media_browser_list() {
  * Implements hook_media_browser_plugin_info().
  */
 function media_media_browser_plugin_info() {
-  $plugins = array(
-    'upload' => array(
+  $plugins = array();
+
+  // @TODO: Should we add a permission around this?
+  $plugins['library'] = array(
+    '#weight' => 10,
+  );
+
+  if (user_access('administer media') || user_access('edit media')) {
+    $plugins['upload'] = array(
       '#weight' => -10,
-     ),
-    'library' => array(
-      '#weight' => 10,
-     ),
-   );
+     );
+  }
   return $plugins;
 }
 /**
@@ -392,4 +403,16 @@ EOF;
 
   drupal_add_js($js, array('type' => 'inline'));
   return $form;
+}
+
+/**
+ * Adds on properties to the media item which are expected by callers who are
+ * going to act on the returned item.
+ *
+ * @param Object &$media;
+ */
+function media_browser_build_media_item(&$media) {
+  $preview = media_get_thumbnail_preview($media);
+  $media->preview = drupal_render($preview);
+  $media->url = file_create_url($media->uri);
 }

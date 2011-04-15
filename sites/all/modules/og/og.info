@@ -3,16 +3,15 @@ name = Organic groups
 description = "API to allow associating content with groups."
 package = "Organic groups"
 dependencies[] = entity
+dependencies[] = list
+dependencies[] = options
 core = 7.x
 version = VERSION
 files[] = og.module
-files[] = og.install
-files[] = og.field.inc
 files[] = includes/og.views.inc
-files[] = includes/og.rules.inc
 
 ; Test files.
-files[] = tests/og.test
+files[] = og.test
 
 ; Views plugins
 files[] = includes/views/og_plugin_argument_default_group_context.inc
@@ -33,3 +32,9 @@ files[] = includes/views/og_handler_relationship.inc
 
 ; Views arguments
 files[] = includes/views/og_handler_argument_group_audience_gid.inc
+; Information added by drupal.org packaging script on 2011-03-03
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "og"
+datestamp = "1299154135"
+

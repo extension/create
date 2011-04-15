@@ -1,5 +1,5 @@
 <?php
-// $Id: media.install,v 1.17 2010/10/26 13:36:36 JacobSingh Exp $
+// $Id: media.install,v 1.18 2011/01/13 18:52:41 effulgentsia Exp $
 
 /**
  * @file
@@ -188,6 +188,8 @@ function media_schema() {
 
   $schema['cache_media_xml'] = drupal_get_schema_unprocessed('system', 'cache');
   $schema['cache_media_xml']['description'] = 'Cache table for the the results of retreived XML documents for remote streams.';
+
+  $schema['media_filter_usage'] = _media_update_7012_schema_media_filter_usage();
 
   return $schema;
 }
@@ -426,4 +428,63 @@ function media_update_7010() {
  */
 function media_update_7011() {
   media_variable_set('wysiwyg_allowed_types', array('image','video'));
+}
+
+/**
+ * Add media_filter_usage.
+ */
+function media_update_7012() {
+  db_create_table('media_filter_usage', _media_update_7012_schema_media_filter_usage());
+}
+
+/**
+ * Schema definition for media_update_7012().
+ */
+function _media_update_7012_schema_media_filter_usage() {
+  return array(
+    'description' => 'Stores fids that have been included in the media tag in formatted textareas.',
+    'fields' => array(
+      'fid' => array(
+        'description' => 'The media {file_managed}.fid.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'timestamp' => array(
+        'description' => 'The timestamp the fid was last recorded by media_filter()',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'foreign keys' => array(
+      'file_managed' => array(
+        'table' => 'file_managed',
+        'columns' => array('fid' => 'fid'),
+      ),
+    ),
+    'primary key' => array('fid'),
+    'indexes' => array(
+      'timestamp' => array('timestamp'),
+    ),
+  );
+}
+
+/**
+ * Work around a core bug where text format cacheability is not updated.
+ *
+ * @see http://drupal.org/node/993230
+ */
+function media_update_7013() {
+  $formats = filter_formats();
+  foreach ($formats as $format) {
+    $format->filters = filter_list_format($format->format);
+    // filter_format_save() expects filters to be an array, however
+    // filter_list_format() gives us objects.
+    foreach ($format->filters as $key => $value) {
+      $format->filters[$key] = (array) $value;
+    }
+    filter_format_save($format);
+  }
 }

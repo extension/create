@@ -1,5 +1,5 @@
 <?php
-// $Id: notifications_ui.module,v 1.3.2.8.2.19.2.7.2.20 2010/07/24 11:27:42 jareyero Exp $
+// $Id: notifications_ui.module,v 1.3.2.8.2.19.2.7.2.20.2.1 2011/01/18 01:36:24 jareyero Exp $
 /**
  * @file
  * User Interface for subscriptions modules

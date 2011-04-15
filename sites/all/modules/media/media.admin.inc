@@ -1,5 +1,5 @@
 <?php
-// $Id: media.admin.inc,v 1.23 2010/11/11 23:11:38 effulgentsia Exp $
+// $Id: media.admin.inc,v 1.26 2011/01/15 00:21:15 effulgentsia Exp $
 
 /**
  * @file
@@ -97,6 +97,10 @@ function media_admin($form, $form_state) {
  * Form builder: Builds the media list administration overview.
  */
 function media_admin_list() {
+  // @todo Change to media_variable_get('admin_pager_limit') for consistency
+  //   with browser_pager_limit?
+  $limit = variable_get('media_admin_limit', 50);
+
   // Build the sortable table header.
   $header = array(
    'title' => array('data' => t('Title'), 'field' => 'f.filename'),
@@ -113,7 +117,7 @@ function media_admin_list() {
   $result = $query
    ->fields('f')
    ->fields('u', array('name'))
-   ->limit(50)
+   ->limit($limit)
    ->orderByHeader($header)
    ->execute();
 
@@ -148,11 +152,13 @@ function media_admin_list() {
  * Form builder: Builds the media thumbnails administration overview.
  */
 function media_admin_thumbnails() {
+  // @todo Change to media_variable_get('admin_pager_limit') for consistency
+  //   with browser_pager_limit?
   $limit = variable_get('media_admin_limit', 50);
 
   $query = new EntityFieldQuery();
 
-  $query->range(0, $limit);
+  $query->pager($limit);
   $query->entityCondition('entity_type', 'media');
   
   $result = $query->execute();
@@ -175,10 +181,11 @@ function media_admin_thumbnails() {
 
   if (count($media_entities)) {
     foreach ($media_entities as $media) {
+     $preview = media_get_thumbnail_preview($media, TRUE);
      $form['files'][$media->fid] = array(
        '#type' => 'checkbox',
        '#title' => '',
-       '#prefix' => '<li>' . drupal_render(media_get_thumbnail_preview($media, TRUE)),
+       '#prefix' => '<li>' . drupal_render($preview),
        '#suffix' => '</li>',
      );
     }
@@ -297,19 +304,19 @@ function media_admin_type_list() {
     $row[] = array('data' => t($info->label));
 
     // Set the edit column.
-    $row[] = array('data' => l(t('settings'), 'admin/structure/media/manage/' . $type_url_str));
+    $row[] = array('data' => l(t('settings'), 'admin/config/media/types/manage/' . $type_url_str));
 
     if ($field_ui) {
       // Manage fields.
-      $row[] = array('data' => l(t('manage fields'), 'admin/structure/media/manage/' . $type_url_str . '/fields'));
+      $row[] = array('data' => l(t('manage fields'), 'admin/config/media/types/manage/' . $type_url_str . '/fields'));
 
       // Display fields.
-      $row[] = array('data' => l(t('manage display'), 'admin/structure/media/manage/' . $type_url_str . '/display'));
+      $row[] = array('data' => l(t('manage display'), 'admin/config/media/types/manage/' . $type_url_str . '/display'));
     }
 
     // Set the delete column.
     if (empty($type->base)) {
-      $row[] = array('data' => l(t('delete'), 'admin/structure/media/manage/' . $type_url_str . '/delete'));
+      $row[] = array('data' => l(t('delete'), 'admin/config/media/types/manage/' . $type_url_str . '/delete'));
     }
     else {
       $row[] = array('data' => '');

@@ -1,5 +1,5 @@
 <?php
-// $Id: notifications_subscription.class.inc,v 1.1.2.35 2010/07/21 10:55:30 jareyero Exp $
+// $Id: notifications.subscription.inc,v 1.1.2.1 2011/01/18 01:36:24 jareyero Exp $
 /**
  * @file
  * Drupal Notifications Framework - Default class file

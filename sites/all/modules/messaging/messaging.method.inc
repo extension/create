@@ -1,5 +1,5 @@
 <?php
-// $Id: messaging_method.class.inc,v 1.1.2.16 2010/05/24 16:06:35 jareyero Exp $
+// $Id: messaging.method.inc,v 1.1.2.1 2011/01/18 00:41:36 jareyero Exp $
 /**
  * @file
  * Drupal Messaging Framework - Send_Method class file

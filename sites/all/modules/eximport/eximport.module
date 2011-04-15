@@ -24,6 +24,7 @@ require_once 'http_build_url.php';
      a. news (cop)
      b. article (cop)
      c. originalnews (cop)
+     Need title, body, and tags. 
   3. check filter weights and configuration at /admin/config/content/formats
      a. see screenshot -
 https://skitch.com/jerobins/rdsqe/text-formats-extension-content-management-system
@@ -126,21 +127,47 @@ function eximport_menu() {
  * @return array Form array.
  * @see forms_api_reference
  */
-function eximport_admin_form($form, &$form_state) {
-
-  $form['filename'] = array(
-    '#type' => 'textfield',
-    '#title' => t('File to import'),
-    '#default_value' => 'import.xml',
-    '#size' => 40,
-    '#maxlength' => 80,
-    '#description' => t("Filename of default import file."),
-    '#required' => FALSE,
+function eximport_admin_form($form, &$form_state) { 
+  $form['source']=array(
+  	'#type' => 'select',
+	'#title' => t('Source of the data to be imported'),
+	'#description' => t('Choose if the data to be imported should be from the demo cop wiki or the production site.'),
+	'#options' => array('cop.demo.extension.org' => 'demo', 'cop.extension.org' => 'production',),
+	
+	);
+  $cop_options = array('') + _eximport_group_tags_flat();
+  $form['cop'] = array(
+  	'#type' => 'select',
+	'#title' => t('Community'),
+	'#description' => t('Filter per community'),
+	'#options' => $cop_options,
   );
+  
+  $form['index'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Start'),
+    '#default_value' => t('0'),
+    '#size' => 6,
+    '#maxlength' => 10,
+    '#required' => TRUE,
+  );
+  $form['count'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Count'),
+    '#default_value' => t('100'),
+	'#description' => t('Amount of revisions to be imported'),
+    '#size' => 6,
+    '#maxlength' => 10,
+    '#required' => TRUE,
+  );
+  
+  
   
   $form['submit'] = array('#type' => 'submit', '#value' => t('Import'));
   
   $form['rewrite'] = array('#type' => 'submit', '#value' => t('Update URLs'));
+  
+  $form['getmeta'] = array('#type' => 'submit', '#value' => t('Import Metadata'));
   
   return $form;
 }
@@ -157,14 +184,19 @@ function eximport_admin_form_validate($form, &$form_state) {
   
   switch ($form_state['values']['op']) {
     case 'Import':
-      $filename = $form_state['values']['filename'];
-      if ( ! preg_match('/\.(xml|atom)$/i', $filename)) {
-        form_set_error('', t('A valid filename is required.'));
-      } elseif ( ! eximport_verify_filename($filename) ) {
-        form_set_error('', t('File must exist in import directory.'));
-      }
+	  
+	  if(!is_numeric($form_state['values']['index'])){
+		  form_set_error('', t('Index should be numeric.'));
+	  }
+	  if(!is_numeric($form_state['values']['count'])){
+		  form_set_error('', t('Count should be numeric.'));
+	  }
+	  
+	  
       break;
     case 'Update URLs':
+      break;
+    case 'Import Metadata':
       break;
     default:
       form_set_error('', t('Invalid button pushed.'));
@@ -205,17 +237,20 @@ function eximport_verify_filename($filename) {
  * @see form_execute_handlers
  */
 function eximport_admin_form_submit($form, &$form_state) {
-  
   $cmd = $form_state['values']['op'];
-  
   switch ($cmd) {
       case 'Import':
-      $filename = $form_state['values']['filename'];
+	  $filename = 'http://'.$form_state['values']['source'].'/wiki/Special:Dadump?start-index='.$form_state['values']['index'].'&max-results='.$form_state['values']['count'];
+	  $filename .= ($form_state['values']['cop'] == ''?'':'&category='.$form_state['values']['cop']);
+	  
       list($total, $added, $errors) = eximport_import_from_file($filename);
       $cmd = "$filename Import";
       break;
     case 'Update URLs':
       list($total, $added, $errors) = eximport_rewrite_imported_urls();
+      break;
+    case 'Import Metadata':
+      list($total, $added, $errors) = eximport_get_wiki_meta();
       break;
     default:
       form_set_error('', t('Invalid button pushed.'));
@@ -236,6 +271,46 @@ function eximport_admin_form_submit($form, &$form_state) {
   return;
 }
 
+
+/**
+ * Load content from Atom formatted XML file.
+ *
+ * @param string $filename Input filename with full path.
+ * @return array Total number, number added, number errors.
+ * @see SimpleXML
+ */
+function eximport_import_from_file($filename) {
+  $added = 0;
+  $errors = 0;
+  
+  //$target = eximport_get_fullpath($filename);
+  
+  $xml = simplexml_load_file($filename);
+  
+  $nids = array();
+  
+  $total = count($xml->entry);
+  
+  for ($i=0; $i < $total; $i++) {
+    set_time_limit(30);
+    $atom_entry = $xml->entry[$i];
+    // use an intermediate object to reduce complexity and aid debugging
+    $entry = eximport_entry_create($atom_entry);
+    $nid = eximport_node_create($entry);
+    if ($nid) {
+      $added++;
+    } else {
+      $errors++;
+    }
+  }
+  
+  return array($total, $added, $errors);
+}
+
+
+
+
+
 /**
  * Create a Drupal node and revision from input.
  *
@@ -247,7 +322,6 @@ function eximport_node_create($entry) {
   $rc = FALSE;
   $nid = 0;
   $new = FALSE;
-  
   // First, try to see if we've imported a node with the same link
   $path = path_load(array('alias' => $entry->old_link));
   if ($path) {
@@ -266,11 +340,15 @@ function eximport_node_create($entry) {
     $node = new stdClass();
     $node->type = $entry->type;
     node_object_prepare($node);
+	
+	
     $node->language = LANGUAGE_NONE;
     $node->created = $entry->created;
+	
   }
   
   $node->uid = $entry->user->uid;
+  
   $node->title = $entry->title;
   
   $node->changed = $entry->created;
@@ -278,6 +356,10 @@ function eximport_node_create($entry) {
   $node->body = $entry->body;
   
   $node->field_tags = $entry->field_tags;
+  
+  $node->group_audience = $entry->group_audience;
+  
+  $node->field_article_category = $entry->field_article_category;
   
   $saved_user = $GLOBALS['user'];
   drupal_save_session(FALSE);
@@ -292,7 +374,18 @@ function eximport_node_create($entry) {
   
   // mark as published
   if ($entry->published) {
-    
+    $publish_fields = array('published_at' => $entry->created, 
+                            'published_revision_id' => $node->vid);
+
+    // record workflow  
+    exworkflow_change_state($node, 
+                            'published',// node status
+                            null, // draft status
+                            'published', // event status
+                            $entry->user->uid, // user id
+                            $entry->created, // workflow tstamp
+                            $publish_fields);
+  
   }
   
   $GLOBALS['user'] = $saved_user;
@@ -305,7 +398,8 @@ function eximport_node_create($entry) {
     $rc = TRUE;
   } elseif ($nid) {
     $rc = TRUE;
-  }
+  } 
+  
   
   unset($node);
   unset($entry);
@@ -313,24 +407,6 @@ function eximport_node_create($entry) {
   return $rc;
 }
 
-/**
- * Create a Drupal node and revision from input.
- *
- * @param integer $nid Node ID.
- * @param string $old_link URL for old article location.
- * @see path_inc
- */
-function eximport_save_old_link($nid, $old_link) {
-  $path = array('alias' => $old_link, 'source' => "$nid");
-  
-  $exists = path_load(array('source' => $nid));
-  if ($exists) {
-    $path['pid'] = $exists['pid'];
-  }
-  
-  path_save($path);
-  return;
-}
 
 /**
  * Create a new content entry object from XML input.
@@ -348,37 +424,9 @@ function eximport_entry_create($atom_entry) {
   $categories = array();
   $entry->published = FALSE;
   
-  foreach ($atom_entry->category as $cat) {
-    if ($cat['term'] == 'news') {
-      // if it is news, change content-type
-      $entry->type = 'news';
-    } elseif ($cat['term'] == 'originalnews') {
-      $entry->type = 'original_news';
-    }
-    
-    if ($cat['term'] == 'published') {
-       $entry->published = TRUE;
-       continue;
-    }
-    
-    $tid = 'autocreate';
-    $term_name = (string)$cat['term'];
-    $terms = taxonomy_get_term_by_name($term_name);
-    
-    if ($terms) {
-      $term = array_shift($terms);
-      if ($term) {
-        $tid = $term->tid;
-      }
-    }
-    
-    $cat_entry = array('vid' => '1',
-                       'tid' => $tid,
-                       'name' => $term_name);
-    $categories[] = $cat_entry;
-  }
+  // process tags, categories and groups
+  _eximport_process_entry_categories($atom_entry, $entry);
   
-  $entry->field_tags = array(LANGUAGE_NONE => $categories);
   
   // author
   $entry->user = user_load_by_name((string)$atom_entry->author->name[0]);
@@ -407,6 +455,232 @@ function eximport_entry_create($atom_entry) {
   return $entry;
 }
 
+
+
+/**
+ * Implement logic of categories used in current articles
+ * Some of the tags has a logic that can be transfered into 
+ * content types, taxonomy structures and organic groups.
+ *
+ * @param object $atom_entry SimpleXML Atom entry object
+ * @param object $node Reference to a node object
+ * @return N/A
+ */
+
+function _eximport_process_entry_categories($atom_entry, &$entry){
+  $group_tags = _eximport_get_group_tags();
+  $arrticle_categories = $groups = $categories = array();
+  foreach ($atom_entry->category as $cat) {
+	  
+    if ($cat['term'] == 'news') {
+      // if it is news, change content-type
+      $entry->type = 'news';
+    } elseif ($cat['term'] == 'originalnews') {
+      $entry->type = 'news';
+    }
+    
+    if ($cat['term'] == 'published') {
+       $entry->published = TRUE;
+       continue;
+    }elseif(array_key_exists((string)$cat['term'], $group_tags)){
+		// the tag is a group identifier
+		$groups[] = 
+			array(
+				'gid' => $group_tags[(string)$cat['term']]
+				);
+	}elseif( preg_match('@:@', (string)$cat['term']) ){
+		// If there is a colon in the tag's name, than this tag is supposed to be part of category tree.
+		// It is put into "Categories" vocabulary
+		$cats = explode(':', (string)$cat['term']);
+		$cats = array_map('trim', $cats);
+		$vocabulary_id = 5;
+		// check if branch with this structure exist
+		if(_eximport_category_exists($cats, $vocabulary_id)){
+			$term_name = array_pop($cats);
+			$terms = taxonomy_get_term_by_name($term_name);	
+			$term = array_shift($terms);
+			$tid = $term->tid;
+		}else{
+			list($tid, $term_name) = _eximport_create_category($cats, $vocabulary_id);
+		}
+		$cat_entry = array('vid' => $vocabulary_id,
+						   'tid' => $tid,
+						   'name' => $term_name);
+		$arrticle_categories[] = $cat_entry;
+	}else{
+		// if anything else is not taking place, the tag is considered a tag
+		$tid = 'autocreate';
+		$term_name = (string)$cat['term'];
+		$terms = taxonomy_get_term_by_name($term_name);
+		
+		if ($terms) {
+		  $term = array_shift($terms);
+		  if ($term) {
+			$tid = $term->tid;
+		  }
+		}
+		
+		$cat_entry = array('vid' => '1',
+						   'tid' => $tid,
+						   'name' => $term_name);
+		$categories[] = $cat_entry;
+	}
+  }
+   $entry->group_audience = array(LANGUAGE_NONE =>$groups);
+   $entry->field_tags = array(LANGUAGE_NONE => $categories);
+   $entry->field_article_category = array(LANGUAGE_NONE => $arrticle_categories);
+	
+}
+
+
+/**
+ * Create taxonomy terms in hierarchical relationship
+ * 
+ *
+ * @param array $tree array of taxonomy terms
+ * @param int $vid vocabulary id
+ * @return array term id and name of the newly created taxonomy term
+ */
+
+function _eximport_create_category($tree, $vid = 5){
+	
+	$parent = false;
+	for($i=0; $i < count($tree); $i++){
+		$term = taxonomy_get_term_by_name($tree[$i]);
+		$found_terms = array();
+		foreach($term AS $tm){
+			if($tm->vid == $vid){
+				$found_terms[] = $tm;
+			}
+		}
+		if(count($found_terms) != 0){
+			$parent = array_shift($found_terms);
+			$parent = $parent->tid;
+		}else{
+			$new_term = new stdClass();
+			$new_term->vid = $vid;
+			$new_term->name = $tree[$i];
+			if($parent) $new_term->parent =  $parent;
+			taxonomy_term_save($new_term);
+			$parent = $new_term->tid;
+		}
+	}
+	$last_term = array_pop($tree);
+	// $parent in this case is the id of the last created term.
+	return array($parent, $last_term);		
+}
+
+
+
+/**
+ * As a parameters is given a set of taxonomy terms ordered according to their parent child relationship.
+ * The function returns true if this sequence of terms exist in the taxonomy tree
+ * 
+ *
+ * @param array $tree array of taxonomy terms
+ * @param int $vid vocabulary id
+ * @return bool true if the category exist in the taxonomy tree and and it has the same ancestors
+ */
+
+
+function _eximport_category_exists($tree, $vid = 5){
+	
+	// cycle through terms
+	for($i = 0; $i < count($tree); $i++){
+		$terms = taxonomy_get_term_by_name($tree[$i]);
+		$result_terms = array();
+		// There could be several terms with a given name
+		// Cycle thrugh them
+		foreach($terms AS $term){
+			if($term->vid == $vid){
+				// Create an array with the term id-s with a given name and belonging to given vocabulary
+				$result_terms[] = $term->tid;
+			}
+		}
+		// If there are no terms in this vocabulary with this name, than return FALSE
+		if(count($result_terms) == 0){
+			return FALSE;
+		}
+		// If all pevious conditions are true and there are no children than return TRUE
+		if($i == (count($tree)-1)){
+			return TRUE;
+		}else{
+			// Cycle through result of terms and see if there is some term with a child that is 
+			// the same as the next element of the input array
+			foreach($result_terms AS $result_term){
+				$trm = taxonomy_get_children($result_term);
+				$is_a_child = FALSE;
+				foreach($trm AS $t){
+					if($t->name == $tree[($i+1)]){
+						$is_a_child = TRUE;
+						break;
+					}
+				}
+			}
+			// If there is no child with that name return FALSE
+			if(!$is_a_child) return FALSE;
+		}
+	}
+	// There should be no chance this function to come here
+	// but if this is the case, the reward should be TRUE
+	return TRUE;
+}
+
+/**
+ * Associate tags used in media wiki with group ID-s in Drupal.
+ *
+ * @return array associative array of group group_tag => group_id
+ */
+ 
+ function  _eximport_get_group_tags(){
+ 	// return for now just a static array
+	// it should be figured out how to be gotten this info from somewhere
+ 	$return = array( 'blueberries' => 322, 'home energy'=> 306, 'wood energy' => 307,
+					'food safety' =>308, 'soybeans'=> 278, 'corn'=> 278,
+					'field crops'=> 278, 'beef cattle'=>276,
+					'horticulture' =>277, 'cotton industry'=> 279, 'dairy cattle'=>280,
+					'diversity' =>281, 'entrepreneurship'=> 282, 'disasters'=>283,
+					'fire ants' =>286, 'parenting'=> 287, 'biosecurity'=>283,
+					'family caregiving' =>284, 'horses'=> 285, 'animalmanure'=>288,
+					'geospatial technology' =>289, 'environment'=> 290, 'animal manure management'=>288,
+					'swine' =>291, 'urban integrated pest management'=> 292, 'wildlife damage management'=>293,
+					'science' =>294, 'organic production'=> 295, 'personal finance'=>296,
+					'technology' =>294, 'child care'=> 297, 'surviving wildfire'=>298, 'families food fitness'=>299,
+					'engineering' =>294, 'ag energy'=> 300, 'goat'=>301,
+					'drinking water' =>302, 'community planning and zoning'=> 303, 'small meat processors'=>304,
+					'bee health' =>310, 'precision agriculture'=> 311, 'rangelands'=>313,
+					'marine fisheries' =>317, 'cooperatives'=> 318, 'companion animals'=>319,);
+ 	return $return;
+ }
+ 
+ function _eximport_group_tags_flat(){
+	 $tags = array();
+	 foreach(_eximport_get_group_tags() AS $k => $v){
+		 $tags[$k] =  $k;
+	 }
+	 return $tags;
+ }
+ 
+/**
+ * Create a Drupal node and revision from input.
+ *
+ * @param integer $nid Node ID.
+ * @param string $old_link URL for old article location.
+ * @see path_inc
+ */
+function eximport_save_old_link($nid, $old_link) {
+  $path = array('alias' => $old_link, 'source' => "$nid");
+  
+  $exists = path_load(array('source' => $nid));
+  if ($exists) {
+    $path['pid'] = $exists['pid'];
+  }
+  
+  path_save($path);
+  return;
+}
+
+
 /**
  * Some existing eXtension articles have a teaser/summary embeded.
  * Pull out teaser from HTML to enable us to put in new node.
@@ -430,38 +704,6 @@ function eximport_get_teaser($content) {
   return $summary;
 }
 
-/**
- * Load content from Atom formatted XML file.
- *
- * @param string $filename Input filename with full path.
- * @return array Total number, number added, number errors.
- * @see SimpleXML
- */
-function eximport_import_from_file($filename) {
-  $added = 0;
-  $errors = 0;
-  
-  $target = eximport_get_fullpath($filename);
-  
-  $xml = simplexml_load_file($target);
-  
-  $total = count($xml->entry);
-  
-  for ($i=0; $i < $total; $i++) {
-    set_time_limit(30);
-    $atom_entry = $xml->entry[$i];
-    // use an intermediate object to reduce complexity and aid debugging
-    $entry = eximport_entry_create($atom_entry);
-    $nid = eximport_node_create($entry);
-    if ($nid) {
-      $added++;
-    } else {
-      $errors++;
-    }
-  }
-  
-  return array($total, $added, $errors);
-}
 
 /**
  * Process all revisions of imported nodes.
@@ -471,7 +713,7 @@ function eximport_import_from_file($filename) {
  */
 function eximport_rewrite_imported_urls() {
   // get imported node list (list of nids)
-  $nids = eximport_load_imported_node_list();
+  $nids = _eximport_load_imported_node_list();
   
   $total = 0;
   $processed = 0;
@@ -487,7 +729,7 @@ function eximport_rewrite_imported_urls() {
       set_time_limit(30);
       $node = node_load($nid, $vid);
       $GLOBALS['eximport_nid'] = $node->nid;
-      eximport_rewrite_urls($node);
+      _eximport_rewrite_urls($node);
       eximport_node_update_revision($node);
       $processed++;
     }
@@ -495,10 +737,16 @@ function eximport_rewrite_imported_urls() {
   return array($total, $processed, $errors);
 }
 
-function eximport_load_imported_node_list() {
+function _eximport_load_imported_node_list() {
   return db_query("SELECT source 
              FROM url_alias 
              WHERE source RLIKE '^[[:digit:]]+$'")->fetchCol();
+}
+
+function _eximport_load_imported_node_data() {
+  return db_query("SELECT source as nid, alias as orig_url 
+             FROM url_alias 
+             WHERE source RLIKE '^[[:digit:]]+$'")->fetchAssoc();
 }
 
 /**
@@ -535,7 +783,7 @@ function eximport_node_update_revision(&$node) {
  * @param object $node Reference to a node object
  * @return N/A
  */
-function eximport_rewrite_urls(&$node) {
+function _eximport_rewrite_urls(&$node) {
   $html = new simple_html_dom();
   $html->set_callback('eximport_process_element');
   
@@ -672,7 +920,18 @@ function eximport_process_url(&$url) {
     $url['host'] = 'people.extension.org';
     unset($url['port']);
     $path = '/' . $exuser;
-  } elseif (preg_match('#^/wiki/(File|Image|Calendars|Talk)\:.*#', $path)) {
+  } elseif (preg_match('#^/wiki/File\:(.*)#', $path, $matches)) {
+    // replace 'File:blah' w/ 'sites/default/files/w'
+    $fname = html_entity_decode($matches[1]);
+    $fname = str_replace(' ', '_', $fname);
+    $hash = md5($fname);
+    $fname = htmlentities($fname);
+    $path = '/sites/default/files/w/'
+          . substr($hash, 0, 1) . '/'
+          . substr($hash, 0, 2) . '/'
+          . $fname;
+    $modified = TRUE;
+  } elseif (preg_match('#^/wiki/(Image|Calendars|Talk)\:.*#', $path)) {
     // zap it
     $url = NULL;
     return;
@@ -698,4 +957,42 @@ function eximport_process_url(&$url) {
   
   // dvm(array("modified url", $url));
   return;
+}
+
+/**
+ * Try to load existing BettaMeta metadata into drupal fields
+ * TODO: NEED TO ONLY OPERATE ON NODES THAT COME FROM THE COP WIKI (will also operate on imported about content and fail)
+ *
+ * @return array Total number, number added, number errors.
+ * @see SimpleXML
+ */
+function eximport_get_wiki_meta() {
+  // get imported node list
+  $path_list = _eximport_load_imported_node_data();
+  
+  $total = count($path_list);
+  $processed = 0;
+  $errors = 0;
+  
+  dvm(array("original url", $path_list));
+  
+  // loop thru all nodes and see if metadata exists
+  foreach ($path_list as $path) {
+    set_time_limit(30); // resets the php process timer for every iteration so that the script doesn't blow up and stop
+    $xml_url = $path->orig_url . "?action=meta&mode=feed";
+    $xml = new simple_html_dom();
+    $rc = $xml->load($xml_url);
+    if ($rc === FALSE) {
+      $errors++;
+    } else {
+      // we have data, now squeeze it in
+      $node = node_load($path->nid);
+      // @JER - need to figure out how to add data from xml into drupal
+      // data structures
+      
+      $processed++;
+    }
+  }
+  
+  return array($total, $processed, $errors);
 }

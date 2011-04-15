@@ -1,5 +1,5 @@
 <?php
-// $Id: messaging.module,v 1.7.2.8.2.27.2.11.2.44 2010/07/17 18:02:24 jareyero Exp $
+// $Id: messaging_template.module,v 1.1.4.12.2.1 2011/01/18 00:41:36 jareyero Exp $
 /**
  * @file 
  * Messaging Template

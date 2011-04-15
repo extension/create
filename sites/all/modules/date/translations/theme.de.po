@@ -1,4 +1,4 @@
-# $Id: theme.de.po,v 1.4 2010/02/28 14:28:01 karens Exp $
+# $Id: theme.de.po,v 1.5 2011/01/18 00:37:35 karens Exp $
 #
 # LANGUAGE translation of Drupal (theme)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
@@ -28,4 +28,3 @@ msgstr "Woche von @date"
 #: theme/theme.inc:327
 msgid "Timezone"
 msgstr "Zeitzone"
-

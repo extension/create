@@ -1,36 +1,9 @@
-// $Id: media.js,v 1.5 2010/07/16 20:42:49 JacobSingh Exp $
+// $Id: media.js,v 1.7 2011/01/13 00:27:06 effulgentsia Exp $
 
 /**
  *  @file
  *  This file handles the JS for Media Module functions.
  */
-
-/*
-
-The naming convetion for items in this file revolves around three different
-components: tabs, subtabs and panes. Tabs are a primary navigation or grouping
-mechanism. Subtabs are related to a specific tab. Panes are the content
-related to the subtab.
-
-   ---------------------------------------
-   |                  |tab | tab2 | tab3 |
-   |                  --------------------
-   |__________ __________________________|
-   | Subtab  |                           |
-   -----------                           |
-   | Subtab2 |        Pane for           |
-   -----------      active subtab        |
-   | Subtab3 |                           |
-   -----------                           |
-   |                                     |
-   |                                     |
-   |                                     |
-   ---------------------------------------
-
-
-
-*/
-// $Id: media.js,v 1.5 2010/07/16 20:42:49 JacobSingh Exp $
 
 (function ($) {
 
@@ -51,6 +24,13 @@ Drupal.behaviors.mediaElement = {
       //options = Drupal.settings.media.fields[this.id];
       var fidField = $('.fid', this);
       var previewField = $('.preview', this);
+      var removeButton = $('.remove', this); // Actually a link, but looks like a button.
+
+      // Show the Remove button if there's an already selected media.
+      if (fidField.val() != 0) {
+        removeButton.show();
+      }
+
       // When someone clicks the link to pick media (or clicks on an existing thumbnail)
       $('.launcher', this).bind('click', function () {
         // Launch the browser, providing the following callback function
@@ -62,9 +42,22 @@ Drupal.behaviors.mediaElement = {
           var mediaFile = mediaFiles[0];
           // Set the value of the filefield fid (hidden).
           fidField.val(mediaFile.fid);
-          // Set the preview field HTML
+          // Set the preview field HTML.
           previewField.html(mediaFile.preview);
+          // Show the Remove button.
+          removeButton.show();
         }, globalOptions);
+        return false;
+      });
+
+      // When someone clicks the Remove button.
+      $('.remove', this).bind('click', function () {
+        // Set the value of the filefield fid (hidden).
+        fidField.val(0);
+        // Set the preview field HTML.
+        previewField.html('');
+        // Hide the Remove button.
+        removeButton.hide();
         return false;
       });
 

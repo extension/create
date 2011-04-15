@@ -1,5 +1,5 @@
 <?php
-// $Id: media.fields.inc,v 1.22 2010/09/16 23:15:39 effulgentsia Exp $
+// $Id: media.fields.inc,v 1.25 2011/01/14 23:30:22 effulgentsia Exp $
 
 /**
  * @file: Provides a "Multimedia asset" field to the fields API
@@ -83,11 +83,11 @@ function media_field_view_modes($obj_type) {
   $modes = array();
   if ($obj_type == 'media') {
     $modes = array(
-      'media_link' => array('label' => t('Link')),
-      'media_preview' => array('label' => t('Preview')),
-      'media_small' => array('label' => t('Small')),
-      'media_large' => array('label' => t('Large')),
-      'media_original' => array('label' => t('Original')),
+      'media_link' => array('label' => t('Link'), 'custom settings' => FALSE),
+      'media_preview' => array('label' => t('Preview'), 'custom settings' => FALSE),
+      'media_small' => array('label' => t('Small'), 'custom settings' => FALSE),
+      'media_large' => array('label' => t('Large'), 'custom settings' => FALSE),
+      'media_original' => array('label' => t('Original'), 'custom settings' => FALSE),
     );
   }
   return $modes;
@@ -237,16 +237,11 @@ function media_field_widget_settings_form($field, $instance) {
   return $form;
 }
 
-function media_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $base) {
-  $element = $base;
-
+/**
+ * Implements hook_field_widget_form().
+ */
+function media_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   $widget_settings = $instance['widget']['settings'];
-
-  $defaults = array(
-    'fid' => 0,
-    'title' => '',
-    'data' => NULL
-  );
 
   $permission = user_access('edit media');
   if (!$permission) {
@@ -254,11 +249,21 @@ function media_field_widget_form(&$form, &$form_state, $field, $instance, $langc
     return;
   }
 
+  // @todo The Field API supports automatic serialization / unserialization, so
+  //   this should no longer be needed. After verifying with a module that uses
+  //   the 'data' column, remove this.
+  // @see media_field_widget_value()
   $current_value = array();
-  // Obviously doesn't belong here, but in some lower level implementation.
   if (isset($items[$delta])) {
     $current_value = $items[$delta];
-    $current_value['data'] = unserialize($current_value['data']);
+    // @todo $items[$delta] is sometimes a loaded media entity (an object)
+    //   rather than an array. This conflicts with Field API expectations (for
+    //   example, it results in fatal errors when previewing a node with a
+    //   multi-valued media field), so should be fixed. In the meantime, don't
+    //   assume that $current_value is an array.
+    if (is_array($current_value) && isset($current_value['data']) && is_string($current_value['data'])) {
+      $current_value['data'] = unserialize($current_value['data']);
+    }
   }
 
   $element += array(
@@ -311,6 +316,14 @@ function media_field_validate($obj_type, $object, $field, $instance, $langcode, 
   }
 }
 
+/**
+ * @todo Is this function ever called? If not, remove it. The Field API now
+ *   supports automatic serialization / unserialization, so this should no
+ *   longer be needed. After verifying with a module that uses the 'data'
+ *   column, remove this.
+ *
+ * @see media_field_widget_form()
+ */
 function media_field_widget_value($element, $input, $form_state) {
   $return = $input;
   
@@ -430,5 +443,15 @@ function media_field_delete_revision($entity_type, $entity, $field, $instance, $
     if (file_usage_delete($file, 'media', $entity_type, $id, 1)) {
       $items[$delta] = NULL;
     }
+  }
+}
+
+/**
+ * Implements hook_field_instance_update().
+ */
+function media_field_update_instance($instance, $prior_instance) {
+  // Clear the filter cache when updating instance settings for a media entity.
+  if ($instance['entity_type'] == 'media') {
+    media_filter_invalidate_caches();
   }
 }

@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 /**
  * @file
@@ -37,7 +36,9 @@ function og_context_create_group($empty, $data = NULL, $conf = FALSE) {
     return $context;
   }
 
-  $data = og_get_group('group', $data->gid);
+  if (!empty($data)) {
+    $data = og_get_group('group', $data->gid);
+  }
 
   if (!empty($data)) {
     $context->data     = $data;
@@ -96,9 +97,7 @@ function og_context_group_convert_list() {
     'entity_id' => t('Entity ID'),
   	'label' => t('Group label'),
   );
-  if (module_exists('token')) {
-    $list += reset(token_get_list(array('og_group')));
-  }
+  // TODO: Add token support.
   return $list;
 }
 
@@ -116,10 +115,5 @@ function og_context_group_convert($context, $type) {
     case 'label':
       return $context->data->label;
   }
-  if (module_exists('token')) {
-    $values = token_get_values('og_group', $context->data);
-    if ($key = array_search($type, $values->tokens)) {
-      return $values->values[$key];
-    }
-  }
+  // TODO: Add token support.
 }

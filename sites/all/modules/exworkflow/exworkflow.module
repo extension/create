@@ -23,51 +23,72 @@ function exworkflow_node_view($node, $view_mode) {
     }
   }
   
-  if(($node->type == 'article' || $node->type == 'faq' || $node->type == 'event') && $view_mode == 'full') {
-    $workflow_list = get_workflow_states();
+  if(($node->type == 'article' || $node->type == 'faq' || $node->type == 'event' || $node->type == 'news') && $view_mode == 'full') {
+    // get current user
+    global $user;
+
+    // get workflow preference to show or hide it
+    $workflow_show_pref = db_query('SELECT * FROM {node_workflow_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
     
-    // find existing workflow
-    $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
-    
-    // if no workflow to be found yet, start it at a draft state
-    if($node_workflow == false) {
-      $review_count = "Review Count: 0";
-      $node_status = "Status: {$workflow_list[1]}";
+    // if they've elected to not see the workflow, only display the button to show the workflow
+    if($workflow_show_pref != false && $workflow_show_pref->show_workflow == false) {
+      $workflow_content = '<p>'.drupal_render(drupal_get_form('exworkflow_toggle_form')).'</p>';
     }
+    // otherwise, show the workflow
     else {
-      // check to see if the node has been set to inactive
-      if($node_workflow->active == false) {
-        $workflow_content = '<p>This content has been set to inactive.</p>'.drupal_render(drupal_get_form('exworkflow_activate_form'));
-        $node->content['additional_field'] = array('#markup' => $workflow_content);
-        return;
+      $workflow_list = get_workflow_states();
+    
+      // find existing workflow
+      $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
+    
+      // if no workflow to be found yet, start it at a draft state
+      if($node_workflow == false) {
+        $review_count = "Review Count: 0";
+        $node_status = "Status: {$workflow_list[1]}";
       }
-        
-      $review_count = "Review Count: {$node_workflow->review_count}";
-      $node_status = "Status: {$workflow_list[$node_workflow->status]}";
-      
-      # is the node published
-      if(isset($node_workflow->published_at)) {
-        // if the current revision of the node is published, notify 
-        // the user of that
-        if($node_workflow->published_revision_id == $node->vid) {
-          $node_status .= "<br /><small>The current version is published. You can either unpublish or start a new draft revision by editing.
-          </small>";
+      else {
+        // check to see if the node has been set to inactive
+        if($node_workflow->active == false) {
+          $workflow_content = '<p>This content has been set to   inactive.</p>'.drupal_render(drupal_get_form('exworkflow_activate_form'));
+          $node->content['additional_field'] = array('#markup' => $workflow_content);
+          return;
         }
-        else {
-          $node_status .= "<br /><small>A previous version of this content is published.</small>";
-        }  
+        
+        $review_count = "Review Count: {$node_workflow->review_count}";
+        $node_status = "Status: {$workflow_list[$node_workflow->status]}";
+      
+        # is the node published
+        if(isset($node_workflow->published_at)) {
+          // if the current revision of the node is published, notify 
+          // the user of that
+          if($node_workflow->published_revision_id == $node->vid) {
+            $node_status .= "<br /><small>The current version is published. You can either start a new draft revision by editing   or unpublish.
+            </small>";
+          }
+          else {
+            $node_status .= "<br /><small>A previous version of this content is published.</small>";
+          }  
+        }
       }
-    }
     
-    if(($node_workflow != false) && (isset($node_workflow->draft_status))) {
-      $draft_status_string = "<br />Draft Status: {$workflow_list[$node_workflow->draft_status]}";
-    }
-    else {
-      $draft_status_string = '';
-    }
+      if(($node_workflow != false) && (isset($node_workflow->draft_status))) {
+        $draft_status_string = "<br />Draft Status: {$workflow_list[$node_workflow->draft_status]}";
+      }
+      else {
+        $draft_status_string = '';
+      }
+      
+      $toggle_form = drupal_get_form('exworkflow_toggle_form');
+      $workflow_form = drupal_get_form('exworkflow_form');
+      $inactive_form = drupal_get_form('exworkflow_inactivate_form');
+      $workflow_content = '<p>'.drupal_render($toggle_form).'</p>'
+                        . '<h2>Publishing Workflow</h2>'
+                        . $node_status.$draft_status_string
+                        . "<br/>{$review_count}"."<p>"
+                        . drupal_render($workflow_form)
+                        . drupal_render($inactive_form)."</p>";
+  } // end of are we displaying the workflow 'else' statement
     
-    $workflow_content = '<h2>Publishing Workflow</h2>'.$node_status.$draft_status_string."<br/>{$review_count}"."<p>".
-    drupal_render(drupal_get_form('exworkflow_form')).drupal_render(drupal_get_form('exworkflow_inactivate_form'))."</p>";
     $node->content['additional_field'] = array('#markup' => $workflow_content);
   }
   
@@ -81,9 +102,9 @@ function exworkflow_form($form, &$form_state) {
   // find the current workflow for this node
   $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
   
-  // if no workflow to be found yet, start it at a draft state
+  // if no workflow to be found yet or if it's found but no draft status and unpublished, start it at a draft state
   // and provide every option but to set it as draft
-  if($node_workflow == false) {
+  if($node_workflow == false || (is_null($node_workflow->draft_status) && $workflow_list[$node_workflow->status] != 'Published')) {
     $initial_workflow_value = NULL;
     unset($workflow_list[1]);
   }
@@ -177,132 +198,88 @@ function exworkflow_activate_form_validate($form, &$form_state) {
   }
 }
 
+// build the form to show/hide workflow
+function exworkflow_toggle_form($form, &$form_state) {
+  // get current user
+  global $user;
+  
+  // get workflow preference to show or hide it
+  $workflow_show_pref = db_query('SELECT * FROM {node_workflow_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
+  
+  if($workflow_show_pref != false && $workflow_show_pref->show_workflow == false) {
+    $button_text = 'Show Publishing Workflow';
+  }
+  else {
+    $button_text = "Hide Workflow";
+  }
+  
+  $form['toggle_pref'] = array('#type' => 'value', '#value' => true);
+  $form['submit'] = array('#type' => 'submit', '#value' => t($button_text));
+  return $form;
+}
+
+// probably not necessary, but will check anyways
+// workflow toggle validation
+function exworkflow_toggle_form_validate($form, &$form_state) {
+  if (!isset($form_state['values']['toggle_pref'])) {
+    form_set_error('toggle_pref', "You must submit a preference.");
+  }
+}
+
 // handle form submission
 function exworkflow_form_submit($form, &$form_state) {
   // get the current user
   global $user;
   // get current node
   $node = menu_get_object();
-  // find workflow for node
-  $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
   
   $workflow_list = get_workflow_states();
   $workflow_event_list = get_workflow_events();
   
   // if the unpublish value was selected
   if(isset($form_state['values']['unpublish']) && ($form_state['values']['unpublish'] == 'true')) {
-    $node_status = 1;
-    $draft_status = null;
-    $current_state = 6;
-    $additional_fields = array('published_at' => null, 'published_revision_id' => null);  
-    $reviews = 0;
+    // record workflow
+    $workflow_obj = exworkflow_change_state($node, 
+                                            'draft', 
+                                            null, 
+                                            'unpublished', 
+                                            $user->uid, 
+                                            null,  
+                                            array('published_at' => null, 'published_revision_id' => null, 'unpublished_at' => REQUEST_TIME));
+    
+    if($workflow_obj == null) { return; }
+                                            
+    // record the additional side-effect event of being set back to draft
+    exworkflow_record_event($node, 'moved back to draft', $workflow_obj->nwid, $user->uid);
   }
   // the unpublish value was not selected, receive workflow form input
   else {
-    $current_state = $form_state['values']['wf_state'];
-      
-    // handle review counts if no node workflow was found
-    if($node_workflow == false) {
-      // if a review event occured, we need to set the number of reviews
-      if($workflow_list[$current_state] == 'Reviewed') { $reviews = 1; }
-      else { $reviews = 0; }
-    }
-    // node workflow was found, check to make sure selected state is not the 
-    // same as the current state unless it's being reviewed (state = 3)
-    else {
-      if($current_state == $node_workflow->draft_status && $current_state != 3) {
-        return;
-      }
-    }
-      
-    if($workflow_list[$current_state] == 'Published') {
-      $node_status = $current_state;
+    if($workflow_list[$form_state['values']['wf_state']] == 'Published') {
+      $node_status = 'published';
+      $event_status = 'published';
       $draft_status = null;
-      $additional_fields = array('published_at' => REQUEST_TIME, 'published_revision_id' => $node->vid);
+      $publish_fields = array('published_at' => REQUEST_TIME, 'published_revision_id' => $node->vid, 'unpublished_at' => null);
     }
     else {
-      $node_status = 1;
-      $draft_status = $current_state;
-      $additional_fields = array();
+      $node_status = 'draft';
+      $draft_status = $workflow_list[$form_state['values']['wf_state']];
+      $event_status = $workflow_event_list[$form_state['values']['wf_state']];
+      $publish_fields = array();
     }
-  }  // end of test for unpublish button click  
-  
-  // if no node workflow was found, create a new workflow record
-  if($node_workflow == false) {    
-    // if no workflow record exists and the current state is greater than 1, record a new workflow. 
-    // if the current state is 1, we do not record anything as everything starts out as draft 
-    // (this should not happen b/c draft state (1) isn't allowed on dropdown selection for nodes that do not have a workflow yet)
-    // if we're in an unpublishing state, this should never happen but it is handled, if something needs to be unpublished, 
-    // there should be a workflow record for it in the db.)
-    if($current_state > 1) {
-      $fields = array(
-                'node_id' => $node->nid, 
-                'current_revision_id' => $node->vid,
-                'active' => 1,
-                'review_count' => $reviews, 
-                'status' => $node_status, 
-                'status_text' => $workflow_list[$node_status],
-                'draft_status' => $draft_status, 
-                'draft_status_text' => ($draft_status == null) ? null : $workflow_list[$draft_status],
-                'created' => REQUEST_TIME, 
-                'changed' => REQUEST_TIME) + $additional_fields;
-      $workflow_id = db_insert('node_workflow')->fields($fields)->execute();
-    }
-    else {
-      return;
-    }
-  
-  }
-  
-   // workflow record exists
-  // update current workflow record
-  else {
-    $workflow_id = $node_workflow->nwid;
-    // if the current state falls within the workflow states (ie. not an unpublished event)
-    if ($current_state <= 5) {
-      // if a review event occured, we need to increase the number of reviews for the review count
-      if($workflow_list[$current_state] == 'Reviewed') {
-        $reviews = $node_workflow->review_count + 1;
-      }
-      // if the node has been moved to ready for review or draft which come before the review 
-      // process in the workflow, then set the review count back to zero.
-      else if($workflow_list[$current_state] == 'Ready for Review' || $workflow_list[$current_state] == 'Draft') {
-        $reviews = 0;
-      }
-      // if the current state is not the review state and we are not in a state before the review process, then 
-      // keep the review count for the workflow the same
-      else {
-        $reviews = $node_workflow->review_count;
-      }
-    }
+    // record workflow  
+    $workflow_obj = exworkflow_change_state($node, 
+                                            $node_status, 
+                                            $draft_status, 
+                                            $event_status, 
+                                            $user->uid, 
+                                            null, 
+                                            $publish_fields);
+                            
+    if($workflow_obj == null) { return; }
     
-    db_update('node_workflow')
-    ->fields(array(
-             'review_count' => $reviews,
-             'status' => $node_status,
-             'status_text' => $workflow_list[$node_status],
-             'draft_status' => $draft_status,
-             'draft_status_text' => ($draft_status == null) ? null : $workflow_list[$draft_status],
-             'changed' => REQUEST_TIME) + $additional_fields)
-      ->condition('nwid', $node_workflow->nwid)
-      ->execute();
+  }  // end of test for unpublish button click    
   
-  } // end of does the workflow record exist
-  
-  // record the workflow event
-  $fields = array(
-            'node_id' => $node->nid,
-            'node_workflow_id' => $workflow_id,  
-            'user_id' => $user->uid,
-            'revision_id' => $node->vid,
-            'event_id' => $current_state,
-            'description' => $workflow_event_list[$current_state],
-            'created' => REQUEST_TIME,
-  );
-  
-  db_insert('node_workflow_events')->fields($fields)->execute();
-  
-  drupal_set_message("Node workflow updated successfully!");
+  drupal_set_message("Node updated successfully!");
   
 }
 
@@ -313,86 +290,44 @@ function exworkflow_inactivate_form_submit($form, &$form_state) {
   global $user;
   // get current node
   $node = menu_get_object();
+  
   // find node workflow
   $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
-  $workflow_list = get_workflow_states();
-  $workflow_event_list = get_workflow_events();
   
-  
-  // if no node workflow exists
-  if($node_workflow == false) {
-    $fields = array(
-              'node_id' => $node->nid, 
-              'current_revision_id' => $node->vid,
-              'active' => 0,
-              'review_count' => 0, 
-              'status' => 1, 
-              'status_text' => $workflow_list[1],
-              'draft_status' => null, 
-              'draft_status_text' => null,
-              'created' => REQUEST_TIME, 
-              'changed' => REQUEST_TIME,
-              'published_at' => null, 
-              'published_revision_id' => null,
-              );
-    $workflow_id = db_insert('node_workflow')->fields($fields)->execute();
-  } 
-  // node workflow does exist 
-  else {
-    $workflow_id = $node_workflow->nwid;
-    // check and see if the node was published
-    if($node_workflow->published_at != null) {
+  // check and see if the node was published
+  if($node_workflow != false && $node_workflow->published_at != null) {
       $is_published = true;
-    }
-    else {
-      $is_published = false;
-    }
-    
-    db_update('node_workflow')
-    ->fields(array(
-             'review_count' => 0,
-             'active' => 0, 
-             'status' => 1, 
-             'status_text' => $workflow_list[1],
-             'draft_status' => null, 
-             'draft_status_text' => null,
-             'changed' => REQUEST_TIME,
-             'published_at' => null, 
-             'published_revision_id' => null,
-             ))
-      ->condition('nwid', $node_workflow->nwid)
-      ->execute();
+      $unpublished_at_array = array('unpublished_at' => REQUEST_TIME);
+  }
+  // else if there was no node workflow or doesn't have a published_at, it obviously isn't published 
+  else {
+    $is_published = false;
+    $unpublished_at_array = array();
+  }
   
-      // record the unpublish event if the node was published
-      if($is_published == true) {
-        // record the unpublish workflow event
-        $fields = array(
-                  'node_id' => $node->nid,
-                  'node_workflow_id' => $node_workflow->nwid,  
-                  'user_id' => $user->uid,
-                  'revision_id' => $node->vid,
-                  'event_id' => 6,
-                  'description' => $workflow_event_list[6],
-                  'created' => REQUEST_TIME,
-        );
-        db_insert('node_workflow_events')->fields($fields)->execute();
-      } // end of was it published
+  // record new workflow
+  $workflow_obj = exworkflow_change_state($node, 
+                                          'draft', 
+                                          null, 
+                                          'made inactive', 
+                                          $user->uid, 
+                                          null, 
+                                          array('published_at' => null, 'published_revision_id' => null, 'active' => 0) + $unpublished_at_array);
+                          
+  if($workflow_obj == null) { return; }
+  
+  // if the workflow's draft_status existed and was greater than the draft state, record the set back to draft event
+  if($node_workflow != false && $node_workflow->draft_status != null && $node_workflow->draft_status > 1) {                        
+    // it's being set back to draft, 
+    // record that event along with the made inactive event from the exworkflow_change_state call
+    exworkflow_record_event($node, 'moved back to draft', $node_workflow->nwid, $user->uid);
+  }
+  
+  // set event to unpublish if it was published
+  if($is_published == true) {
+    exworkflow_record_event($node, 'unpublished', $node_workflow->nwid, $user->uid);
+  }
       
-  } // end of did the workflow exist
-  
-  // record the inactive workflow event
-  $fields = array(
-            'node_id' => $node->nid,
-            'node_workflow_id' => $workflow_id,  
-            'user_id' => $user->uid,
-            'revision_id' => $node->vid,
-            'event_id' => 7,
-            'description' => $workflow_event_list[7],
-            'created' => REQUEST_TIME,
-  );
-  
-  db_insert('node_workflow_events')->fields($fields)->execute();
-  
   drupal_set_message("Node workflow updated successfully!");
 }
 
@@ -403,63 +338,64 @@ function exworkflow_activate_form_submit($form, &$form_state) {
   global $user;
   // get current node
   $node = menu_get_object();
-  // find node's workflow
-  $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
-  $workflow_list = get_workflow_states();
-  $workflow_event_list = get_workflow_events();
     
-  // if no node workflow exists
-  // this should not happen, but will cover the case anyways
-  if($node_workflow == false) {
-    $fields = array(
-              'node_id' => $node->nid, 
-              'current_revision_id' => $node->vid,
-              'active' => 1,
-              'review_count' => 0, 
-              'status' => 1, 
-              'status_text' => $workflow_list[1],
-              'draft_status' => null, 
-              'draft_status_text' => null,
-              'created' => REQUEST_TIME, 
-              'changed' => REQUEST_TIME,
-              'published_at' => null, 
-              'published_revision_id' => null,
-              );
-    $workflow_id = db_insert('node_workflow')->fields($fields)->execute();
-  } 
-  // node workflow does exist 
-  else {
-    $workflow_id = $node_workflow->nwid;
-    db_update('node_workflow')
-    ->fields(array(
-             'review_count' => 0,
-             'active' => 1, 
-             'status' => 1, 
-             'status_text' => $workflow_list[1],
-             'draft_status' => null, 
-             'draft_status_text' => null,
-             'changed' => REQUEST_TIME,
-             'published_at' => null, 
-             'published_revision_id' => null,
-             ))
-      ->condition('nwid', $node_workflow->nwid)
-      ->execute();    
-  } // end of did the workflow exist
+  // record new workflow
+  $workflow_obj = exworkflow_change_state($node, 
+                                          'draft', 
+                                          null, 
+                                          'activated', 
+                                          $user->uid, 
+                                          null, 
+                                          array('published_at' => null, 'published_revision_id' => null, 'active' => 1));
+                                          
+  if($workflow_obj == null) { return; }
   
-  // record the activate workflow event
-  $fields = array(
-            'node_id' => $node->nid,
-            'node_workflow_id' => $workflow_id,  
-            'user_id' => $user->uid,
-            'revision_id' => $node->vid,
-            'event_id' => 7,
-            'description' => $workflow_event_list[7],
-            'created' => REQUEST_TIME,
-  );
-  
-  db_insert('node_workflow_events')->fields($fields)->execute();
-  
+  // it's being set back to draft, record that event along with the activated event from the exworkflow_change_state call
+  exworkflow_record_event($node, 'moved back to draft', $workflow_obj->nwid, $user->uid);
+
   drupal_set_message("Node updated successfully!");
+}
+
+// submission of the show_hide workflow form
+function exworkflow_toggle_form_submit($form, &$form_state) {
+  // get current user
+  global $user;
+  
+  // get workflow preference to show or hide it
+  $workflow_show_pref = db_query('SELECT * FROM {node_workflow_preferences} WHERE user_id = :uid', array(':uid' =>  $user->uid))->fetchObject();
+  
+  
+  // if the workflow pref exists and the show is set to false, then toggle the show to true,
+  // otherwise, if the workflow pref exists and the show is set to true, toggle to false,
+  // and if the workflow pref does not exist at all, then they've never set the pref 
+  // and since it defaults to showing, you create a new record and set the show to false (toggle from default)
+  if($workflow_show_pref != false && $workflow_show_pref->show_workflow == false) {
+    $show_workflow = 1;
+  }
+  else {
+    $show_workflow = 0;
+  }
+  
+  if($workflow_show_pref != false) {
+    // update existing record
+    db_update('node_workflow_preferences')
+    ->fields(array(
+             'show_workflow' => $show_workflow,
+             'changed' => REQUEST_TIME))
+    ->condition('nwpid', $workflow_show_pref->nwpid)
+    ->execute();  
+  } 
+  //create new record
+  else {
+    $fields = array(
+      'user_id' => $user->uid,
+      'show_workflow' => $show_workflow,
+      'created' => REQUEST_TIME,
+      'changed' => REQUEST_TIME);
+    db_insert('node_workflow_preferences')->fields($fields)->execute();
+  }
+  
+  drupal_set_message("Workflow pref updated successfully!");
 }
 
 /**
@@ -471,68 +407,33 @@ function exworkflow_activate_form_submit($form, &$form_state) {
  * We also need to capture the new current revision id for workflow reference here.
  */
 function exworkflow_node_update($node) {
-  if($node->type == 'article' || $node->type == 'faq' || $node->type == 'event') {
+  if($node->type == 'article' || $node->type == 'faq' || $node->type == 'event' || $node->type == 'news') {
     // get the node's workflow
     $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
       
-    // the revision has changed, so set status back to draft and update current revision id
+    // if the revision has changed, set status back to draft and update current revision id
     if($node_workflow != false && $node_workflow->current_revision_id != $node->vid) {
       global $user;
       
-      $workflow_list = get_workflow_states();
-      $workflow_event_list = get_workflow_events();
-      
       if($node_workflow->active == true) {
-        $is_active = true;
+        $event_text = 'moved back to draft';
       }
       else {
-        $is_active = false;
+        $event_text = 'activated';
       }
-    
-      // updating a revision of a node also sets it back to active if it was inactive
-      db_update('node_workflow')
-      ->fields(array(
-               'active' => 1,
-               'current_revision_id' => $node->vid,
-               'status' => 1,
-               'status_text' => $workflow_list[1],
-               'draft_status' => null,
-               'draft_status_text' => null,
-               'review_count' => 0,
-               'changed' => REQUEST_TIME))
-        ->condition('nwid', $node_workflow->nwid)
-        ->execute();
-        
-       // record the workflow update event
-       $fields = array(
-                 'node_id' => $node->nid,
-                 'node_workflow_id' => $node_workflow->nwid,  
-                 'user_id' => $user->uid,
-                 'revision_id' => $node->vid,
-                 'event_id' => 1,
-                 'description' => $workflow_event_list[1],
-                 'created' => REQUEST_TIME,
-       );
-
-       db_insert('node_workflow_events')->fields($fields)->execute();  
-       
-       if($is_active == false) {
-         // if the node was edited, the node is automatically activated if it was inactive
-         // record the activated event
-         $fields = array(
-                    'node_id' => $node->nid,
-                    'node_workflow_id' => $node_workflow->nwid,  
-                    'user_id' => $user->uid,
-                    'revision_id' => $node->vid,
-                    'event_id' => 8,
-                    'description' => $workflow_event_list[8],
-                    'created' => REQUEST_TIME,
-          );
-          db_insert('node_workflow_events')->fields($fields)->execute(); 
-       }
-       
-    }
-  }
+      
+      $workflow_obj = exworkflow_change_state($node, 'draft', null, $event_text, $user->uid, null, array('active' => 1));
+      
+      if($workflow_obj == null) { return; }
+      
+      // if the node was activated as part of the edit, it was also moved back to draft, 
+      // also record this event
+      if($event_text == 'activated') {
+        exworkflow_record_event($node, 'moved back to draft', $node_workflow->nwid, $user->uid);
+      }
+      
+    } // end of has the revision changed
+  } // end of do we have a qualifying article type
   
 }
 
@@ -556,7 +457,7 @@ function exworkflow_menu() {
 function workflow_menu_permissions($node) {
   global $user;
   
-  if(($user != NULL && $user->uid != NULL) && ($node->type == 'article' || $node->type == 'faq' || $node->type == 'event')) { 
+  if(($user != NULL && $user->uid != NULL) && ($node->type == 'article' || $node->type == 'faq' || $node->type == 'event' ||  $node->type == 'news')) { 
     // see if the node has a workflow event
     $node_workflow_event = db_query('SELECT * FROM {node_workflow_events} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
     if($node_workflow_event != false) {
@@ -596,6 +497,178 @@ function exworkflow_history($node_obj) {
   return theme('exworkflow_history', array('workflow_events' => $event_array));
 }
 
+/* Used as an API in this application for this module and other modules to use to 
+*  record workflow changes
+*    $node_obj -- the node object having it's workflow changed
+*    $node_status_text -- the top-level status (ie. published, draft)
+*    $draft_status_text -- the draft status (ie. reviewed, copy edited, etc.), case insensitive, but not space insensitive
+*    $event_text -- the textual description of the workflow event, used for calling the function to record the workflow event,
+*                   allowed values are the ones specified in the get_workflow_events() function (ie. published, moved back to draft, etc.)
+*    $workflow_time -- the time this workflow occured (defaults to current time)
+*    $additional_fields -- any extra fields and values (ie. array('active' => true)) in array form that get passed, if it's 
+*    a recognized field in the table, it will be processed. Allowable extra fields right now include 'published_at', 'unpublished_at', 
+*    'published_revision_id', and 'active'.
+*/
+function exworkflow_change_state($node_obj, $node_status_text, $draft_status_text, $event_text, $creator_id, $workflow_time = null, $additional_fields = array()) {
+  
+  if($workflow_time == null) {
+    $workflow_time = REQUEST_TIME;
+  }
+  
+  // find workflow for node
+  $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node_obj->nid))->fetchObject();
+  $workflow_list = get_workflow_states();
+  $status_number = array_search(strtolower($node_status_text), search_workflow_states());
+  
+  if($status_number == false) {
+    throw new Exception('Node workflow status does not exist.');
+    return null;
+  }
+  
+  if($draft_status_text != null) {
+    $draft_status_number = array_search(strtolower($draft_status_text), search_workflow_states());
+    if($draft_status_number == false) {
+      throw new Exception('Draft status does not exist.');
+      return null;
+    }
+  }
+  else {
+    $draft_status_number = null;
+  }
+  
+  // check the event text to make sure it's a true workflow event description
+  if($event_text == null || (array_search(strtolower($event_text), get_workflow_events()) == false)) {
+    throw new Exception('Workflow event description does not exist.');
+    return null;
+  }
+  
+  // if no node workflow was found, create a new workflow record
+  if($node_workflow == false) {   
+    // handle review counts if no node workflow was found
+    // if a review event occured, we need to set the number of reviews
+    if($draft_status_number != null && $workflow_list[$draft_status_number] == 'Reviewed') { 
+      $review_count = 1; 
+    }
+    else { 
+      $review_count = 0; 
+    }
+    
+    if($workflow_list[$status_number] == 'Published') {
+      $additional_fields = array('published_at' => REQUEST_TIME, 'published_revision_id' => $node_obj->vid);
+    }
+     
+    // if no workflow record exists and the current state is greater than 1, record a new workflow. 
+    // if the current state is 1, we do not record anything as everything starts out as draft 
+    // (this should not happen b/c draft state (1) isn't allowed on dropdown selection for nodes that do not have a workflow yet)
+    if($draft_status_number != null && $draft_status_number <= 1) {
+      return null;
+    }
+     
+    else { 
+      $fields = array(
+        'node_id' => $node_obj->nid, 
+        'current_revision_id' => $node_obj->vid,
+        'review_count' => $review_count, 
+        'status' => $status_number, 
+        'status_text' => $workflow_list[$status_number],
+        'draft_status' => $draft_status_number, 
+        'draft_status_text' => ($draft_status_number == null) ? null : $workflow_list[$draft_status_number],
+        'created' => $workflow_time, 
+        'changed' => $workflow_time) + $additional_fields;
+      db_insert('node_workflow')->fields($fields)->execute();
+      
+      // get newly created node workflow
+      $workflow_object = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node_obj->nid))->fetchObject();    
+      
+      // record the workflow event
+      exworkflow_record_event($node_obj, $event_text, $workflow_object->nwid, $creator_id, $workflow_time);
+      return $workflow_object;
+    }
+  } // end of does the workflow exist
+  
+  // workflow record exists
+  // update current workflow record
+  else {
+    // node workflow was found, check to make sure selected state is not the 
+    // same as the current state unless it's being reviewed (state = 3)
+    if($draft_status_number != null && $draft_status_number == $node_workflow->draft_status && $draft_status_number != 3) {
+      return null;
+    }
+    
+    $workflow_id = $node_workflow->nwid;
+    // if the current state falls within the workflow states (ie. not an unpublished event)
+    if ($draft_status_number != null && $draft_status_number <= 5) {
+      // if a review event occured, we need to increase the number of reviews for the review count
+      if($workflow_list[$draft_status_number] == 'Reviewed') {
+        $review_count = $node_workflow->review_count + 1;
+      }
+      // if the node has been moved to ready for review or draft which come before the review 
+      // process in the workflow, then set the review count back to zero. 
+      else if($workflow_list[$draft_status_number] == 'Ready for Review' || $workflow_list[$draft_status_number] == 'Draft') {
+        $review_count = 0;
+      }
+      // if the current state is not the review state and we are not in a state before the review process, then 
+      // keep the review count for the workflow the same
+      else {
+        $review_count = $node_workflow->review_count;
+      }
+    }
+    // if we published, keep the review count the same
+    else if($workflow_list[$status_number] == 'Published') {
+      $review_count = $node_workflow->review_count;
+    }
+    
+    // else, the draft status was null possibly due to unpublishing or inactivation of the content
+    else {
+      $review_count = 0;
+    }
+    
+    db_update('node_workflow')
+    ->fields(array(
+             'current_revision_id' => $node_obj->vid,
+             'review_count' => $review_count,
+             'status' => $status_number,
+             'status_text' => $workflow_list[$status_number],
+             'draft_status' => $draft_status_number,
+             'draft_status_text' => ($draft_status_number == null) ? null : $workflow_list[$draft_status_number],
+             'changed' => $workflow_time) + $additional_fields)
+    ->condition('nwid', $workflow_id)
+    ->execute();
+    
+    // record the workflow event
+    exworkflow_record_event($node_obj, $event_text, $node_workflow->nwid, $creator_id, $workflow_time);
+    
+    return $node_workflow;
+  
+  } // end of does the workflow record exist 
+}
+
+// Record the new workflow event
+// $workflow action refers to any workflow action like 'published', 'moved back to draft', 'reviewed', etc.
+function exworkflow_record_event($node, $workflow_action, $workflow_id, $user_id, $event_time = REQUEST_TIME) {
+  $workflow_event_list = get_workflow_events();
+  $event_number = array_search(strtolower($workflow_action), $workflow_event_list);
+  if($event_number == false) {
+    throw new Exception('Workflow event does not exist.');
+    return;
+  }
+  
+  $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
+  
+  // record the workflow event
+  $fields = array(
+            'node_id' => $node->nid,
+            'node_workflow_id' => $workflow_id,  
+            'user_id' => $user_id,
+            'revision_id' => $node->vid,
+            'event_id' => $event_number,
+            'description' => $workflow_event_list[$event_number],
+            'created' => $event_time,
+  );
+  
+  db_insert('node_workflow_events')->fields($fields)->execute();
+}
+  
 // WARNING: DO NOT CHANGE THESE VALUES, 
 // THEY ARE USED IN THE DATABASE TABLES
 function get_workflow_states() {
@@ -612,15 +685,25 @@ function get_workflow_states() {
 // THEY ARE USED IN THE DATABASE TABLES
 function get_workflow_events() {
   return array(
-  1 => "moved back to draft",
-  2 => "marked ready for review",
-  3 => "reviewed",
-  4 => "copy edited",
-  5 => "published",
+  1 => 'moved back to draft',
+  2 => 'marked ready for review',
+  3 => 'reviewed',
+  4 => 'copy edited',
+  5 => 'published',
   6 => 'unpublished',
   7 => 'made inactive',
   8 => 'activated',
   );
 }
 
-
+// WARNING: DO NOT CHANGE THESE VALUES, 
+// THEY ARE USED IN THE DATABASE TABLES
+function search_workflow_states() {
+  return array(
+    1 => t('draft'), 
+    2 => t('ready for review'),
+    3 => t('reviewed'),
+    4 => t('copy edited'),
+    5 => t('published'),
+  );
+}

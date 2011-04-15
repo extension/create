@@ -1,4 +1,4 @@
-# $Id: general.nl.po,v 1.3 2010/02/28 14:28:01 karens Exp $
+# $Id: general.nl.po,v 1.4 2011/01/18 00:37:35 karens Exp $
 #
 # LANGUAGE translation of Drupal (general)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
@@ -141,4 +141,3 @@ msgstr "Herhalingen"
 #: date_tools/date_tools.module:193
 msgid "Save"
 msgstr "Bewaren"
-

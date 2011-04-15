@@ -1,5 +1,5 @@
 <?php
-// $Id: notifications.manage.inc,v 1.1.2.3.2.7.2.12 2010/07/21 10:55:30 jareyero Exp $
+// $Id: notifications.manage.inc,v 1.1.2.3.2.7.2.12.2.1 2011/01/18 01:36:24 jareyero Exp $
 
 /**
  * @file

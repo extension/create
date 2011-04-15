@@ -87,4 +87,3 @@ msgstr "Testo"
 #~ msgstr "Sabato"
 #~ msgid "Repeats"
 #~ msgstr "Ripetizione"
-

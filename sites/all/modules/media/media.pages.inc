@@ -1,5 +1,5 @@
 <?php
-// $Id: media.pages.inc,v 1.28 2010/09/17 19:49:57 JacobSingh Exp $
+// $Id: media.pages.inc,v 1.29 2011/01/13 01:42:01 effulgentsia Exp $
 
 /**
  * @file
@@ -10,7 +10,19 @@
  * Menu callback; view a single piece of media.
  */
 function media_file_view($media) {
+  // @todo Implement granular editorial access: http://drupal.org/node/696970.
+  //   In the meantime, protect information about private files from being
+  //   discovered by unprivileged users. Media IDs are autoincrement, so one can
+  //   attempt discovery by trying to access different media/ID paths. See also
+  //   media_browser_list(). This logic potentially belongs within
+  //   media_access(), but that would require extending that function's
+  //   signature to accept a $media paramter, and this is temporary code anyway.
+  if (!user_access('administer media') && (file_uri_scheme($media->uri) === 'private')) {
+    return MENU_ACCESS_DENIED;
+  }
+
   drupal_set_title($media->filename);
+
   // @TODO maybe something more elegant... ?
   field_attach_prepare_view('media', array($media->fid => $media), 'media_original');
   $build['media'][$media->fid] = field_attach_view('media', $media, 'media_original');

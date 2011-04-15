@@ -1,5 +1,5 @@
 <?php
-// $Id: Styles.inc,v 1.1.4.5 2010/10/28 20:01:10 aaron Exp $
+// $Id: Styles.inc,v 1.1.4.6 2011/01/11 19:28:41 aaron Exp $
 
 /**
  * @file Styles.inc
@@ -93,6 +93,44 @@ class StylesDefault {
 
   static public function get_class_name() {
     return get_called_class();
+  }
+
+  public function _get($variable) {
+    if (function_exists('get_' . $variable)) {
+      return $this->{'get_' . $variable}();
+    }
+    else {
+      return $this->get($variable);
+    }
+  }
+  public function _set($variable, $value) {
+    if (function_exists('set_' . $variable)) {
+      return $this->{'set_' . $variable}($value);
+    }
+    else {
+      return $this->set($variable, $value);
+    }
+  }
+
+  public function array_push($variable, $element) {
+    $array = (array) $this->_get($variable);
+    array_push($array, $element);
+    return $this->_set($variable, $array);
+  }
+  public function array_pop($variable) {
+    $array = (array) $this->_get($variable);
+    array_pop($array);
+    return $this->_set($variable, $array);
+  }
+  public function array_unshift($variable, $element) {
+    $array = (array) $this->_get($variable);
+    array_unshift($array, $element);
+    return $this->_set($variable, $array);
+  }
+  public function array_shift($variable) {
+    $array = (array) $this->_get($variable);
+    array_shift($array);
+    return $this->_set($variable, $array);
   }
 
   /**

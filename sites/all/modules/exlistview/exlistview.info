@@ -1,8 +1,10 @@
 ; $Id$
 name = eXtension List Views
 description = "Adds various list views of content to the site."
+version = VERSION
 core = 7.x
 package = eXtension
+dependencies[] = exworkflow
 files[] = exlistview.module
 files[] = exlistview.install
 files[] = exlistview_show.tpl.php

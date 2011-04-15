@@ -1,4 +1,4 @@
-// $Id: media-admin.js,v 1.16 2010/09/14 18:25:39 JacobSingh Exp $
+// $Id: media-admin.js,v 1.17 2010/11/29 20:03:11 JacobSingh Exp $
 
 /**
  * @file
@@ -15,7 +15,6 @@
  */
 Drupal.behaviors.mediaAdmin = {
   attach: function (context) {
-
     // Configure the "Add file" link to fire the media browser popup.
     $('ul.action-links li', context).remove();
     if ($('form.media-list-operation', context).length != 0) {

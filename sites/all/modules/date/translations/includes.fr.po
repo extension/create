@@ -1,4 +1,4 @@
-# $Id: includes.fr.po,v 1.3 2010/02/28 14:28:01 karens Exp $
+# $Id: includes.fr.po,v 1.4 2011/01/18 00:37:35 karens Exp $
 #
 # French translation of Drupal (general)
 # Copyright YEAR NAME <EMAIL@ADDRESS>
@@ -213,4 +213,3 @@ msgstr "Le %style requiert que Date : Argument de date soit défini par défaut 
 #: includes/date_navigation_plugin_style.inc:34
 msgid "The %style requires the Date: Date argument."
 msgstr "Le %style requiert le Date : Argument de date."
-
