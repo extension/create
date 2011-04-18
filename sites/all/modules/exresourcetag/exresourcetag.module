@@ -1,0 +1,14 @@
+<?php
+ 
+/**
+ * Implements hook_help().
+ */
+function exresourcetag_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#exresourcetag':
+      $output = '';
+      $output .= '<h3>' . t('About eXtension Resource Tag Module') . '</h3>';
+      $output .= '<p>' . t('Add schema definitions for a custom group to resource area tag mapping.') . '</p>';
+      return $output;
+  }
+}

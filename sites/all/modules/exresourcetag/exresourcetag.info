@@ -1,0 +1,11 @@
+; exresourcetag - schema installation for a custom group <-> resource area tag mapping
+;
+; Will export content in Atom feed; however, some feed elements
+; are added to support publishing to www.extension.org
+name = eXtension Resource Tag Schema
+description = "Provides a custom table for group <-> resource area tag mapping"
+package = eXtension
+version = VERSION
+core = 7.x
+files[] = exresourcetag.install
+files[] = exresourcetag.module

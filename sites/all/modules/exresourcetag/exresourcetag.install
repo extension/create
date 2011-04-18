@@ -1,0 +1,54 @@
+<?php
+
+/**
+ * Implements hook_schema().
+*/
+function exresourcetag_schema() {
+  $schema['group_resource_tags'] = array(
+    'description' => 'Table for storing group to resource area tag associations, that can be used by the exatom module to add Atom Categories',
+    'fields' => array(
+          
+      'nid' => array(
+        'description' => 'Drupal Node ID.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+    
+      'community_name' => array(
+        'description' => 'Group/Community name (for convenience purposes when browsing the db)',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ),
+    
+      'community_id' => array(
+        'description' => 'ID of the community from darmok.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+    
+      'resource_tag_name' => array(
+        'description' => 'Resource Tag Name (from darmok - no required association inside drupal).',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+    
+      'is_primary_tag' => array(
+        'description' => 'Is this the primary resource tag for the community - used for the exatom outbound categorization',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,  
+      ),
+    ), // fields
+      
+    'primary key' => array('nid','community_id','resource_tag_name'),
+
+    );
+  
+  return $schema;
+
+}
