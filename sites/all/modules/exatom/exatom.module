@@ -220,7 +220,7 @@ function _exatom_print_feed(array $nids, array $feed_info) {
       
       // add any resource area tags from the groups association
       if (!empty($node->group_audience)) {
-        
+        $gid_list = array();
         $group_audience = $node->group_audience[LANGUAGE_NONE];
         foreach ($group_audience as $group_audience_entry) {
           $gid_list[] =  $group_audience_entry['gid'];
