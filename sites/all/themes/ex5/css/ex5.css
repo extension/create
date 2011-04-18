@@ -27,7 +27,7 @@ a.button {
   border-bottom: 1px solid #b4b4b4;
   border-left-color: #D2D2D2;
   border-right-color: #D2D2D2;
-  background: url(images/buttons.png) 0 0 repeat-x;
+  background: url(../images/buttons.png) 0 0 repeat-x;
   -moz-border-radius: 20px;
   -webkit-border-radius: 20px;
   border-radius: 20px;
@@ -45,7 +45,7 @@ div.node-form input#edit-submit-1 {
   border-left-color: #8eB7cd;
   border-right-color: #8eB7cd;
   border-bottom-color: #7691a2;
-  background: url(images/buttons.png) 0px -40px repeat-x;
+  background: url(../images/buttons.png) 0px -40px repeat-x;
   color: #133B54;
 }
 input.form-submit:active {
@@ -86,6 +86,65 @@ html.js input.throbbing {
   background-position: 100% -16px;
 }
 
+
+/* Common styles for tables
+-----------------------------------------------------------------------------*/
+
+
+caption {
+	padding: 0 0 5px 0;
+	width: 700px;	 
+	text-align: right;
+}
+
+th {
+	color: #4f6b72;
+	border-right: 1px solid #C1DAD7;
+	border-bottom: 1px solid #C1DAD7;
+	border-top: 1px solid #C1DAD7;
+	text-align: left;
+	padding: 6px 6px 6px 12px;
+	background: #CAE8EA url(../images/bg_header.jpg) no-repeat;
+}
+
+th.nobg {
+	border-top: 0;
+	border-left: 0;
+	border-right: 1px solid #C1DAD7;
+	background: none;
+}
+
+td {
+	border-right: 1px solid #C1DAD7;
+	border-bottom: 1px solid #C1DAD7;
+	background: #fff;
+	padding: 6px 6px 6px 12px;
+	color: #4f6b72;
+}
+
+
+td.even {
+	background: #F5FAFA;
+	color: #797268;
+}
+thead, tr{
+	border-left: 1px solid #C1DAD7;
+}
+th.spec, td.forum, td.container {
+	border-top: 0;
+	background: #fff url(../images/bullet1.gif) no-repeat;
+}
+
+td.active {
+    background-color: #fff;
+}
+
+th.specalt {
+	border-left: 1px solid #C1DAD7;
+	border-top: 0;
+	background: #f5fafa url(../images/bullet2.gif) no-repeat;
+	color: #797268;
+}
 
 
 
@@ -398,7 +457,7 @@ h3.ui-accordion-header{
 article .field-name-body{
 	font-family: Arial, sans-serif;
 	font-size: 14px;
-	margin: 40px 0 10px 0;
+	margin: 0;
 	line-height: 19.6px;
 	color: #333;
 }
@@ -414,6 +473,45 @@ article .field-name-field-image{
 article .field-name-field-image img{
 	border: 1px solid #B3B3B3;
 }
+
+
+/* Taking care of the space under the title
+-----------------------------------------------------------------------------*/
+
+article > footer{
+	margin-bottom: 40px;
+}
+ul.action-links{
+	margin: 40px 0 15px 0;
+	list-style: none;
+}
+ul.action-links li{
+	list-style: none;
+}
+
+
+
+/* Comments
+-----------------------------------------------------------------------------*/
+
+#comments{
+	margin-top: 30px;
+}
+#comments > h2{
+	background-image: url("../images/ex5-accordion-header.png");
+	background-repeat: repeat-x;
+	color: #4f6786;
+	height: 22px;
+	font-weight: normal;
+	border-left: 1px solid #C4C0C0;
+	border-right: 1px solid #C4C0C0;
+	padding: 8px 0 0 9px;
+	text-shadow: 1px 1px 0 #fff;
+	text-transform: uppercase;
+	margin: 25px 0;
+}
+
+
 
 /* Footers
 -----------------------------------------------------------------------------*/
