@@ -176,7 +176,7 @@ function _exatom_print_feed(array $nids, array $feed_info) {
                        'attributes' => array('term' => 'delete'));
     } else {
       $item_text .= $node->body[LANGUAGE_NONE][0]['safe_value'];
-
+      
       // another possible direction:
       // the problem with this is that metadata information
       // will be rendered, like the "Groups Audience" block
@@ -217,6 +217,28 @@ function _exatom_print_feed(array $nids, array $feed_info) {
           }
         }
       }
+      
+      // add any resource area tags from the groups association
+      if (!empty($node->group_audience)) {
+        
+        $group_audience = $node->group_audience[LANGUAGE_NONE];
+        foreach ($group_audience as $group_audience_entry) {
+          $gid_list[] =  $group_audience_entry['gid'];
+        }
+        
+        $query = db_select('group_resource_tags');
+        $query->addField('group_resource_tags', 'resource_tag_name');
+        $and = db_and();
+        $and->condition('nid', $gid_list);
+        $and->condition('is_primary_tag', 1);
+        $query->condition($and);
+        $result = $query->execute()->fetchCol();
+        foreach ($result as $resource_area_tag) {
+          $extra[] = array('key' => 'category',
+                           'attributes' => array('term' => $resource_area_tag));
+        }
+      }
+      
     }
 
     // add the node type as a term so pubsite can seperate FAQs from articles
