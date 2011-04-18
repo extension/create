@@ -8,6 +8,7 @@ version = VERSION
 package = eXtension
 dependencies[] = path
 dependencies[] = exworkflow
+dependencies[] = exresourcetag
 core = 7.x
 files[] = eximport.module
 configure = admin/config/extension/import

@@ -8,5 +8,6 @@ package = eXtension
 version = VERSION
 dependencies[] = path
 dependencies[] = exworkflow
+dependencies[] = exresourcetag
 core = 7.x
 files[] = exatom.module
