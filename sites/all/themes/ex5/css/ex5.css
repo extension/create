@@ -650,6 +650,18 @@ article .comment > footer{
 	margin: 15px 0;
 }
 
+
+.panel-col-last .pane-content ul li.leaf {
+    list-style-image: url(../images/ex5-bullet3.gif);
+    list-style-type: square;
+}
+.panel-col-last .pane-content ul li.expanded {
+    list-style-image: url(../images/ex5-bullet4.gif);
+    list-style-type: square;
+}
+
+
+
 .panel-2col-stacked .panel-col-bottom .panel-pane{
 	background-image:url(../images/ex5-full-column-bg.gif);
 	background-repeat:repeat-y;
