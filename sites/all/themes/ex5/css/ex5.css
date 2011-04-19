@@ -606,6 +606,9 @@ article .comment > footer{
 .panel-2col-stacked .pane-content{
 	margin: 5px 25px;
 }
+.panel-2col-stacked .panel-col-top .pane-content{
+	margin: 0;
+}
 .panel-2col-stacked .more-link{
 	margin: 10px 25px;
 	padding: 0 0 0 10px;
