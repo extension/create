@@ -1,5 +1,4 @@
 <?php
-// $Id: default.inc,v 1.4 2010/11/09 20:28:26 merlinofchaos Exp $
 
 /**
  * @file

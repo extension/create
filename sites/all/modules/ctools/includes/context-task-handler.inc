@@ -43,6 +43,8 @@ function ctools_context_handler_render($task, $subtask, $contexts, $args) {
   if ($id) {
     return ctools_context_handler_render_handler($task, $subtask, $handlers[$id], $contexts, $args);
   }
+
+  return FALSE;
 }
 
 /**
@@ -167,7 +169,7 @@ function ctools_context_handler_render_handler($task, $subtask, $handler, $conte
   }
 
   if (isset($info['title'])) {
-    drupal_set_title($info['title']);
+    drupal_set_title($info['title'], PASS_THROUGH);
   }
 
   // Only directly output if $page was set to true.

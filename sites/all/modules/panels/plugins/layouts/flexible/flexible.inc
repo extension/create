@@ -1,5 +1,4 @@
 <?php
-// $Id: flexible.inc,v 1.7 2011/01/08 21:12:50 merlinofchaos Exp $
 
 /**
  * Implementation of hook_panels_layouts()
@@ -1689,7 +1688,7 @@ function panels_ajax_flexible_edit_reuse($handler) {
   );
 
   $output = ctools_modal_form_wrapper('panels_flexible_reuse_form', $form_state);
-  if (empty($output)) {
+  if (!empty($form_state['executed'])) {
     // Create the new layout.
     ctools_include('export');
     $layout = ctools_export_crud_new('panels_layout');
@@ -1733,9 +1732,13 @@ function panels_flexible_reuse_form($form, &$form_state) {
   );
 
   $form['name'] = array(
-    '#type' => 'textfield',
+    '#type' => 'machine_name',
     '#title' => t('Machine name'),
     '#description' => t('The machine readable name of this layout. It must be unique, and it must contain only alphanumeric characters and underscores. Once created, you will not be able to change this value!'),
+    '#machine_name' => array(
+      'exists' => 'panels_flexible_edit_name_exists',
+      'source' => array('admin_title'),
+    ),
   );
 
   $form['category'] = array(
@@ -1779,4 +1782,13 @@ function panels_flexible_reuse_form_validate(&$form, &$form_state) {
   if (preg_match('/[^a-zA-Z0-9_]/', $form_state['values']['name'])) {
     form_error($form['name'], t('Name must be alphanumeric or underscores only.'));
   }
+}
+
+/**
+ * Test for #machine_name type to see if an export exists.
+ */
+function panels_flexible_edit_name_exists($name, $element, &$form_state) {
+  $plugin = $form_state['plugin'];
+
+  return (empty($form_state['item']->export_ui_allow_overwrite) && ctools_export_crud_load($plugin['schema'], $name));
 }

@@ -47,6 +47,14 @@ function ctools_content_process(&$plugin, $info) {
     $plugin['add form'] = $function_base . 'edit_form';
   }
 
+  if (!isset($plugin['description'])) {
+    $plugin['description'] = '';
+  }
+
+  if (!isset($plugin['icon'])) {
+    $plugin['icon'] = ctools_content_admin_icon($plugin);
+  }
+
   // Another ease of use check:
   if (!isset($plugin['content types'])) {
     // If a subtype plugin exists, try to use it. Otherwise assume single.
@@ -268,6 +276,10 @@ function ctools_content_render($type, $subtype, $conf, $keywords = array(), $arg
     }
 
     $content = $function($subtype, $conf, $args, $pane_context, $incoming_content);
+
+    if (empty($content)) {
+      return;
+    }
 
     // Set up some defaults and other massaging on the content before we hand
     // it back to the caller.
@@ -742,7 +754,7 @@ function ctools_content_select_context($plugin, $subtype, $conf, $contexts) {
   // than it's wrong.
   if (is_array($subtype_info['required context'])) {
     if (empty($conf['context']) || count($subtype_info['required context']) != count($conf['context'])) {
-      foreach($subtype_info['required context'] as $index => $required) {
+      foreach ($subtype_info['required context'] as $index => $required) {
         if (!isset($conf['context'][$index])) {
           $filtered = ctools_context_filter($contexts, $required);
           if ($filtered) {

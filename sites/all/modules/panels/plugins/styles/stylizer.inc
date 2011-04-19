@@ -1,5 +1,4 @@
 <?php
-// $Id: stylizer.inc,v 1.4 2010/10/26 22:36:00 merlinofchaos Exp $
 
 /**
  * @file
@@ -88,19 +87,30 @@ function panels_stylizer_get_substyles($plugin, $style_name) {
   return $styles;
 }
 
+/**
+ * Get style settings for a stylizer style.
+ *
+ * Because style settings can come from a couple of different places,
+ * depending on if it's a custom style in the panel or a custom style
+ * in the database, we have a tricky way of looking for this info.
+ */
 function _panels_stylizer_get_style($plugin, $style_settings) {
   if (!empty($plugin['style'])) {
     return $plugin['style']->settings;
   }
-  else if ($style_settings['style'] == '$') {
+
+  if (empty($style_settings)) {
+    return array();
+  }
+
+  if ($style_settings['style'] == '$') {
     return $style_settings['settings'];
   }
-  else {
-    ctools_include('export');
-    $style = ctools_export_crud_load('stylizer', $style_settings['style']);
-    if ($style) {
-      return $style->settings;
-    }
+
+  ctools_include('export');
+  $style = ctools_export_crud_load('stylizer', $style_settings['style']);
+  if ($style) {
+    return $style->settings;
   }
 }
 

@@ -523,6 +523,10 @@ function ctools_context_select($contexts, $required, $context) {
   if (is_array($required)) {
     $result = array();
     foreach ($required as $id => $r) {
+      if (empty($required[$id])) {
+        continue;
+      }
+
       if (($result[] = _ctools_context_select($contexts, $r, $context[$id])) === FALSE) {
         return FALSE;
       }
@@ -1104,7 +1108,7 @@ function ctools_context_match_required_contexts($required, $contexts) {
   }
 
   foreach ($required as $r) {
-    $context = drupal_clone(array_shift($contexts));
+    $context = clone(array_shift($contexts));
     $context->identifier = $r['identifier'];
     $context->page_title = isset($r['title']) ? $r['title'] : '';
     $context->keyword    = $r['keyword'];
@@ -1250,7 +1254,7 @@ function ctools_context_replace_placeholders($contexts, $arguments) {
  * Provide a form array for getting data to replace placeholder contexts
  * with real data.
  */
-function ctools_context_replace_form($form, $contexts) {
+function ctools_context_replace_form(&$form, $contexts) {
   foreach ($contexts as $cid => $context) {
     if (empty($context->empty)) {
       continue;

@@ -1,5 +1,4 @@
 <?php
-// $Id: display-layout.inc,v 1.7 2010/10/11 22:56:00 sdboyer Exp $
 
 /**
  * @file
