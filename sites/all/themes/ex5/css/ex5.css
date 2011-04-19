@@ -281,8 +281,8 @@ header.menu-bar #block-system-main-menu ul.menu li a.active{
 	margin: 0 auto;
 }	
 #main-content{
-	width: 630px;
-	margin: 0 20px;
+	width: 640px;
+	margin: 0 15px;
 	float: left;
 }
 #main-content h1#page-title{
@@ -290,7 +290,7 @@ header.menu-bar #block-system-main-menu ul.menu li a.active{
 	font-size: 21px;
 	font-weight: normal;
 	border-bottom: 1px solid #B3B3B3;
-	margin: 15px 0 3px 0;
+	margin: 15px 5px 3px 5px;
 }
 
 /* Updated date and user name under the title
@@ -307,7 +307,7 @@ ul.primary{
 	width: 350px;
 	float: right;
 	border: none;
-	margin: 0;
+	margin: 0 5px 0 0;
 	padding: 0;
 	text-align: right;
 	font-size: 12px;
@@ -390,7 +390,7 @@ ul.primary li a:hover{
 
 /* Right column accordion
 -----------------------------------------------------------------------------*/
-h3.ui-accordion-header{
+.ui-accordion  h3.ui-accordion-header{
 	background-image:url(../images/ex5-accordion-header.png);
 	background-repeat: repeat-x;
 	height: 24px;
@@ -479,14 +479,20 @@ article .field-name-field-image img{
 -----------------------------------------------------------------------------*/
 
 article > footer{
-	margin-bottom: 40px;
+	margin: 0 0 40px 5px;
+}
+article > div{
+	margin: 0 5px;
 }
 ul.action-links{
-	margin: 40px 0 15px 0;
+	margin: 40px 0 15px 5px;
 	list-style: none;
 }
 ul.action-links li{
 	list-style: none;
+}
+#forum{
+	margin: 0 5px;
 }
 
 
@@ -509,6 +515,174 @@ ul.action-links li{
 	text-shadow: 1px 1px 0 #fff;
 	text-transform: uppercase;
 	margin: 25px 0;
+}
+ul.links{
+	margin: 0;
+	padding: 0;
+}
+ul.links li{
+	padding: 0;
+	margin: 0 5px 0 0;
+	display: inline;
+}
+.node-forum > ul.links li a{
+	display: block;
+	margin-top: 30px;
+}
+article.comment{
+	margin-bottom: 30px;
+}
+.field-name-comment-body .field-items{
+	margin-bottom: 12px;
+}
+article .comment header{
+	margin: 0 0 4px;
+}
+article .comment header a{
+	font-size: 16px;
+}
+article .comment > footer{
+	color: #AAB8CB;
+	font-size: 11px;
+	margin-bottom: 18px;
+}
+
+/* Dashboard panels
+-----------------------------------------------------------------------------*/
+.panel-2col-stacked .panel-col-top #slogan{
+	width: 340px;
+	font-size: 11px;
+	color: #808080;
+	margin: -5px 0 0 5px;
+	float: left;
+}
+.panel-2col-stacked .panel-col-top ul.primary{
+	width: 220px;
+	padding: 0;
+	margin: -5px 5px 0 0;
+}
+.panel-2col-stacked .center-wrapper{
+	padding-top: 40px;
+}
+.panel-2col-stacked .center-wrapper .panel-col-last{
+	margin-left: 3px;
+	width: 311px;
+}
+.panel-2col-stacked .center-wrapper .panel-pane > h4{
+	height: 6px;
+	background-image:url(../images/ex5-2-column-header-bg.gif);
+	background-color:#FFF;
+}
+.panel-2col-stacked .center-wrapper .panel-pane > h5{
+	height: 6px;
+	background-image:url(../images/ex5-2-column-footer-bg.gif);
+	background-color:#FFF;
+}
+.panel-2col-stacked .center-wrapper .panel-pane{
+	width: 311px;
+}
+.panel-2col-stacked .center-wrapper .panel-pane{
+	background-image:url(../images/ex5-2-column-bg.gif);
+	background-repeat:repeat-y;
+}
+.panel-2col-stacked .center-wrapper .panel-pane .pane-title{
+	margin: 0 5px;
+	background-image:url(../images/ex5-accordion-header.png);
+	background-repeat:repeat-x;
+	border-bottom: 1px solid #B3B3B3;
+	border-left: 1px solid #B3B3B3;
+	border-right: 1px solid #B3B3B3;
+	color: #4F6786;
+    height: 21px;
+    padding-bottom: 0;
+    padding-left: 18px;
+    padding-right: 0;
+    padding-top: 8px;
+    text-shadow: 1px 1px 0 #FFFFFF;
+    text-transform: uppercase;
+	font-weight: normal;
+}
+
+.panel-2col-stacked .pane-content{
+	margin: 5px 25px;
+}
+.panel-2col-stacked .more-link{
+	margin: 10px 25px;
+	padding: 0 0 0 10px;
+	background-image:url(../images/ex5-bullet3.gif);
+	background-repeat:no-repeat;
+	background-position: 0 5px;
+	text-align: left;
+}
+.panel-2col-stacked .more-link a{
+	color: #4F6786;
+	font-size: 12px;
+	text-decoration: none;
+}
+
+
+.panel-2col-stacked .pane-content .views-row div{
+	display: inline;
+	font-size: 12px;
+}
+.panel-2col-stacked .pane-content .views-row{
+	margin: 10px 0;
+}
+.panel-2col-stacked .pane-content .views-row .views-field-title a{
+	color: #C1272D;
+	font-weight: bold;
+	text-decoration: none;
+}
+.panel-2col-stacked .pane-content .views-row .views-field-entity-id-1{
+	color: #666666;
+}
+.panel-2col-stacked .pane-content .views-row .views-field-changed,
+.panel-2col-stacked .pane-content .views-row .views-field-field-first-name, 
+.panel-2col-stacked .pane-content .views-row .views-field-field-last-name{
+	color: #6B82A5;
+}
+
+
+.panel-col-last .pane-content{
+	margin: 15px 0;
+}
+
+.panel-2col-stacked .panel-col-bottom .panel-pane{
+	background-image:url(../images/ex5-full-column-bg.gif);
+	background-repeat:repeat-y;
+	width: 640px;
+}
+.panel-2col-stacked .panel-col-bottom .panel-pane .pane-title{
+	margin: 0 5px;
+	background-image:url(../images/ex5-accordion-header.png);
+	background-repeat:repeat-x;
+	border-bottom: 1px solid #B3B3B3;
+	border-left: 1px solid #B3B3B3;
+	border-right: 1px solid #B3B3B3;
+	color: #4F6786;
+    height: 21px;
+    padding-bottom: 0;
+    padding-left: 18px;
+    padding-right: 0;
+    padding-top: 8px;
+    text-shadow: 1px 1px 0 #FFFFFF;
+    text-transform: uppercase;
+	font-weight: normal;
+}
+.panel-col-bottom h4{
+	height: 6px;
+	background-image:url(../images/ex5-full-column-header-bg.gif);
+	background-color:#FFF;
+}
+.panel-col-bottom h5{
+	height: 6px;
+	background-image:url(../images/ex5-full-column-footer-bg.gif);
+	background-color:#FFF;
+}
+
+
+.contextual-links-wrapper{
+	display: none;
 }
 
 

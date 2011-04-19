@@ -14,11 +14,10 @@
 
   <?php if ($picture || $submitted): ?>
     <footer>
-      <?php print $picture; ?>
       <?php
         print t('Submitted by !username on !datetime', array(
-          '!username' => $author,
-          '!datetime' => '<time pubdate="pubdate">' . $created . '</time>',
+          '!username' => $formatted_user,
+          '!datetime' => '<time pubdate="pubdate"  datetime="' . $datetime . '">' . $created . '</time>',
           )
         );
       ?>

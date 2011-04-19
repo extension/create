@@ -1,8 +1,10 @@
 <?php
 
+// Add javascript needed for the right column accordion
 drupal_add_library('system', 'ui.accordion');
 drupal_add_js('jQuery(document).ready(function(){jQuery(".region-sidebar-second").accordion({ autoHeight: false});});', 'inline');
 
+//Reverse order of the links in the breadcrumb and change the bullet between them
 function ex5_breadcrumb($variables){
 	$breadcrumb = $variables['breadcrumb'];
 
@@ -17,7 +19,34 @@ function ex5_breadcrumb($variables){
   	}
 }
 
+//Adding some variables for the comment template
+function ex5_preprocess_comment(&$variables) {
+	$user_id = $variables['elements']['#comment']->uid;
+	$user_fields = user_load($user_id);
+	$variables['firstname'] = (
+								isset($user_fields->field_first_name['und']['0']['value'])
+								?		
+									$user_fields->field_first_name['und']['0']['value']
+								:
+									'');
+	$variables['lastname'] = (isset($user_fields->field_last_name['und']['0']['value'])?$user_fields->field_last_name['und']['0']['value']:'');
+	if($variables['firstname'] == ''){
+		$variables['formatted_user'] = l($user_fields->name, 'user/'.$user_fields->uid);
+	}else{
+		$variables['formatted_user'] = l($variables['firstname'].' '.$variables['lastname'], 'user/'.$user_fields->uid);
+	}
+  	$variables['updated_formatted_date'] = date("F j, Y", $variables['revision_timestamp']);
+	$variables['updated'] = 'Last updated: '.$variables['updated_formatted_date'].' by '.$variables['formatted_user'];
+	
+	
+	$date = DateTime::createFromFormat('D, m/d/Y - H:i', $variables['created']);
+	
+	
+	$variables['datetime'] = format_date($date->getTimestamp(), 'custom', 'c');
+}
 
+
+// Providing variables for displaying modified time of the last revision and the full name of the author
 function ex5_preprocess_node(&$variables) {
 	//
 	
@@ -54,10 +83,10 @@ function ex5_preprocess_node(&$variables) {
 	
 }
 
+// The only reason this to be used is to provide "last" class to the last member of this menu
 function ex5_menu_local_tasks(&$variables) {
   $output = '';
 	$variables['primary'][count($variables['primary'])-1]['#link']['localized_options']['attributes']['class'][] = 'last';
-	//dprint_r($variables);
   if (!empty($variables['primary'])) {
     $variables['primary']['#prefix'] = '<h2 class="element-invisible">' . t('Primary tabs') . '</h2>';
     $variables['primary']['#prefix'] .= '<ul class="tabs primary">';
@@ -74,12 +103,34 @@ function ex5_menu_local_tasks(&$variables) {
   return $output;
 }
 
-
+// make the markup of the tree simple
 function ex5_menu_tree($variables){
 	return '<ul class="menu">' . $variables['tree'] . '</ul>';
 }
 
+//Remove local actions from some pages
+function ex5_menu_local_action($variables) {
+  $link = $variables['element']['#link'];
+  if($link['title']=='Edit Panel'){
+	  $output = '';
+  }else{	
+	  $output = '<li>';
+	  if (isset($link['href'])) {
+		$output .= l($link['title'], $link['href'], isset($link['localized_options']) ? $link['localized_options'] : array());
+	  }
+	  elseif (!empty($link['localized_options']['html'])) {
+		$output .= $link['title'];
+	  }
+	  else {
+		$output .= check_plain($link['title']);
+	  }
+	  $output .= "</li>\n";
+  }
+  return $output;
+}
 
+
+// Addng Global meta tags for implementing the html5 boilerplate template
 function ex5_preprocess_html(&$vars) {
     // Create our meta variable for additional meta tags in the header
     $vars['meta'] = '';

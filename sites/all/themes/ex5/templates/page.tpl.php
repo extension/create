@@ -25,7 +25,11 @@
 		<?php print $breadcrumb; ?>
 		</div>
   </header>
-  <?php print $messages; ?>
+  <?php if ($messages): ?>
+    <div id="messages"><div class="section clearfix">
+      <?php print $messages; ?>
+    </div></div> <!-- /.section, /#messages -->
+  <?php endif; ?>
   <?php print render($page['help']); ?>
   <?php if ($highlighted = render($page['highlighted'])): print $highlighted; endif; ?>
   <div id="main-wrapper" class="clearfix">
