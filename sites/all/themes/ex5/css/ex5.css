@@ -265,7 +265,7 @@ header.menu-bar #block-system-main-menu ul.menu li a.active{
 .breadcrumb{
 	float:left;
 	text-align: right;
-	width: 713px;
+	width: 743px;
 	margin-top: 13px;
 	font-size: 11px;
 	color: #808080;
@@ -424,7 +424,24 @@ ul.primary li a:hover{
 	background-position: 0 0;
 	top: 37px;
 }
-
+.ui-accordion .ui-accordion-content {
+	margin-bottom: 0;
+}
+.view-og-user-groups .views-row{
+	margin: 0;
+}
+.view-og-user-groups .view-footer{
+	margin: 5px 10px;
+	padding: 0 0 0 10px;
+	background-image:url(../images/ex5-bullet3.gif);
+	background-repeat:no-repeat;
+	background-position: 0 7px;
+}
+.view-og-user-groups .view-footer a{
+	font-size: 12px;
+	text-decoration:none;
+	color: #4F6786;
+}
 .region-sidebar-second .block{
 	padding: 0;
 }
@@ -700,6 +717,16 @@ article .comment > footer{
 	display: none;
 }
 
+/* Display of the taxonomy terms
+-----------------------------------------------------------------------------*/
+
+.view-taxonomy-term{
+	margin: 40px 5px 20px 5px;
+}
+
+.views-row{
+	margin: 15px 0;
+}
 
 
 /* Footers
