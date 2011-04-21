@@ -1,35 +1,14 @@
 <?php
-// $Id$
+
 /**
  * @file
  * Token module integration.
  */
 
 /**
- * Implements hook_tokens_info().
+ * Implements hook_token_info().
  */
 function date_token_info() {
-  // Date module provides three different date field types.
-  $info['types']['date-field'] = array(
-    'name' => t('Date fields'),
-    'description' => t('Tokens related to date field instances.'),
-    'needs-data' => 'date-field',
-    'field' => TRUE,
-  );
-  $info['types']['datestamp-field'] = array(
-    'name' => t('Datestamp fields'),
-    'description' => t('Tokens related to datestamp field instances.'),
-    'needs-data' => 'datestamp-field',
-    'field-value-type' => 'date-field-value',
-    'field' => TRUE,
-  );
-  $info['types']['datetime-field'] = array(
-    'name' => t('Datetime fields'),
-    'description' => t('Tokens related to datetime field instances.'),
-    'needs-data' => 'datetime-field',
-    'field-value-type' => 'date-field-value',
-    'field' => TRUE,
-  );
   // All date types can share the same date value type.
   $info['types']['date-field-value'] = array(
     'name' => t('Date field values'),

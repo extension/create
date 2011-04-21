@@ -23,6 +23,7 @@ class views_handler_field_comment_link_edit extends views_handler_field_comment_
       '#title' => t('Use destination'),
       '#description' => t('Add destination to the link'),
       '#default_value' => $this->options['destination'],
+      '#fieldset' => 'more',
     );
   }
 
@@ -42,6 +43,8 @@ class views_handler_field_comment_link_edit extends views_handler_field_comment_
     if (!empty($this->options['destination'])) {
       $this->options['alter']['query'] = drupal_get_destination();
     }
+
+    $this->options['alter']['path'] = "comment/edit/" . $comment->cid;
 
     return $text;
   }

@@ -24,18 +24,17 @@ class views_handler_field_user extends views_handler_field {
    * Provide link to node option
    */
   function options_form(&$form, &$form_state) {
-    parent::options_form($form, $form_state);
     $form['link_to_user'] = array(
       '#title' => t('Link this field to its user'),
-      '#description' => t('This will override any other link you have set.'),
+      '#description' => t("Enable to override this field's links."),
       '#type' => 'checkbox',
       '#default_value' => $this->options['link_to_user'],
     );
+    parent::options_form($form, $form_state);
   }
 
   function render_link($data, $values) {
-    $uid = $this->get_value($values, 'uid');
-    if (!empty($this->options['link_to_user']) && user_access('access user profiles') && $uid && $data !== NULL && $data !== '') {
+    if (!empty($this->options['link_to_user']) && user_access('access user profiles') && ($uid = $this->get_value($values, 'uid')) && $data !== NULL && $data !== '') {
       $this->options['alter']['make_link'] = TRUE;
       $this->options['alter']['path'] = "user/" . $uid;
     }

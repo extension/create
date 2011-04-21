@@ -4,7 +4,7 @@
  * Filter handler for usernames
  */
 class views_handler_filter_user_name extends views_handler_filter_in_operator {
-  var $no_single = TRUE;
+  var $always_multiple = TRUE;
 
   function value_form(&$form, &$form_state) {
     $values = array();
@@ -114,7 +114,7 @@ class views_handler_filter_user_name extends views_handler_filter_in_operator {
     return $uids;
   }
 
-  function value_submit() {
+  function value_submit($form, &$form_state) {
     // prevent array filter from removing our anonymous user.
   }
 

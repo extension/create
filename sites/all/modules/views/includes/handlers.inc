@@ -99,6 +99,7 @@ function views_get_table_join($table, $base_table) {
 
     return $handler;
   }
+
   // DEBUG -- identify missing handlers
   vpr("Missing join: $table $base_table");
 }
@@ -132,7 +133,7 @@ function views_get_table_join($table, $base_table) {
 class views_handler extends views_object {
   /**
    * The top object of a view.
-   * 
+   *
    * @var view
    */
   var $view = NULL;
@@ -158,6 +159,16 @@ class views_handler extends views_object {
     // Check to see if this handler type is defaulted. Note that
     // we have to do a lookup because the type is singular but the
     // option is stored as the plural.
+
+    // If the 'moved to' keyword moved our handler, let's fix that now.
+    if (isset($this->actual_table)) {
+      $options['table'] = $this->actual_table;
+    }
+
+    if (isset($this->actual_field)) {
+      $options['field'] = $this->actual_field;
+    }
+
     $types = views_object_types();
     $plural = $this->handler_type;
     if (isset($types[$this->handler_type]['plural'])) {
@@ -253,16 +264,59 @@ class views_handler extends views_object {
   }
 
   /**
+   * Sanitize the value for output.
+   *
+   * @param $value
+   *   The value being rendered.
+   * @param $type
+   *   The type of sanitization needed. If not provided, check_plain() is used.
+   */
+  function sanitize_value($value, $type = NULL) {
+    switch ($type) {
+      case 'xss':
+        $value = filter_xss($value);
+        break;
+      case 'url':
+        $value = check_url($value);
+        break;
+      default:
+        $value = check_plain($value);
+        break;
+    }
+    return $value;
+  }
+
+  /**
    * Validate the options form.
    */
   function options_validate(&$form, &$form_state) { }
 
+  /**
+   * Build the options form.
+   */
   function options_form(&$form, &$form_state) {
+    // Some form elements belong in a fieldset for presentation, but can't
+    // be moved into one because of the form_state['values'] hierarchy. Those
+    // elements can add a #fieldset => 'fieldset_name' property, and they'll
+    // be moved to their fieldset during pre_render.
+    $form['#pre_render'][] = 'views_ui_pre_render_add_fieldset_markup';
+
     $form['ui_name'] = array(
       '#type' => 'textfield',
-      '#title' => t('Administrative Title'),
+      '#title' => t('Administrative title'),
       '#description' => t('This title will be displayed on the views edit page instead of the default one. This might be useful if you have the same item twice.'),
       '#default_value' => $this->options['ui_name'],
+      '#fieldset' => 'more',
+    );
+
+    // This form is long and messy enough that the "Administrative title" option
+    // belongs in a "more options" fieldset at the bottom of the form.
+    $form['more'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('More'),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+      '#weight' => 150,
     );
   }
 
@@ -308,7 +362,7 @@ class views_handler extends views_object {
   function groupby_form_submit(&$form, &$form_state) {
     $item =& $form_state['handler']->options;
 
-    $item['group_type'] = $form_state['values']['group_type'];
+    $item['group_type'] = $form_state['values']['options']['group_type'];
   }
 
   /**
@@ -370,39 +424,9 @@ class views_handler extends views_object {
   function exposed_submit(&$form, &$form_state) { }
 
   /**
-   * Overridable form for exposed handler options.
-   *
-   * If overridden, it is best to call the parent or re-implement
-   * the stuff here.
-   *
-   * Many handlers will need to override this in order to provide options
-   * that are nicely tailored to the given filter.
+   * Form for exposed handler options.
    */
-  function expose_form(&$form, &$form_state) {
-    $form['expose']['start_left'] = array(
-      '#markup' => '<div class="views-left-50">',
-    );
-
-    $this->expose_form_left($form, $form_state);
-
-    $form['expose']['end_left'] = array(
-      '#markup' => '</div>',
-    );
-
-    $form['expose']['start_checkboxes'] = array(
-      '#markup' => '<div class="form-checkboxes views-left-40 clearfix">',
-    );
-
-    $this->expose_form_right($form, $form_state);
-
-    $form['expose']['end_checkboxes'] = array(
-      '#markup' => '</div>',
-    );
-  }
-
-  function expose_form_left(&$form, &$form_state) { }
-
-  function expose_form_right(&$form, &$form_state){ }
+  function expose_form(&$form, &$form_state) { }
 
   /**
    * Validate the options form.
@@ -415,34 +439,10 @@ class views_handler extends views_object {
    */
   function expose_submit($form, &$form_state) { }
 
-    /**
+  /**
    * Shortcut to display the expose/hide button.
    */
-  function show_expose_button(&$form, &$form_state) {
-    $form['expose_button'] = array(
-      '#prefix' => '<div class="views-expose clearfix">',
-      '#suffix' => '</div>',
-    );
-    if (empty($this->options['exposed'])) {
-      $form['expose_button']['button'] = array(
-        '#type' => 'submit',
-        '#value' => t('Expose'),
-        '#submit' => array('views_ui_config_item_form_expose'),
-      );
-      $form['expose_button']['markup'] = array(
-        '#markup' => '<div class="description">' . t('This item is currently not exposed. If you <strong>expose</strong> it, users will be able to change the filter as they view it.') . '</div>',
-      );
-    }
-    else {
-      $form['expose_button']['button'] = array(
-        '#type' => 'submit',
-        '#value' => t('Hide'),
-        '#submit' => array('views_ui_config_item_form_expose'),
-      );
-      $form['expose_button']['markup'] = array(
-        '#markup' => '<div class="description">' . t('This item is currently exposed. If you <strong>hide</strong> it, users will not be able to change the filter as they view it.') . '</div>',      );
-    }
-  }
+  function show_expose_button(&$form, &$form_state) { }
 
   /**
    * Shortcut to display the exposed options form.
@@ -452,10 +452,6 @@ class views_handler extends views_object {
       return;
     }
 
-    $form['expose'] = array(
-      '#prefix' => '<div class="views-expose-options clearfix">',
-      '#suffix' => '</div>',
-    );
     $this->expose_form($form, $form_state);
 
     // When we click the expose button, we add new gadgets to the form but they
@@ -494,6 +490,15 @@ class views_handler extends views_object {
    * been fully run.
    */
   function pre_query() { }
+
+  /**
+   * Run after the view is executed, before the result is cached.
+   *
+   * This gives all the handlers some time to modify values. This is primarily
+   * used so that handlers that pull up secondary data can put it in the
+   * $values so that the raw data can be utilized externally.
+   */
+  function post_execute(&$values) { }
 
   /**
    * Provides a unique placeholders for handlers.
@@ -538,7 +543,10 @@ class views_handler extends views_object {
    */
   function ensure_my_table() {
     if (!isset($this->table_alias)) {
-      if (!method_exists($this->query, 'ensure_table')) { vpr_trace(); exit; }
+      if (!method_exists($this->query, 'ensure_table')) {
+        vpr(t('Ensure my table called but query has no ensure_table method.'));
+        return;
+      }
       $this->table_alias = $this->query->ensure_table($this->table, $this->relationship);
     }
     return $this->table_alias;
@@ -638,7 +646,7 @@ class views_many_to_one_helper {
     $this->handler = &$handler;
   }
 
-  function option_definition(&$options) {
+  static function option_definition(&$options) {
     $options['reduce_duplicates'] = array('default' => FALSE);
   }
 
@@ -648,6 +656,7 @@ class views_many_to_one_helper {
       '#title' => t('Reduce duplicates'),
       '#description' => t('This filter can cause items that have more than one of the selected options to appear as duplicate results. If this filter causes duplicate results to occur, this checkbox can reduce those duplicates; however, the more terms it has to search for, the less performant the query will be, so use this with caution. Shouldn\'t be set on single-value fields, as it may cause values to disappear from display, if used on an incompatible field.'),
       '#default_value' => !empty($this->handler->options['reduce_duplicates']),
+      '#weight' => 4,
     );
   }
 
@@ -875,11 +884,9 @@ class views_many_to_one_helper {
     if (empty($options['group'])) {
       $options['group'] = 0;
     }
-    else {
-      $value = $this->handler->value;
-      $operator = 'IN';
-    }
 
+    // add_condition determines whether a single expression is enough(FALSE) or the
+    // conditions should be added via an db_or()/db_and() (TRUE).
     $add_condition = TRUE;
     if ($operator == 'not') {
       $value = NULL;
@@ -887,12 +894,11 @@ class views_many_to_one_helper {
       $add_condition = FALSE;
     }
     elseif ($operator == 'or' && empty($options['reduce_duplicates'])) {
-      if (count($this->handler->value) > 1) {
-        $value = $this->handler->value;
+      if (count($value) > 1) {
         $operator = 'IN';
       }
       else {
-        $value = is_array($this->handler->value) ? array_pop($this->handler->value) : $this->handler->value;
+        $value = is_array($value) ? array_pop($value) : $value;
         $operator = '=';
       }
       $add_condition = FALSE;
@@ -921,7 +927,7 @@ class views_many_to_one_helper {
       $field = $this->handler->real_field;
       $clause = $operator == 'or' ? db_or() : db_and();
       foreach ($this->handler->table_aliases as $value => $alias) {
-        $clause->condition("$alias.$field", $this->handler->value);
+        $clause->condition("$alias.$field", $value);
       }
 
       // implode on either AND or OR.
@@ -1089,11 +1095,9 @@ function views_date_sql_field($field, $field_type = 'int', $set_offset = NULL) {
   $db_type = db_driver();
   $offset = $set_offset !== NULL ? $set_offset : views_get_timezone();
   if (isset($offset) && !is_numeric($offset)) {
-    $tz = date_default_timezone_get();
-    $current = time('Z');
-    date_default_timezone_set($offset);
-    $offset_seconds = $current - time('Z');
-    date_default_timezone_set($tz);
+    $dtz = new DateTimeZone($offset);
+    $dt = new DateTime("now", $dtz);
+    $offset_seconds = $dtz->getOffset($dt);
   }
 
   switch ($db_type) {
@@ -1430,52 +1434,3 @@ class views_join {
 /**
  * @}
  */
-
-// Declare API compatibility on behalf of core modules:
-
-/**
- * Implements hook_views_api().
- *
- * This one is used as the base to reduce errors when updating.
- */
-function views_views_api() {
-  return array(
-    // in your modules do *not* use views_api_version()!!!
-    'api' => views_api_version(),
-    'path' => drupal_get_path('module', 'views') . '/modules',
-  );
-}
-
-function aggregator_views_api() { return views_views_api(); }
-
-function book_views_api() { return views_views_api(); }
-
-function comment_views_api() { return views_views_api(); }
-
-function locale_views_api() { return views_views_api(); }
-
-function field_views_api() { return views_views_api(); }
-
-function filter_views_api() { return views_views_api(); }
-
-function node_views_api() { return views_views_api(); }
-
-function poll_views_api() { return views_views_api(); }
-
-function profile_views_api() { return views_views_api(); }
-
-function search_views_api() { return views_views_api(); }
-
-function statistics_views_api() { return views_views_api(); }
-
-function system_views_api() { return views_views_api(); }
-
-function taxonomy_views_api() { return views_views_api(); }
-
-function translation_views_api() { return views_views_api(); }
-
-function upload_views_api() { return views_views_api(); }
-
-function user_views_api() { return views_views_api(); }
-
-function contact_views_api() { return views_views_api(); }

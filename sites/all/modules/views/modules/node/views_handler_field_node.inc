@@ -6,6 +6,8 @@
 
 /**
  * Field handler to provide simple renderer that allows linking to a node.
+ * Definition terms:
+ * - link_to_node default: Should this field have the checkbox "link to node" enabled by default.
  */
 class views_handler_field_node extends views_handler_field {
 
@@ -21,7 +23,7 @@ class views_handler_field_node extends views_handler_field {
 
   function option_definition() {
     $options = parent::option_definition();
-    $options['link_to_node'] = array('default' => TRUE);
+    $options['link_to_node'] = array('default' => isset($this->definition['link_to_node default']) ? $this->definition['link_to_node default'] : FALSE);
     return $options;
   }
 
@@ -29,13 +31,14 @@ class views_handler_field_node extends views_handler_field {
    * Provide link to node option
    */
   function options_form(&$form, &$form_state) {
-    parent::options_form($form, $form_state);
     $form['link_to_node'] = array(
-      '#title' => t('Link this field to its node'),
-      '#description' => t('This will override any other link you have set.'),
+      '#title' => t('Link this field to the original piece of content'),
+      '#description' => t("Enable to override this field's links."),
       '#type' => 'checkbox',
       '#default_value' => !empty($this->options['link_to_node']),
     );
+
+    parent::options_form($form, $form_state);
   }
 
   /**

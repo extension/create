@@ -42,6 +42,29 @@ class views_plugin_row_node_view extends views_plugin_row {
   function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
 
+    $options = $this->options_form_summary_options();
+    $form['view_mode'] = array(
+      '#type' => 'select',
+      '#options' => $options,
+      '#title' => t('View mode'),
+      '#default_value' => $this->options['view_mode'],
+     );
+    $form['links'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Display links'),
+      '#default_value' => $this->options['links'],
+    );
+    $form['comments'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Display comments'),
+      '#default_value' => $this->options['comments'],
+    );
+  }
+
+  /**
+   * Return the main options, which are shown in the summary title.
+   */
+  function options_form_summary_options() {
     $entity_info = entity_get_info('node');
     $options = array();
     if (!empty($entity_info['view modes'])) {
@@ -52,26 +75,16 @@ class views_plugin_row_node_view extends views_plugin_row {
     if (empty($options)) {
       $options = array(
         'teaser' => t('Teaser'),
-        'full' => t('Full node')
+        'full' => t('Full content')
       );
     }
 
-    $form['view_mode'] = array(
-      '#type' => 'select',
-      '#options' => $options,
-      '#title' => t('View mode'),
-      '#default_value' => $this->options['build_mode'],
-     );
-    $form['links'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Display links'),
-      '#default_value' => $this->options['links'],
-    );
-    $form['comments'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Display node comments'),
-      '#default_value' => $this->options['comments'],
-    );
+    return $options;
+  }
+
+  function summary_title() {
+    $options = $this->options_form_summary_options();
+    return check_plain($options[$this->options['view_mode']]);
   }
 
   function pre_render($values) {

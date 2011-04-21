@@ -6,13 +6,13 @@
  */
 class views_handler_filter_string extends views_handler_filter {
   // exposed filter options
-  var $no_single = TRUE;
-  var $no_optional = TRUE;
+  var $always_multiple = TRUE;
+  var $always_required = TRUE;
 
   function option_defintion() {
     $options = parent::option_defintion();
 
-    $options['expose']['contains']['optional'] = array('default' => FALSE);
+    $options['expose']['contains']['required'] = array('default' => TRUE);
 
     return $options;
   }
@@ -136,7 +136,10 @@ class views_handler_filter_string extends views_handler_filter {
     }
 
     $options = $this->operator_options('short');
-    $output = check_plain($options[$this->operator]);
+    $output = '';
+    if(!empty($options[$this->operator])) {
+      $output = check_plain($options[$this->operator]);
+    }
     if (in_array($this->operator, $this->operator_values(1))) {
       $output .= ' ' . check_plain($this->value);
     }
@@ -169,12 +172,12 @@ class views_handler_filter_string extends views_handler_filter {
     if (!empty($form_state['exposed'])) {
       $identifier = $this->options['expose']['identifier'];
 
-      if (empty($this->options['expose']['use_operator']) || empty($this->options['expose']['operator'])) {
+      if (empty($this->options['expose']['use_operator']) || empty($this->options['expose']['operator_id'])) {
         // exposed and locked.
         $which = in_array($this->operator, $this->operator_values(1)) ? 'value' : 'none';
       }
       else {
-        $source = 'edit-' . drupal_html_id($this->options['expose']['operator']);
+        $source = 'edit-' . drupal_html_id($this->options['expose']['operator_id']);
       }
     }
 
@@ -191,7 +194,6 @@ class views_handler_filter_string extends views_handler_filter {
 
       if ($which == 'all') {
         $form['value'] += array(
-          '#process' => array('ctools_dependent_process'),
           '#dependency' => array($source => $this->operator_values(1)),
         );
       }

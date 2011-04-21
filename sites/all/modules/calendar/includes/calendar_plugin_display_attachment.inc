@@ -1,5 +1,4 @@
 <?php
-// $Id: calendar_plugin_display_attachment.inc,v 1.17 2011/01/03 02:39:45 karens Exp $
 
 /**
  * @file
@@ -32,7 +31,7 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
     }
     return $this->view->style_plugin->render($this->view->result);
   }
-  
+
   /**
    * Create an array of possible display periods.
    */
@@ -50,7 +49,6 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
     if (!array_key_exists($default, $types)) $default = 'month';
     return $default;    
   }
-  
 
   /**
    * Inspect argument and view information to see which calendar
@@ -59,7 +57,7 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
    * if there are values.
    */
   function display_granularity($display_id) {
-    
+
     $arguments = $this->view->get_items('argument', $display_id);
     $wildcard = '';
     $argument = '';
@@ -81,7 +79,7 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
     }
     elseif (!empty($argument)) {
       module_load_include('inc', 'date_api', 'date_api_sql');
-      
+
       $date_handler = new date_sql_handler();
       $view_granularity = $date_handler->arg_granularity($argument);
     }
@@ -90,13 +88,13 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
     }
     return $view_granularity;
   }
-  
+
   /**
    * Display validation.
    */
   function validate() {
     $errors = parent::validate();  
-    
+
     $arguments = $this->display->handler->get_option('arguments');
     if (!in_array('date_argument', array_keys($arguments))) {
       if (empty($this->view->date_info->arg_missing)) {
@@ -113,15 +111,15 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
 
     return $errors;
   }
-  
+
   /**
    * Attach only the appropriate displays for the current argument.
    */
   function attach_to($display_id) {
-    
+
     $display_granularity = $this->calendar_type();
     $view_granularity = $this->display_granularity($display_id);
-    
+
     // If this is not the right display to show, 
     // don't attach it, just exit.
     if ($view_granularity != $display_granularity) {
@@ -147,7 +145,7 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
       $this->view->date_info->calendar_popup = $this->view->display[$display_id]->handler->options['calendar_popup'];
       $this->view->date_info->calendar_date_link = $this->view->display[$display_id]->handler->options['calendar_date_link'];
     }  
-    
+
     parent::attach_to($display_id);
   }
 
@@ -157,7 +155,7 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
     $this->view->date_info->display_granularity = $this->calendar_type();
     $this->view->date_info->calendar_type = $this->calendar_type();
   }
-  
+
   function query() {
     // If we are using legend colors based on taxonomy, make sure the 
     // node vid field is added to the query so the theme can use it.
@@ -167,7 +165,7 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
     }
     parent::query();    
   }
-  
+
   /**
    * Override some of the parent options.
    */
@@ -186,11 +184,11 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
     $options['calendar_type'] = array('default' => $this->calendar_type());
     return $options;
   }
-  
+
  function options_form(&$form, &$form_state) {
     // It is very important to call the parent function here:
     parent::options_form($form, $form_state);
-       
+
     switch ($form_state['section']) {
       case 'calendar_type':
         $form['#title'] .= t('Calendar period');
@@ -217,7 +215,7 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
         break;
     }
   }
-    
+
   /**
    * Provide the summary for attachment options in the views UI.
    *
@@ -229,7 +227,7 @@ class calendar_plugin_display_attachment extends views_plugin_display_attachment
     $categories['calendar_settings'] = array(
       'title' => t('Calendar settings'),
     );
-    
+
     $options['calendar_type'] = array(
       'category' => 'calendar_settings',
       'title' => t('Calendar period'),

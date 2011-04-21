@@ -292,6 +292,9 @@ header.menu-bar #block-system-main-menu ul.menu li a.active{
 	border-bottom: 1px solid #B3B3B3;
 	margin: 15px 5px 3px 5px;
 }
+#main-wrapper .panel-2col-stacked{
+	width: 640px;
+}
 
 /* Updated date and user name under the title
 -----------------------------------------------------------------------------*/

@@ -55,10 +55,13 @@ function _date_views_fields($base = 'node') {
     }
     $handler = views_get_handler($table_name, $field_name, 'filter');
     $handler_name = $handler->definition['handler'];
+    if ($handler_name == 'views_handler_filter_broken') {
+      continue;
+    }
 
     // For Field module fields, get the date type.
     $custom = array();
-    if ($handler->definition['group'] == t('Fields')) {
+    if ($handler->definition['group'] == t('Content') && isset($handler->definition['field_name'])) {
       $field = field_info_field($handler->definition['field_name']);
       switch ($field['type']) {
        case 'date':
@@ -79,7 +82,7 @@ function _date_views_fields($base = 'node') {
       }
       
       $db_info = date_api_database_info($field);      
-      $name = $table_name . "." . $field_name . "_value";
+      $name = $table_name . "." . $field_name;
       $granularity = !empty($field['granularity']) ? $field['granularity'] : array('year', 'month', 'day', 'hour', 'minute');
 
       $fromto = array(

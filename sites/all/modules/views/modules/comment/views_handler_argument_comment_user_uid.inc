@@ -33,14 +33,27 @@ class views_handler_argument_comment_user_uid extends views_handler_argument {
     }
   }
 
-  function query() {
+  function query($group_by = FALSE) {
     $this->ensure_my_table();
-    $subselect = 'SELECT COUNT(*) FROM comment c WHERE c.uid = '.$this->argument.' AND c.nid = node.nid'; //NOT STANDARD CODE
+
+    $nid_alias = $this->query->add_field('node', 'nid');
+
+    $subselect = db_select('comment', 'c');
+    $subselect->addField('c', 'cid');
+    // @TODO: Figure out why condition/placeholders doesn't work here.
+    $subselect->where("c.uid =  $this->argument");
+    $subselect->where("c.nid = $nid_alias");
+    $subselect = $subselect->countQuery();
+    $subselect->preExecute();
 
     $condition = db_or()
       ->condition("$this->table_alias.uid", $this->argument, '=')
-      ->where("0 < (" . (string) $subselect . ")"); 
+      ->where("0 < (" . (string) $subselect . ")");
 
     $this->query->add_where(0, $condition);
+  }
+
+  function get_sort_name() {
+    return t('Numerical', array(), array('context' => 'Sort order'));
   }
 }

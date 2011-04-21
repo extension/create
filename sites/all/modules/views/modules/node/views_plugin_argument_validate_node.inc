@@ -26,15 +26,15 @@ class views_plugin_argument_validate_node extends views_plugin_argument_validate
 
     $form['types'] = array(
       '#type' => 'checkboxes',
-      '#title' => t('Types'),
+      '#title' => t('Content types'),
       '#options' => $options,
       '#default_value' => $this->options['types'],
-      '#description' => t('If you wish to validate for specific node types, check them; if none are checked, all nodes will pass.'),
+      '#description' => t('Choose one or more content types to validate with.'),
     );
 
     $form['access'] = array(
       '#type' => 'checkbox',
-      '#title' => t('Validate user has access to the node'),
+      '#title' => t('Validate user has access to the content'),
       '#default_value' => $this->options['access'],
     );
     $form['access_op'] = array(
@@ -46,7 +46,7 @@ class views_plugin_argument_validate_node extends views_plugin_argument_validate
 
     $form['nid_type'] = array(
       '#type' => 'select',
-      '#title' => t('Argument type'),
+      '#title' => t('Filter value format'),
       '#options' => array(
         'nid' => t('Node ID'),
         'nids' => t('Node IDs separated by , or +'),
@@ -62,9 +62,9 @@ class views_plugin_argument_validate_node extends views_plugin_argument_validate
 
   function convert_options(&$options) {
     if (!isset($options['types']) && !empty($this->argument->options['validate_argument_node_type'])) {
-      $options['types'] = $this->argument->options['validate_argument_node_type'];
+      $options['types'] = isset($this->argument->options['validate_argument_node_type']) ? $this->argument->options['validate_argument_node_type'] : array();
       $options['access'] = !empty($this->argument->options['validate_argument_node_access']);
-      $options['access_op'] = $this->argument->options['validate_argument_node_access_op'];
+      $options['access_op'] = isset($this->argument->options['validate_argument_node_access_op']) ? $this->argument->options['validate_argument_node_access_op'] : 'view';
       $options['nid_type'] = isset($this->argument->options['validate_argument_nid_type']) ? $this->argument->options['validate_argument_nid_type'] : array();
     }
   }
@@ -130,4 +130,3 @@ class views_plugin_argument_validate_node extends views_plugin_argument_validate
     }
   }
 }
-

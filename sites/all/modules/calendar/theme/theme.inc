@@ -1,5 +1,4 @@
 <?php
-// $Id: theme.inc,v 1.44 2011/01/03 12:28:28 karens Exp $
 
 /**
  * @file
@@ -10,49 +9,17 @@
  * Display a calendar navigation and links
  */
 function template_preprocess_calendar_main(&$vars) {
-  module_load_include('inc', 'calendar', 'includes/calendar');
-    
-  $view     = $vars['view'];
-    
-  $result   = (array) $view->result;
-  $options  = $view->style_plugin->options;
-  $handler  = $view->style_plugin;
-
-  $vars['display_type'] = $view->date_info->granularity;
-  $vars['min_date_formatted'] = !empty($view->date_info->min_date) ? date_format($view->date_info->min_date, DATE_FORMAT_DATETIME) : '';
-  $vars['max_date_formatted'] = !empty($view->date_info->end_date) ? date_format($view->date_info->max_date, DATE_FORMAT_DATETIME) : '';
-  $view->date_info->mini = isset($view->date_info->mini) ? $view->date_info->mini : $view->date_info->granularity == 'year';
+  if (module_exists('calendar_multiday')) {
+    return;
+  }
   
-  // Create the links to other displays.
-  $url = $view->get_url();
-  $view->date_info->url = $url;
-  $arg = $view->date_info->date_arg;
+  module_load_include('inc', 'calendar', 'includes/calendar');
+
+  // Add some basic values to the view.
+  calendar_basics($vars);
+
+  $view     = $vars['view'];
   $displays = $view->date_info->display_types;
-    
-  // Set up the links to other calendar views.
-  $current_date = $view->date_info->min_date;
-  if (!empty($date->info->day)) {
-    $current_date = new DateObject($date_info->date_arg .' 00:00:00');
-  }
-  elseif (!empty($view->date_info->week)) {
-    $week = date_week_range($view->date_info->week, $view->date_info->year);
-    $current_date = $week[0]; 
-  }
-  elseif (!empty($view->date_info->month)) {
-    $current_date = new DateObject($view->date_info->year .'-'. date_pad($view->date_info->month) .'-01 00:00:00');
-  }
-  else {
-    $current_date = new DateObject($view->date_info->year .'-01-01 00:00:00');
-  }
-  if (empty($view->date_info->month) || $view->date_info->month == $view->argument['date_argument']->options['wildcard']) {
-    $view->date_info->month = date_format($current_date, 'm');
-  }
-  if (empty($view->date_info->day) || $view->date_info->day == $view->argument['date_argument']->options['wildcard']) {
-    $view->date_info->day = date_format($current_date, 'd');
-  }
-  if (empty($view->date_info->week) || $view->date_info->week == $view->argument['date_argument']->options['wildcard']) {
-    $view->date_info->week = date_week($view->date_info->year .'-'. date_pad($view->date_info->month) .'-'. date_pad($view->date_info->day));
-  }
 
   $calendar_links = array();
   $base = array('attributes' => array('rel' => 'nofollow'));
@@ -69,12 +36,12 @@ function template_preprocess_calendar_main(&$vars) {
     $calendar_links['calendar calendar-day'] = $base + array('title' => t('Day', array(), array('context' => 'datetime')), 'href' => date_real_url($view, 'day'));
   }
   $vars['calendar_links'] = $calendar_links;
-    
+
   // If the Date Popup module is enabled, add a popup date selector.
   if (!empty($view->date_info->calendar_popup)) {
     $vars['calendar_popup'] = '<div class="clear-block">' . calendar_date_select($view) . '</div>';
   }
-  
+
   // If an 'Add new ... link is provided, add it here.
   // the query will bring the user back here after adding the node.
   if (!empty($view->date_info->calendar_date_link) 
@@ -88,11 +55,7 @@ function template_preprocess_calendar_main(&$vars) {
       'query' => $query,
       );
   }
-  $vars['view'] = $view;  
-  $vars['mini'] = !empty($view->date_info->mini);
-  $vars['block'] = !empty($view->date_info->block);
-  $vars['block_identifier'] = date_block_identifier($view);
-    
+
 }
 
 /**
@@ -102,48 +65,52 @@ function template_preprocess_calendar_main(&$vars) {
  * views and the template takes care of displaying links to related views.
  */
 function template_preprocess_calendar(&$vars) {
+  if (module_exists('calendar_multiday')) {
+    return;
+  }
+
   module_load_include('inc', 'calendar', 'includes/calendar');  
-  
+
+  // Add some basic values to the view.
+  calendar_basics($vars);
+
   $view     = $vars['view'];
-  
+
   // Make sure we only run through this function one time.
   if (!empty($view->date_info->calendar_processed)) {
     return;
   }
-    
-  $result   = (array) $view->result;
-  $options  = $view->style_plugin->options;
-  $handler  = $view->style_plugin;
 
-  $fields   = $view->field;
-    
-  // Render each field into an output array. We have to do the rendering
-  // here because we don't apppear to have full access to the view 
-  // handlers in the theme functions.
+  $result   = (array) $view->result;
+  $view->style_plugin->render_fields($result);
+  $rendered_items = !empty($view->style_plugin->rendered_fields) ? $view->style_plugin->rendered_fields : array();
   $items = array();
-  $calendar_fields = date_api_fields($view->base_table);
+
+  $calendar_fields = date_views_fields($view->base_table);
   $calendar_fields = array_keys($calendar_fields['alias']);
+
+  // Try to figure out the 'id' for this collection of items.
+  // The id field is often not a field but instead an 'additional field',
+  // so this is cludgy.
+  foreach ($result as $num => $row) {
+    $keys = array_keys((array) $row);
+    foreach ($keys as $key) {
+      if (strlen($key) == 3 && substr($key, -2) == 'id' && !empty($row->$key)) {
+        $id = $key;
+      }
+    }
+  }
+
   foreach ($result as $num => $row) {
     $copy = clone($row);
-    $items[$num] = $row;
+    $items[$num]->id = !empty($row->$id) ? $row->$id : NULL;
+    $items[$num]->rendered = $rendered_items[$num];
     $items[$num]->raw = $copy;
+
     $items[$num]->calendar_fields = new stdClass();
-    
     foreach ($row as $key => $value) {
       if (in_array($key, $calendar_fields)) {
         $items[$num]->calendar_fields->$key = $value;
-      }
-    }
-    foreach ($fields as $name => $field) {
-     // Some fields, like the node edit and delete links, have no alias.
-      $field_alias = $field->field_alias != 'unknown' ? $field->field_alias : $name; 
-      if (!empty($field) && is_object($field)) {
-        // Theme the copy instead of the original row so duplicate date
-        // fields each get a fresh copy of the original data to theme.
-        $items[$num]->{$field_alias} = $field->theme($copy);
-      }
-      if (!empty($field->options['exclude'])) {
-        if (isset($items[$num]->{$field_alias})) unset($items[$num]->{$field_alias});
       }
     }
   }
@@ -154,7 +121,7 @@ function template_preprocess_calendar(&$vars) {
 
   // Massage the resulting items into formatted calendar items.
   $items = calendar_build_nodes($view, $items);
-  
+
   // Merge in items from other sources.
   foreach (module_implements('calendar_add_items') as $module) {
     $function = $module . '_calendar_add_items';
@@ -166,9 +133,8 @@ function template_preprocess_calendar(&$vars) {
       }
     }
   }
-
   $view->date_info->mini = isset($view->date_info->mini) ? $view->date_info->mini : $view->date_info->granularity == 'year';
-  
+
   // Create the calendar day names and rows.
   $rows = calendar_build_calendar($view, $items);
 
@@ -201,12 +167,12 @@ function template_preprocess_calendar_month(&$vars) {
     $day_names = $rows;
     $rows = array();
   }
-  
+
   $month_rows = $rows;
   foreach ($rows as $weekno => $row) {
     foreach ($row as $day => $data) {
       $cell = $data['data'];
-            
+
       // If this cell is already rendered, like the weekno column,
       // move to the next item.
       if (!is_array($cell)) {
@@ -232,10 +198,10 @@ function template_preprocess_calendar_month(&$vars) {
       }
     }
   }
-  
+
   $vars['rows'] = $month_rows;
   $vars['day_names'] = $day_names;
-  
+
   $vars['display_type'] = $view->date_info->granularity;
   $vars['min_date_formatted'] = date_format($view->date_info->min_date, DATE_FORMAT_DATETIME);
   $vars['max_date_formatted'] = date_format($view->date_info->max_date, DATE_FORMAT_DATETIME);
@@ -247,7 +213,7 @@ function template_preprocess_calendar_month(&$vars) {
 function template_preprocess_calendar_mini(&$vars) {
   // Add in all the $vars added by the main calendar preprocessor.
   template_preprocess_calendar_month($vars);
-  
+
   $view = $vars['view'];
   $view->date_info->show_title = !empty($view->date_info->show_title) ? $view->date_info->show_title : FALSE;
   $vars['show_title'] = $view->date_info->show_title;
@@ -261,13 +227,13 @@ function template_preprocess_calendar_year(&$vars) {
   // Add in all the $vars added by the main calendar preprocessor.
   $vars['view']->date_info->style_with_weekno = FALSE;
   template_preprocess_calendar($vars);
-    
+
   // Get the url of the year view and remove the year argument from it.
   // TODO clean this up in case there is another arg that looks like
   // the year to make sure only the year gets removed.
   $view = $vars['view'];
   $year = date_format($view->date_info->min_date, 'Y');
-    
+
   // Construct a calendar for each month, adjusting the $view passed 
   // to the theme so it will produce the right results.  
   $view = clone($vars['view']);
@@ -294,7 +260,7 @@ function template_preprocess_calendar_year(&$vars) {
   $vars['months'] = $months;
   $vars['view']->date_info->hide_nav = FALSE;
   $vars['view']->date_info->granularity = 'year';
-  
+
 }
 
 /**
@@ -304,14 +270,14 @@ function template_preprocess_calendar_day(&$vars) {
   // Add in all the $vars added by the main calendar preprocessor.
   $vars['view']->style_with_weekno = FALSE;
   template_preprocess_calendar($vars);
-  
+
   $view = $vars['view'];
   $rows = $vars['rows'];
-  
+
   $item_count = 0;
   $by_hour_count = 0;
   $grouping_field = $view->date_info->style_groupby_field;
-  
+
   // If we're not grouping by time, move all items into the 'all day' array.
   if (empty($view->date_info->style_groupby_times)) {
     // Items are already grouped into times, so we need to process each time-group.
@@ -322,9 +288,9 @@ function template_preprocess_calendar_day(&$vars) {
     }
     $rows['items'] = array();
   }
-        
+
   $columns = array();
-  
+
   // Move all_day items into the right columns and render them.
   $grouped_items = array();
   foreach ($rows['all_day'] as $item) {
@@ -347,14 +313,14 @@ function template_preprocess_calendar_day(&$vars) {
     $item_count++;
   }
   $vars['rows']['all_day'] = $grouped_items;
-  
+
   // Moved timed items into the right columns and render them.
   $start_times = $view->date_info->style_groupby_times;
   $show_empty_times = $view->date_info->style_show_empty_times; 
   $end_start_time = '23:59:59';
   $start_time = array_shift($start_times);
   $next_start_time = count($start_times) ? array_shift($start_times) : $end_start_time;
-  
+
   $grouped_items = array();
   foreach ($rows['items'] as $time => $items) {
     foreach ($items as $item) {
@@ -387,7 +353,7 @@ function template_preprocess_calendar_day(&$vars) {
       $by_hour_count++;
     }
   }
-  
+
   // Finish out the day's time values if we want to see empty times.
   if (!empty($show_empty_times)) {
     while ($start_time < $end_start_time) {
@@ -398,7 +364,7 @@ function template_preprocess_calendar_day(&$vars) {
       $next_start_time = count($start_times) ? array_shift($start_times) : $end_start_time;
     }
   }
-  
+
   // Do the headers last, once we know what the actual values are.
   $i = 0;
   $start_times = array_keys($grouped_items);
@@ -416,20 +382,20 @@ function template_preprocess_calendar_day(&$vars) {
   }
   ksort($grouped_items);
   $vars['rows']['items'] = $grouped_items;
-  
+
   if (empty($columns)) {
     $columns = array(t('Items'));
   }
   $vars['columns'] = $columns;
-  
+
   $vars['agenda_hour_class'] = 'calendar-agenda-hour';
   $first_column_width = 10;
-  
+
   if (empty($view->date_info->style_groupby_times)) {
     $vars['agenda_hour_class'] .= ' calendar-agenda-no-hours';
     $first_column_width = 1;
   }
-  
+
   $vars['first_column_width'] = $first_column_width;
   if (count($columns)) {
     $vars['column_width'] = round((100 - $first_column_width)/count($columns));
@@ -449,12 +415,12 @@ function template_preprocess_calendar_week(&$vars) {
   // Add in all the $vars added by the main calendar preprocessor.
   $vars['view']->style_with_weekno = FALSE;
   template_preprocess_calendar($vars);
-  
+
   $view = $vars['view'];
   $rows = $vars['rows'];
   $item_count = 0;
   $by_hour_count = 0;
-  
+
   if (sizeof($rows) > 1) {
     $day_names = array_shift($rows);
   }
@@ -462,24 +428,26 @@ function template_preprocess_calendar_week(&$vars) {
     $day_names = $rows;
     $rows = array();
   }
-  
+
   // Moved timed items into the right columns and render them.
   $show_empty_times = $view->date_info->style_show_empty_times; 
   $end_start_time = '23:59:59';
-  
+
   $grouped_items = array();
   $vars['rows'] = $rows[0];
   foreach ($rows[0] as $weekno => $row) {
     $vars['rows'][$weekno] = $row['data'];
-    
+
     // If we're not grouping by time, move all items into the 'all day' array.
     if (empty($view->date_info->style_groupby_times)) {
-      foreach ($row['data']['items'] as $item) {
-        $row['data']['all_day'] = array_merge($row['data']['all_date'], $item);
+      foreach ($row['data']['items'] as $items) {
+        foreach($items as $item) {
+          $rows['all_day'][] = $item;
+        }
       }
       $row['data']['items'] = array();
     }
-    
+
     $columns[] = $weekno;
     $start_times = $view->date_info->style_groupby_times;
     $start_time = array_shift($start_times);
@@ -514,7 +482,7 @@ function template_preprocess_calendar_week(&$vars) {
         $by_hour_count++; 
       }
     }
-  
+
     // Finish out the day's time values if we want to see empty times.
     if ($show_empty_times) {
       while ($start_time < $end_start_time) {
@@ -527,7 +495,7 @@ function template_preprocess_calendar_week(&$vars) {
     }
   }
   ksort($grouped_items);
-  
+
   // Do the headers last, once we know what the actual values are.
   $i = 0;
   $start_times = array_keys($grouped_items);
@@ -544,14 +512,14 @@ function template_preprocess_calendar_week(&$vars) {
   }
 
   $vars['items'] = $grouped_items;  
-  
+
   $vars['day_names'] = $day_names;
   $vars['columns'] = $columns;
   $vars['start_times'] = $view->date_info->style_groupby_times;
-  
+
   $vars['agenda_hour_class'] = 'calendar-agenda-hour';
   $first_column_width = 10;
-  
+
   if (empty($view->date_info->style_groupby_times)) {
     $vars['agenda_hour_class'] .= ' calendar-agenda-no-hours';
     $first_column_width = 1;
@@ -567,14 +535,14 @@ function template_preprocess_calendar_week(&$vars) {
 function template_preprocess_calendar_datebox(&$vars) {
   $date = $vars['date'];
   $view = $vars['view'];
-  
+
   $vars['day'] = intval(substr($date, 8, 2));
   $force_view_url = !empty($view->date_info->block) ? TRUE : FALSE;
   $vars['url'] = date_real_url($view, NULL, $date, $force_view_url);
   $vars['link'] = !empty($view->date_info->display_types['day']) ? l($vars['day'], $vars['url']) : $vars['day'];
   $vars['granularity'] = $view->date_info->granularity;
   $vars['mini'] = $view->date_info->mini;
-  
+
   if ($view->date_info->mini) {
     if (!empty($vars['selected'])) {
       $vars['class'] = 'mini-day-on';
@@ -596,41 +564,31 @@ function template_preprocess_calendar_node(&$vars) {
   $view = $vars['view'];
   $fields = array();
   foreach ($view->field as $name => $field) {
-    // Some fields, like the node edit and delete links, have no alias.
-    $field_alias = $field->field_alias != 'unknown' ? $field->field_alias : $name; 
-    if (!empty($node->$field_alias)) {
-      $data = $node->$field_alias;
-      $label = $field->options['label'];
-      
-      // CCK has some special label options.
-      if (!empty($field->content_field)) {
-        switch ($field->options['label_type']) {
-          case 'none':
-            $label = '';
-            break;
-          case 'widget':
-            $label = $field->content_field['widget']['label'];
-            break;
-        }
+    $data = $node->rendered[$name];
+    $label = $field->options['label'];
+
+    // CCK has some special label options.
+    if (!empty($field->content_field)) {
+      switch ($field->options['label_type']) {
+        case 'none':
+          $label = '';
+          break;
+        case 'widget':
+          $label = $field->content_field['widget']['label'];
+          break;
       }
-      $fields[$field_alias] = array(
-        'id' => drupal_clean_css_identifier($field_alias),
-        'label' => $label,
-        'data' => $data,
-        );
     }
+    $fields[$name] = array(
+      'id' => drupal_clean_css_identifier($node->id),
+      'label' => $label,
+      'data' => $data,
+      );
   }
   $vars['fields'] = $fields;
   $vars['calendar_start'] = $node->calendar_start;
   $vars['calendar_end'] = $node->calendar_end;
   $vars['calendar_start_date'] = $node->calendar_start_date;
   $vars['calendar_end_date'] = $node->calendar_end_date;
-  
-  // We added the node type to the results in the query,
-  // but it will show up as $node->node_type instead of
-  // $node->type. Rename it to match the normal way it 
-  // would show up on a node object.
-  $vars['node']->type = $vars['node']->node_type;
 }
 
 /**
@@ -652,7 +610,7 @@ function template_preprocess_calendar_month_multiple_node(&$vars) {
   $year = $parts[0];
   $month = intval($parts[1]);
   $day = intval($parts[2]);
-  
+
   // create the link to the day
   $vars['link'] = date_real_url($view, NULL, date_pad($year, 4) . '-' . date_pad($month) . '-' . date_pad($day));
 }
@@ -682,13 +640,13 @@ function template_preprocess_calendar_week_node(&$vars) {
 function template_preprocess_calendar_week_multiple_node(&$vars) {
   $view = $vars['view'];
   $curday = $vars['curday'];
-  
+
   // get the year month and date
   $parts = explode('-', substr($curday, 0, 10));
   $year = $parts[0];
   $month = intval($parts[1]);
   $day = intval($parts[2]);
-  
+
   // create the link to the day
   $vars['link'] = date_real_url($view, NULL, date_pad($year, 4) . '-' . date_pad($month) . '-' . date_pad($day));
 }
@@ -784,7 +742,7 @@ function theme_calendar_stripe_stripe($vars) {
 function theme_calendar_empty_day($vars) {
   $curday = $vars['curday'];
   $view = $vars['view'];
-  
+
   if ($view->date_info->calendar_type != 'day') {
     return '<div class="calendar-empty">&nbsp;</div>' . "\n";
   }

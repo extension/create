@@ -6,10 +6,10 @@ class views_handler_field_accesslog_path extends views_handler_field {
   /**
    * Override init function to provide generic option to link to node.
    */
-  function init(&$view, &$data) {
-    parent::init($view, $data);
-    if (isset($data['display_as_link'])) {
-      $this->additional_fields[] = 'path';
+  function init(&$view, $options) {
+    parent::init($view, $options);
+    if (!empty($this->options['display_as_link'])) {
+      $this->additional_fields['path'] = 'path';
     }
   }
 
@@ -25,12 +25,12 @@ class views_handler_field_accesslog_path extends views_handler_field {
    * Provide link to the page being visited.
    */
   function options_form(&$form, &$form_state) {
-    parent::options_form($form, $form_state);
     $form['display_as_link'] = array(
       '#title' => t('Display as link'),
       '#type' => 'checkbox',
       '#default_value' => !empty($this->options['display_as_link']),
     );
+    parent::options_form($form, $form_state);
   }
 
   function render($values) {

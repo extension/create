@@ -82,11 +82,24 @@ function field_views_field_default_views_data($field) {
   $bundles_names = array();
   $supports_revisions = FALSE;
   $entity_tables = array();
+  $group_name = count($field['bundles']) > 1 ? t('Fields') : NULL;
 
   // Build the relationships between the field table and the entity tables.
   foreach ($field['bundles'] as $entity => $bundles) {
     $entity_info = entity_get_info($entity);
+    if (empty($group_name)) {
+      $group_name = $entity_info['label'];
+
+      // Override Node to Content.
+      if ($group_name == t('Node')) {
+        $group_name = t('Content');
+      }
+    }
+
     $entity_tables[$entity_info['base table']] = $entity;
+    if (isset($entity_info['revision table'])) {
+      $entity_tables[$entity_info['revision table']] = $entity;
+    }
 
     $data[$current_table]['table']['join'][$entity_info['base table']] = array(
       'left_field' => $entity_info['entity keys']['id'],
@@ -121,7 +134,7 @@ function field_views_field_default_views_data($field) {
     $tables[FIELD_LOAD_REVISION] = $revision_table;
   }
 
-  $add_fields = array('entity_type', 'delta', 'language', 'bundle');
+  $add_fields = array('delta', 'language', 'bundle');
   foreach ($field['columns'] as $column_name => $attributes) {
     $add_fields[] = _field_sql_storage_columnname($field['field_name'], $column_name);
   }
@@ -133,12 +146,12 @@ function field_views_field_default_views_data($field) {
   $label = field_views_field_label($field_name);
   foreach ($tables as $type => $table) {
     if ($type == FIELD_LOAD_CURRENT) {
-      $group = t('Fields');
+      $group = $group_name;
       $old_column = 'entity_id';
       $column = $field['field_name'];
     }
     else {
-      $group = t('Fields (historical data)');
+      $group = t('@group (historical data)', array('@group' => $group_name));
       $old_column = 'revision_id';
       $column = $field['field_name'] . '-' . $old_column;
     }
@@ -150,16 +163,22 @@ function field_views_field_default_views_data($field) {
       'title short' => $label,
       'help' =>  t('Appears in: @bundles', array('@bundles' => implode(', ', $bundles_names))),
     );
+
+    $keys = array_keys($field['columns']);
+    $real_field = reset($keys);
     $data[$table][$column]['field'] = array(
-      'field' => $column,
+//      'field' => $column,
       'table' => $table,
       'handler' => 'views_handler_field_field',
       'click sortable' => TRUE,
       'field_name' => $field['field_name'],
+      // Provide a real field for group by.
+      'real field' => $column . '_' . $real_field,
       'additional fields' => $add_fields,
       'entity_tables' => $entity_tables,
       // Default the element type to div, let the UI change it if necessary.
       'element type' => 'div',
+      'is revision' => $type == FIELD_LOAD_REVISION,
     );
   }
 
@@ -191,18 +210,23 @@ function field_views_field_default_views_data($field) {
     }
 
 
-    if (count($field['columns']) == 1 && $column == 'value') {
+    if (count($field['columns']) == 1 || $column == 'value') {
       $title = t('@label (!name)', array('@label' => $label, '!name' => $field['field_name']));
       // CCK used the first 10 characters of $label. Probably doesn't matter.
-      $title_short = $field['field_name'];
+      $title_short = $label;
     }
     else {
-      $title = t('@label (!name) - !column', array('@label' => $label, '!name' => $field['field_name'], '!column' => $column));
-      $title_short = t('@label - !column', array('@label' => $field['field_name'], '!column' => $column));
+      $title = t('@label (!name:!column)', array('@label' => $label, '!name' => $field['field_name'], '!column' => $column));
+      $title_short = t('@label:!column', array('@label' => $label, '!column' => $column));
     }
 
     foreach ($tables as $type => $table) {
-      $group = $type == FIELD_LOAD_CURRENT ? t('Fields') : t('Fields (historical data)');
+      if ($type == FIELD_LOAD_CURRENT) {
+        $group = $group_name;
+      }
+      else {
+        $group = t('@group (historical data)', array('@group' => $group_name));
+      }
       $column_real_name = $field['storage']['details']['sql'][$type][$table][$column];
 
       // Load all the fields from the table by default.
@@ -243,8 +267,8 @@ function field_views_field_default_views_data($field) {
 
       // Expose additional delta column for multiple value fields.
       if ($field['cardinality'] > 1 || $field['cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
-        $title_delta = t('@label (!name) - delta', array('@label' => $label, '!name' => $field['field_name']));
-        $title_short_delta = t('!name - delta', array('!name' => $field['field_name']));
+        $title_delta = t('@label (!name:delta)', array('@label' => $label, '!name' => $field['field_name']));
+        $title_short_delta = t('@label:delta', array('@label' => $label));
 
         $data[$table]['delta'] = array(
           'group' => $group,

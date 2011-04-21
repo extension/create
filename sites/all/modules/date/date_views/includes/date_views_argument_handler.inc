@@ -130,7 +130,7 @@ class date_views_argument_handler extends date_views_argument_handler_simple {
     $defaults = parent::default_actions();
   
     // There is no easy way to do summary queries on multiple fields, so remove that option.
-    unset($defaults['summary asc'], $defaults['summary desc'], $defaults['summary asc by count'], $defaults['summary desc by count']);
+    unset($defaults['summary']);
 
     if ($which) {
       if (!empty($defaults[$which])) {

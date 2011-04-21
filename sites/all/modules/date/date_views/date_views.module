@@ -117,7 +117,7 @@ function date_real_url($view, $date_type = NULL, $date_arg = NULL, $force_view_u
       if ($argument->position == $pos) {
         break;
       }
-      $args[] = $argument->options['wildcard'];
+      $args[] = $argument->options['exception']['value'];
     }
   }
 
@@ -150,14 +150,14 @@ function date_real_url($view, $date_type = NULL, $date_arg = NULL, $force_view_u
     $key = date_block_identifier($view);
     if (!empty($key)) {
       return url($_GET['q'], array(
-        'query' => drupal_get_query_parameters(NULL, array($key => $url)), 
+        'query' => date_views_querystring($view, array($key => $url)), 
         'absolute' => TRUE));
     }
   }  
   // Normal views may need querystrings appended to them
   // if they use exposed filters.
   return url($view->get_url($args), array(
-    'query' => drupal_get_query_parameters(), 
+    'query' => date_views_querystring($view), 
     'absolute' => TRUE));
 }
 function date_block_identifier($view) {

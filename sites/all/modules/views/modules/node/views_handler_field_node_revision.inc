@@ -25,13 +25,13 @@ class views_handler_field_node_revision extends views_handler_field_node {
    * Provide link to revision option.
    */
   function options_form(&$form, &$form_state) {
-    parent::options_form($form, $form_state);
     $form['link_to_node_revision'] = array(
-      '#title' => t('Link this field to its node revision'),
+      '#title' => t('Link this field to its content revision'),
       '#description' => t('This will override any other link you have set.'),
       '#type' => 'checkbox',
       '#default_value' => !empty($this->options['link_to_node_revision']),
     );
+    parent::options_form($form, $form_state);
   }
 
   /**
@@ -44,9 +44,9 @@ class views_handler_field_node_revision extends views_handler_field_node {
       $this->options['alter']['make_link'] = TRUE;
       $nid = $this->get_value($values, 'nid');
       $vid = $this->get_value($values, 'vid');
-      $language = $this->get_value($values, 'language');
       $this->options['alter']['path'] = "node/" . $nid . '/revisions/' . $vid . '/view';
-      if (isset($this->aliases['language'])) {
+      if (module_exists('translation')) {
+        $language = $this->get_value($values, 'language');
         $languages = language_list();
         if (isset($languages[$language])) {
           $this->options['alter']['language'] = $languages[$language];
@@ -59,4 +59,3 @@ class views_handler_field_node_revision extends views_handler_field_node {
     return $data;
   }
 }
-

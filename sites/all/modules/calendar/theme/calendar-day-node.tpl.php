@@ -1,5 +1,4 @@
 <?php
-// $Id: calendar-day-node.tpl.php,v 1.9 2010/12/23 12:08:22 karens Exp $
 /**
  * @file
  * Template to display a view item as a calendar day node.
@@ -51,4 +50,3 @@
     <?php endforeach; ?>
   </div>    
 </div>
-
