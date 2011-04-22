@@ -296,6 +296,12 @@ header.menu-bar #block-system-main-menu ul.menu li a.active{
 	width: 640px;
 }
 
+.node-blog{
+	margin:35px 5px;
+}
+
+
+
 /* Updated date and user name under the title
 -----------------------------------------------------------------------------*/
 footer.submitted{
@@ -474,6 +480,13 @@ ul.primary li a:hover{
 /* Body text area
 -----------------------------------------------------------------------------*/
 
+
+
+article .field{
+	margin: 30px 0;
+}
+
+
 article .field-name-body{
 	font-family: Arial, sans-serif;
 	font-size: 14px;
@@ -644,27 +657,26 @@ article .comment > footer{
 }
 
 
-.panel-2col-stacked .pane-content .views-row div{
+.views-row div{
 	display: inline;
 	font-size: 12px;
 }
 .panel-2col-stacked .pane-content .views-row{
 	margin: 10px 0;
 }
-.panel-2col-stacked .pane-content .views-row .views-field-title a{
+.views-row .views-field-title a{
 	color: #C1272D;
 	font-weight: bold;
 	text-decoration: none;
 }
-.panel-2col-stacked .pane-content .views-row .views-field-entity-id-1{
+.views-row .views-field-entity-id-1{
 	color: #666666;
 }
-.panel-2col-stacked .pane-content .views-row .views-field-changed,
-.panel-2col-stacked .pane-content .views-row .views-field-field-first-name, 
-.panel-2col-stacked .pane-content .views-row .views-field-field-last-name{
+.views-row .views-field-changed,
+.views-row .views-field-field-first-name, 
+.views-row .views-field-field-last-name{
 	color: #6B82A5;
 }
-
 
 .panel-col-last .pane-content{
 	margin: 15px 0;

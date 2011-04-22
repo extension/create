@@ -53,7 +53,7 @@ function ex5_preprocess_node(&$variables) {
 	$user_id = $variables['revision_uid'];
 	
 	$user_fields = user_load($user_id);
-	//dprint_r($user_fields);
+	//dprint_r($variables);
 	$variables['firstname'] = (isset($user_fields->field_first_name['und']['0']['value'])?$user_fields->field_first_name['und']['0']['value']:'');
 	$variables['lastname'] = (isset($user_fields->field_last_name['und']['0']['value'])?$user_fields->field_last_name['und']['0']['value']:'');
 	if($variables['firstname'] == ''){
