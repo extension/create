@@ -46,6 +46,20 @@ function ex5_preprocess_comment(&$variables) {
 }
 
 
+function ex5_preprocess_page(&$variables){
+	// Add preview link to article nodes
+	if(isset($variables['node']) && $variables['node']->type == 'article'){
+		$variables['tabs']['#primary'][] = array(
+												'#theme'=>'menu_local_task',
+												'#link' => array(
+																'href'=>'http://www.demo.extension.org/preview/page/create/'.$variables['node']->nid,
+																'title' => 'Preview'),
+																'description' => 'Preview current page on the demo public site.',
+												);
+	}
+	
+}
+
 // Providing variables for displaying modified time of the last revision and the full name of the author
 function ex5_preprocess_node(&$variables) {
 	//
@@ -83,10 +97,11 @@ function ex5_preprocess_node(&$variables) {
 	
 }
 
-// The only reason this to be used is to provide "last" class to the last member of this menu
+// Provide "last" class to the last member of this menu and include a preview link in it.
 function ex5_menu_local_tasks(&$variables) {
   $output = '';
-	$variables['primary'][count($variables['primary'])-1]['#link']['localized_options']['attributes']['class'][] = 'last';
+ //dsm($variables);
+  $variables['primary'][count($variables['primary'])-1]['#link']['localized_options']['attributes']['class'][] = 'last';
   if (!empty($variables['primary'])) {
     $variables['primary']['#prefix'] = '<h2 class="element-invisible">' . t('Primary tabs') . '</h2>';
     $variables['primary']['#prefix'] .= '<ul class="tabs primary">';
