@@ -49,11 +49,16 @@ function ex5_preprocess_comment(&$variables) {
 function ex5_preprocess_page(&$variables){
 	// Add preview link to content nodes
 	if(isset($variables['node']) && 
-						($variables['node']->type == 'article' || $variables['node']->type == 'news' || $variables['node']->type == 'faq')){
+						($variables['node']->type == 'article' || 
+							$variables['node']->type == 'news' || 
+							$variables['node']->type == 'faq')
+							){
+		$preview_url = theme_get_setting('preview_url');
+		$preview_url = ($preview_url == ''?'http://www.demo.extension.org/preview/page/create/':$preview_url);
 		$variables['tabs']['#primary'][] = array(
 												'#theme'=>'menu_local_task',
 												'#link' => array(
-																'href'=>'http://www.demo.extension.org/preview/page/create/'.$variables['node']->nid,
+																'href'=> $preview_url.$variables['node']->nid,
 																'title' => 'Preview'),
 																'description' => 'Preview current page on the demo public site.',
 												);
