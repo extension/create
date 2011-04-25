@@ -217,7 +217,6 @@ function _exatom_print_feed(array $nids, array $feed_info) {
               $list[] = $taxonomy_term->name;
             }
             $list = array_reverse($list);
-            dd($list);
             if($list) {
               $extra[] = array('key' => 'category',
                               'attributes' => array('term' => implode(":", $list)));
