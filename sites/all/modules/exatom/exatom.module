@@ -210,11 +210,19 @@ function _exatom_print_feed(array $nids, array $feed_info) {
         $field_cats = array_pop($field_cat_list);
         
         foreach ($field_cats as $cat) {
-          $term = taxonomy_term_load($cat['tid']);
-          if ($term) {
-            $extra[] = array('key' => 'category',
-                             'attributes' => array('term' => $term->name));
-          }
+          $parents = taxonomy_get_parents_all($cat['tid']);
+          if ($parents) {
+            $list = array();
+            foreach ($parents as $taxonomy_term) {
+              $list[] = $taxonomy_term->name;
+            }
+            $list = array_reverse($list);
+            dd($list);
+            if($list) {
+              $extra[] = array('key' => 'category',
+                              'attributes' => array('term' => implode(":", $list)));
+            }
+          } // if $parents
         }
       }
       
