@@ -47,8 +47,9 @@ function ex5_preprocess_comment(&$variables) {
 
 
 function ex5_preprocess_page(&$variables){
-	// Add preview link to article nodes
-	if(isset($variables['node']) && $variables['node']->type == 'article'){
+	// Add preview link to content nodes
+	if(isset($variables['node']) && 
+						($variables['node']->type == 'article' || $variables['node']->type == 'news' || $variables['node']->type == 'faq')){
 		$variables['tabs']['#primary'][] = array(
 												'#theme'=>'menu_local_task',
 												'#link' => array(
