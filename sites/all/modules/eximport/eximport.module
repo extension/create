@@ -135,7 +135,7 @@ function eximport_admin_form($form, &$form_state) {
 	'#options' => array('cop.demo.extension.org' => 'demo', 'cop.extension.org' => 'production',),
 	
 	);
-  $cop_options = array('') + _eximport_group_tags_flat();
+  $cop_options = array_merge(array(''),_eximport_get_group_tags(TRUE));
   $form['cop'] = array(
   	'#type' => 'select',
 	'#title' => t('Community'),
@@ -627,39 +627,32 @@ function _eximport_category_exists($tree, $vid = 5){
 }
 
 /**
- * Associate tags used in media wiki with group ID-s in Drupal.
+ * Associate tags used in media wiki with group IDs in Drupal.
  *
- * @return array associative array of group group_tag => group_id
+ * @param boolean $tagsonly return an array of [$tag] => $tag for display
+ * @return array associative array of group $tag] => nid or [$tag] => $tag
  */
  
- function  _eximport_get_group_tags(){
- 	// return for now just a static array
-	// it should be figured out how to be gotten this info from somewhere
- 	$return = array( 'blueberries' => 322, 'home energy'=> 306, 'wood energy' => 307,
-					'food safety' =>308, 'soybeans'=> 278, 'corn'=> 278,
-					'field crops'=> 278, 'beef cattle'=>276,
-					'horticulture' =>277, 'cotton industry'=> 279, 'dairy cattle'=>280,
-					'diversity' =>281, 'entrepreneurship'=> 282, 'disasters'=>283,
-					'fire ants' =>286, 'parenting'=> 287, 'biosecurity'=>283,
-					'family caregiving' =>284, 'horses'=> 285, 'animalmanure'=>288,
-					'geospatial technology' =>289, 'environment'=> 290, 'animal manure management'=>288,
-					'swine' =>291, 'urban integrated pest management'=> 292, 'wildlife damage management'=>293,
-					'science' =>294, 'organic production'=> 295, 'personal finance'=>296,
-					'technology' =>294, 'child care'=> 297, 'surviving wildfire'=>298, 'families food fitness'=>299,
-					'engineering' =>294, 'ag energy'=> 300, 'goat'=>301,
-					'drinking water' =>302, 'community planning and zoning'=> 303, 'small meat processors'=>304,
-					'bee health' =>310, 'precision agriculture'=> 311, 'rangelands'=>313,
-					'marine fisheries' =>317, 'cooperatives'=> 318, 'companion animals'=>319,);
- 	return $return;
+ function  _eximport_get_group_tags($tagsonly = FALSE){
+
+	$query = db_select('group_resource_tags');
+  $query->addField('group_resource_tags', 'resource_tag_name');
+  $query->addField('group_resource_tags', 'nid');
+  $query->orderBy('resource_tag_name');
+  $result = $query->execute()->fetchAllAssoc('resource_tag_name');
+  $returnarray = array();
+  foreach($result as $tag => $tagdata) {
+    if($tagsonly) {
+      $returnarray[$tag] = $tagdata->resource_tag_name;
+    }
+    else {
+      $returnarray[$tag] = $tagdata->nid;
+    }
+  }
+  return $returnarray;
  }
  
- function _eximport_group_tags_flat(){
-	 $tags = array();
-	 foreach(_eximport_get_group_tags() AS $k => $v){
-		 $tags[$k] =  $k;
-	 }
-	 return $tags;
- }
+ 
  
 /**
  * Create a Drupal node and revision from input.
