@@ -459,7 +459,7 @@ function eximport_entry_create($atom_entry) {
 
 /**
  * Implement logic of categories used in current articles
- * Some of the tags has a logic that can be transfered into 
+ * Some of the tags has a logic that can be transferred into 
  * content types, taxonomy structures and organic groups.
  *
  * @param object $atom_entry SimpleXML Atom entry object
@@ -469,7 +469,7 @@ function eximport_entry_create($atom_entry) {
 
 function _eximport_process_entry_categories($atom_entry, &$entry){
   $group_tags = _eximport_get_group_tags();
-  $arrticle_categories = $groups = $categories = array();
+  $article_categories = $groups = $categories = array();
   foreach ($atom_entry->category as $cat) {
 	  
     if ($cat['term'] == 'news') {
@@ -506,7 +506,7 @@ function _eximport_process_entry_categories($atom_entry, &$entry){
 		$cat_entry = array('vid' => $vocabulary_id,
 						   'tid' => $tid,
 						   'name' => $term_name);
-		$arrticle_categories[] = $cat_entry;
+		$article_categories[] = $cat_entry;
 	}else{
 		// if anything else is not taking place, the tag is considered a tag
 		$tid = 'autocreate';
@@ -528,7 +528,7 @@ function _eximport_process_entry_categories($atom_entry, &$entry){
   }
    $entry->group_audience = array(LANGUAGE_NONE =>$groups);
    $entry->field_tags = array(LANGUAGE_NONE => $categories);
-   $entry->field_article_category = array(LANGUAGE_NONE => $arrticle_categories);
+   $entry->field_article_category = array(LANGUAGE_NONE => $article_categories);
 	
 }
 
