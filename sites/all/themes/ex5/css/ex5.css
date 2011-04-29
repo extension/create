@@ -906,6 +906,24 @@ article .comment > footer{
 }
 
 
+
+/* Pager
+-----------------------------------------------------------------------------*/
+.item-list .pager {
+    clear: both;
+    text-align: left;
+	margin: 30px 0;
+}
+
+.item-list .pager li {
+    padding-left: 0;
+	margin-left: 4px;
+}
+.item-list .pager li a{
+	color: #607890;
+}
+
+
 /* Footers
 -----------------------------------------------------------------------------*/
 #footers{
