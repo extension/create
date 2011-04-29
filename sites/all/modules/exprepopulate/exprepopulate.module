@@ -1,0 +1,34 @@
+<?php
+
+/**
+ * exprepopulate - module used as a tool for pre-populating form fields in the application
+ *
+ *
+ * @copyright North Carolina State University 2011
+ *
+ */
+
+// prepopulate the faq (node of type faq) create form from URL parameters
+// in this case, we're using form alter on the form name given by drupal 
+// for creating a node of type faq ('form_faq_node')
+// this form_alter hook is being used for the conversion of resolved AaE questions to Faqs
+function exprepopulate_form_faq_node_form_alter(&$form, &$form_state, $form_id) {
+  # hide the AaE id form field that gets populated when a AaE is converted to a Faq
+  $form['field_from_aaeid']['#access']=FALSE;
+  
+  if(isset($_GET['question'])) {
+    $form['title']['#default_value'] = $_GET['question'];
+  }
+  
+  if(isset($_GET['answer'])) {
+    $form['body']['und'][0]['#default_value'] = $_GET['answer'];
+  }
+  
+  if(isset($_GET['aae_id'])) {
+    $form['field_from_aaeid']['und'][0]['value']['#default_value'] = $_GET['aae_id']; 
+  }
+  
+}
+
+
+
