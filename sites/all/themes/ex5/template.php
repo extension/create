@@ -216,6 +216,44 @@ function ex5_preprocess_html(&$vars) {
    
 }
 
+
+/**
+ * Create the calendar date box.
+ */
+function ex5_preprocess_calendar_datebox(&$vars) {
+  $date = $vars['date'];
+  $view = $vars['view'];
+
+  $vars['day'] = intval(substr($date, 8, 2));
+  $force_view_url = !empty($view->date_info->block) ? TRUE : FALSE;
+  $vars['url'] = date_real_url($view, NULL, $date, $force_view_url);
+  $vars['link'] = !empty($view->date_info->display_types['day']) ? l($vars['day'], $vars['url']) : $vars['day'];
+  $vars['granularity'] = $view->date_info->granularity;
+  $vars['mini'] = $view->date_info->mini;
+
+  if ($view->date_info->mini) {
+    if (!empty($vars['selected'])) {
+      $vars['class'] = 'mini-day-on';
+	  
+	  $bt_text = "<ul>";
+	  foreach ($vars['items'][$date] as $time => $results_at_that_time)
+	   foreach ($results_at_that_time as $num => $result)
+		$bt_text .= "<li>" . $result->raw->node_title . "</li>";
+		$bt_text .= "</ul>";
+		$bt_text = "<span style=\"display:none\">" . $bt_text . "</span>";
+		$vars['link'] = l($vars['day'], $vars['url']) . $bt_text;	  
+    }
+    else {
+      $vars['class'] = 'mini-day-off';
+    }
+  }
+  else {
+    $vars['class'] = 'day';
+  }
+}
+
+
+
 function ex5_trim_text($text, $length = 150) {
     // remove any HTML or line breaks so these don't appear in the text
     $text = trim(str_replace(array("\n", "\r"), ' ', strip_tags($text)));

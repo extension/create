@@ -597,27 +597,128 @@ article .comment > footer{
 .panel-2col-stacked .center-wrapper{
 	padding-top: 40px;
 }
+
+.panel-flexible .panels-flexible-row-4-1{
+	margin-top: 45px;
+}
+/* right column of manage community in group dashboards */
+.panels-flexible-column-4-9{
+	width: 190px;
+	height: 210px;
+	border-left: 1px solid #B3B3B3;
+	padding-left: 15px;
+}
+
+
+.panels-flexible-column-4-9 ul{
+	margin: 15px 0 0;
+	padding: 0;
+}
+.panels-flexible-column-4-9 ul li{
+	margin: 0 0 0.4em 1em;
+}
+.panels-flexible-column-4-9 ul li .field-content a{
+	font-weight: normal;
+	font-size: 12px;
+	text-decoration: underline;
+	color: #4F6786;
+}
+
+/* calendar block */
+
+.panels-flexible-region-4-calendar_view-inside{
+	padding: 0;
+}
+
+.panels-flexible-region-4-calendar_view-inside .date-nav,
+.panels-flexible-region-4-calendar_view-inside .month-view{
+	font-size: 11px;
+	border-bottom: 1px solid #C1DAD7;
+}
+.panels-flexible-region-4-calendar_view-inside .date-nav{
+	padding: 3px 2px;
+	height: 13px;
+}
+.panels-flexible-region-4-calendar_view-inside table tr{
+	border-right: 1px solid #C1DAD7;
+}
+.panels-flexible-region-4-calendar_view-inside table tr td{
+	text-align: center;
+	padding: 4px 1px;
+}
+
+/* events list */
+
+.panels-flexible-region-4-calendar_list_view .pane-views{
+	padding-left: 15px;
+	font-size: 10px;
+}
+.panels-flexible-region-4-calendar_list_view .view-content h3{
+	color: #F37B28;
+}
+.panels-flexible-region-4-calendar_list_view .views-row{
+	margin: 0;
+}
+
+
+/* content structure */
+
+.view-id-contentstructure ul{
+	width: 180px;
+	float: left;
+	margin: 5px 0 25px 0;
+	padding: 0;
+}
+.view-id-contentstructure ul li{
+	margin-left: 1em;
+}
+.panels-flexible-row-4-21-inside .pane-og-nodes{
+	clear: both;
+}
+
+.panels-flexible-region-4-calendar_list_view .views-row-last{
+	margin-bottom: 10px;
+}
+
+.panel-flexible .panels-flexible-row-4-1 .panels-flexible-region-inside-last{
+	margin-left: 6px;
+}
 .panel-2col-stacked .center-wrapper .panel-col-last{
 	margin-left: 3px;
 	width: 311px;
 }
+.panel-flexible .panels-flexible-row-4-1 .panel-pane > h4,
 .panel-2col-stacked .center-wrapper .panel-pane > h4{
 	height: 6px;
 	background-image:url(../images/ex5-2-column-header-bg.gif);
 	background-color:#FFF;
 }
+.panel-flexible .panels-flexible-row-4-1 .panel-pane > h5,
 .panel-2col-stacked .center-wrapper .panel-pane > h5{
 	height: 6px;
 	background-image:url(../images/ex5-2-column-footer-bg.gif);
 	background-color:#FFF;
 }
-.panel-2col-stacked .center-wrapper .panel-pane{
-	width: 311px;
-}
+
+.panel-flexible .panels-flexible-row-4-1 .panel-pane,
 .panel-2col-stacked .center-wrapper .panel-pane{
 	background-image:url(../images/ex5-2-column-bg.gif);
 	background-repeat:repeat-y;
+	width: 311px;
 }
+.panels-flexible-row-4-18-inside .pane-title,
+.panels-flexible-row-4-3 .pane-title{
+	color: #F15A24;
+	font-size: 14px;	
+}
+
+.panels-flexible-region-4-manage_community_lists-inside .pane-views,
+.panels-flexible-row-4-7{
+	margin-bottom: 30px;
+}
+
+.panels-flexible-region-4-content_structure-inside .pane-1 .pane-title,
+.panel-flexible .panels-flexible-row-4-1 .panel-pane .pane-title,
 .panel-2col-stacked .center-wrapper .panel-pane .pane-title{
 	margin: 0 5px;
 	background-image:url(../images/ex5-accordion-header.png);
@@ -635,7 +736,21 @@ article .comment > footer{
     text-transform: uppercase;
 	font-weight: normal;
 }
+.panels-flexible-region-4-content_structure-inside .pane-1 .pane-content{
+	display: none;
+}
 
+.panels-flexible-row-4-7-inside, .panels-flexible-row-4-17  .panels-flexible-region, 
+.panels-flexible-region-4-content_structure-inside .pane-views{
+	margin: 0 25px;
+}
+
+.panels-flexible-region-4-content_structure-inside .pane-views{
+	margin-bottom: 30px;
+}
+
+
+.panel-flexible .panels-flexible-row-4-1 .panel-pane .pane-content,
 .panel-2col-stacked .pane-content{
 	margin: 5px 25px;
 }
@@ -655,7 +770,26 @@ article .comment > footer{
 	font-size: 12px;
 	text-decoration: none;
 }
+.panel-flexible .panels-flexible-row-4-1 .panel-pane .pane-content{
+	height: 135px;
+}
 
+.panel-flexible .panels-flexible-row-4-1 .panel-pane .pane-content ul{
+	margin: 10px 0 0;
+	padding: 0;
+	list-style: none;
+	width: 130px;
+	float: left;
+}
+.panel-flexible .panels-flexible-row-4-1 .panel-pane .pane-content ul li{
+	list-style: none;
+	margin: 10px 0;
+}
+
+.pane-note{
+	font-size: 11px;
+	color: #808080;
+}
 
 .views-row div{
 	display: inline;
@@ -691,14 +825,21 @@ article .comment > footer{
     list-style-image: url(../images/ex5-bullet4.gif);
     list-style-type: square;
 }
+.panels-flexible-row-4-18-inside, .panels-flexible-row-4-3{
+	margin-top: 10px;
+}
 
 
 
+
+
+.panels-flexible-row-4-3, .panels-flexible-row-4-18-inside,
 .panel-2col-stacked .panel-col-bottom .panel-pane{
 	background-image:url(../images/ex5-full-column-bg.gif);
 	background-repeat:repeat-y;
 	width: 640px;
 }
+.panels-flexible-row-4-3 .panels-flexible-region-4-manage_community_heading-inside .pane-title,
 .panel-2col-stacked .panel-col-bottom .panel-pane .pane-title{
 	margin: 0 5px;
 	background-image:url(../images/ex5-accordion-header.png);
@@ -716,6 +857,27 @@ article .comment > footer{
     text-transform: uppercase;
 	font-weight: normal;
 }
+
+.panels-flexible-row{
+	padding: 0;
+}
+
+
+.panels-flexible-row-4-17-inside, .panels-flexible-region-4-content_structure .panels-flexible-region-inside-last{
+	background-image:url(../images/ex5-full-column-footer-bg.gif);
+	background-position: bottom left;
+	background-repeat: no-repeat;
+	padding-bottom: 10px;
+}
+
+.panels-flexible-region-4-content_structure,
+.panels-flexible-region-4-manage_community_heading{
+	width: 100%;
+}
+
+
+.panels-flexible-row-4-18-inside .pane-1 h4,
+.panels-flexible-row-4-3 .panels-flexible-region-4-manage_community_heading-inside h4,
 .panel-col-bottom h4{
 	height: 6px;
 	background-image:url(../images/ex5-full-column-header-bg.gif);
