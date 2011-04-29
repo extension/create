@@ -34,3 +34,11 @@
 	});
 
 })(jQuery);
+
+
+
+
+jQuery(document).ready(function() {
+   jQuery("#for_pubsite .field-name-body").attr("id","cssr");
+});
+
