@@ -128,40 +128,15 @@ function eximport_menu() {
  * @see forms_api_reference
  */
 function eximport_admin_form($form, &$form_state) { 
-  $form['source']=array(
-  	'#type' => 'select',
-	'#title' => t('Source of the data to be imported'),
-	'#description' => t('Choose if the data to be imported should be from the demo cop wiki or the production site.'),
-	'#options' => array('cop.demo.extension.org' => 'demo', 'cop.extension.org' => 'production',),
-	
-	);
-  $cop_options = array_merge(array(''),_eximport_get_group_tags(TRUE));
-  $form['cop'] = array(
-  	'#type' => 'select',
-	'#title' => t('Community'),
-	'#description' => t('Filter per community'),
-	'#options' => $cop_options,
-  );
-  
-  $form['index'] = array(
+  $form['filename'] = array(
     '#type' => 'textfield',
-    '#title' => t('Start'),
-    '#default_value' => t('0'),
-    '#size' => 6,
-    '#maxlength' => 10,
-    '#required' => TRUE,
+    '#title' => t('File to import'),
+    '#default_value' => 'import.xml',
+    '#size' => 40,
+    '#maxlength' => 80,
+    '#description' => t("Filename of default import file."),
+    '#required' => FALSE,
   );
-  $form['count'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Count'),
-    '#default_value' => t('100'),
-	'#description' => t('Amount of revisions to be imported'),
-    '#size' => 6,
-    '#maxlength' => 10,
-    '#required' => TRUE,
-  );
-  
-  
   
   $form['submit'] = array('#type' => 'submit', '#value' => t('Import'));
   
@@ -184,15 +159,12 @@ function eximport_admin_form_validate($form, &$form_state) {
   
   switch ($form_state['values']['op']) {
     case 'Import':
-	  
-	  if(!is_numeric($form_state['values']['index'])){
-		  form_set_error('', t('Index should be numeric.'));
-	  }
-	  if(!is_numeric($form_state['values']['count'])){
-		  form_set_error('', t('Count should be numeric.'));
-	  }
-	  
-	  
+      $filename = $form_state['values']['filename'];
+      if ( ! preg_match('/\.(xml|atom)$/i', $filename)) {
+        form_set_error('', t('A valid filename is required.'));
+      } elseif ( ! eximport_verify_filename($filename) ) {
+        form_set_error('', t('File must exist in import directory.'));
+      }
       break;
     case 'Update URLs':
       break;
@@ -240,9 +212,7 @@ function eximport_admin_form_submit($form, &$form_state) {
   $cmd = $form_state['values']['op'];
   switch ($cmd) {
       case 'Import':
-	  $filename = 'http://'.$form_state['values']['source'].'/wiki/Special:Dadump?start-index='.$form_state['values']['index'].'&max-results='.$form_state['values']['count'];
-	  $filename .= ($form_state['values']['cop'] == ''?'':'&category='.$form_state['values']['cop']);
-	  
+	  $filename = $form_state['values']['filename'];	  
       list($total, $added, $errors) = eximport_import_from_file($filename);
       $cmd = "$filename Import";
       break;
@@ -283,9 +253,9 @@ function eximport_import_from_file($filename) {
   $added = 0;
   $errors = 0;
   
-  //$target = eximport_get_fullpath($filename);
+  $target = eximport_get_fullpath($filename);
   
-  $xml = simplexml_load_file($filename);
+  $xml = simplexml_load_file($target);
   
   $nids = array();
   
@@ -858,7 +828,7 @@ function eximport_process_url(&$url) {
     return;
   }
   
-  // dvm(array("original url", $url));
+   //dvm(array("original url", $url));
   
   // get the old URL for the current node
   $current_node_path = path_load(array('source' => $GLOBALS['eximport_nid']));
@@ -948,7 +918,7 @@ function eximport_process_url(&$url) {
     }
   }
   
-  // dvm(array("modified url", $url));
+   //dvm(array("modified url", $url));
   return;
 }
 
