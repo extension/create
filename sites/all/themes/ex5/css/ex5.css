@@ -743,6 +743,7 @@ article .comment > footer{
 .panels-flexible-row-4-7-inside, .panels-flexible-row-4-17  .panels-flexible-region, 
 .panels-flexible-region-4-content_structure-inside .pane-views{
 	margin: 0 25px;
+	width: auto;
 }
 
 .panels-flexible-region-4-content_structure-inside .pane-views{
