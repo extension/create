@@ -597,27 +597,128 @@ article .comment > footer{
 .panel-2col-stacked .center-wrapper{
 	padding-top: 40px;
 }
+
+.panel-flexible .panels-flexible-row-4-1{
+	margin-top: 45px;
+}
+/* right column of manage community in group dashboards */
+.panels-flexible-column-4-9{
+	width: 190px;
+	height: 210px;
+	border-left: 1px solid #B3B3B3;
+	padding-left: 15px;
+}
+
+
+.panels-flexible-column-4-9 ul{
+	margin: 15px 0 0;
+	padding: 0;
+}
+.panels-flexible-column-4-9 ul li{
+	margin: 0 0 0.4em 1em;
+}
+.panels-flexible-column-4-9 ul li .field-content a{
+	font-weight: normal;
+	font-size: 12px;
+	text-decoration: underline;
+	color: #4F6786;
+}
+
+/* calendar block */
+
+.panels-flexible-region-4-calendar_view-inside{
+	padding: 0;
+}
+
+.panels-flexible-region-4-calendar_view-inside .date-nav,
+.panels-flexible-region-4-calendar_view-inside .month-view{
+	font-size: 11px;
+	border-bottom: 1px solid #C1DAD7;
+}
+.panels-flexible-region-4-calendar_view-inside .date-nav{
+	padding: 3px 2px;
+	height: 13px;
+}
+.panels-flexible-region-4-calendar_view-inside table tr{
+	border-right: 1px solid #C1DAD7;
+}
+.panels-flexible-region-4-calendar_view-inside table tr td{
+	text-align: center;
+	padding: 4px 1px;
+}
+
+/* events list */
+
+.panels-flexible-region-4-calendar_list_view .pane-views{
+	padding-left: 15px;
+	font-size: 10px;
+}
+.panels-flexible-region-4-calendar_list_view .view-content h3{
+	color: #F37B28;
+}
+.panels-flexible-region-4-calendar_list_view .views-row{
+	margin: 0;
+}
+
+
+/* content structure */
+
+.view-id-contentstructure ul{
+	width: 180px;
+	float: left;
+	margin: 5px 0 25px 0;
+	padding: 0;
+}
+.view-id-contentstructure ul li{
+	margin-left: 1em;
+}
+.panels-flexible-row-4-21-inside .pane-og-nodes{
+	clear: both;
+}
+
+.panels-flexible-region-4-calendar_list_view .views-row-last{
+	margin-bottom: 10px;
+}
+
+.panel-flexible .panels-flexible-row-4-1 .panels-flexible-region-inside-last{
+	margin-left: 6px;
+}
 .panel-2col-stacked .center-wrapper .panel-col-last{
 	margin-left: 3px;
 	width: 311px;
 }
+.panel-flexible .panels-flexible-row-4-1 .panel-pane > h4,
 .panel-2col-stacked .center-wrapper .panel-pane > h4{
 	height: 6px;
 	background-image:url(../images/ex5-2-column-header-bg.gif);
 	background-color:#FFF;
 }
+.panel-flexible .panels-flexible-row-4-1 .panel-pane > h5,
 .panel-2col-stacked .center-wrapper .panel-pane > h5{
 	height: 6px;
 	background-image:url(../images/ex5-2-column-footer-bg.gif);
 	background-color:#FFF;
 }
-.panel-2col-stacked .center-wrapper .panel-pane{
-	width: 311px;
-}
+
+.panel-flexible .panels-flexible-row-4-1 .panel-pane,
 .panel-2col-stacked .center-wrapper .panel-pane{
 	background-image:url(../images/ex5-2-column-bg.gif);
 	background-repeat:repeat-y;
+	width: 311px;
 }
+.panels-flexible-row-4-18-inside .pane-title,
+.panels-flexible-row-4-3 .pane-title{
+	color: #F15A24;
+	font-size: 14px;	
+}
+
+.panels-flexible-region-4-manage_community_lists-inside .pane-views,
+.panels-flexible-row-4-7{
+	margin-bottom: 30px;
+}
+
+.panels-flexible-region-4-content_structure-inside .pane-1 .pane-title,
+.panel-flexible .panels-flexible-row-4-1 .panel-pane .pane-title,
 .panel-2col-stacked .center-wrapper .panel-pane .pane-title{
 	margin: 0 5px;
 	background-image:url(../images/ex5-accordion-header.png);
@@ -635,7 +736,22 @@ article .comment > footer{
     text-transform: uppercase;
 	font-weight: normal;
 }
+.panels-flexible-region-4-content_structure-inside .pane-1 .pane-content{
+	display: none;
+}
 
+.panels-flexible-row-4-7-inside, .panels-flexible-row-4-17  .panels-flexible-region, 
+.panels-flexible-region-4-content_structure-inside .pane-views{
+	margin: 0 25px;
+	width: auto;
+}
+
+.panels-flexible-region-4-content_structure-inside .pane-views{
+	margin-bottom: 30px;
+}
+
+
+.panel-flexible .panels-flexible-row-4-1 .panel-pane .pane-content,
 .panel-2col-stacked .pane-content{
 	margin: 5px 25px;
 }
@@ -655,7 +771,26 @@ article .comment > footer{
 	font-size: 12px;
 	text-decoration: none;
 }
+.panel-flexible .panels-flexible-row-4-1 .panel-pane .pane-content{
+	height: 135px;
+}
 
+.panel-flexible .panels-flexible-row-4-1 .panel-pane .pane-content ul{
+	margin: 10px 0 0;
+	padding: 0;
+	list-style: none;
+	width: 130px;
+	float: left;
+}
+.panel-flexible .panels-flexible-row-4-1 .panel-pane .pane-content ul li{
+	list-style: none;
+	margin: 10px 0;
+}
+
+.pane-note{
+	font-size: 11px;
+	color: #808080;
+}
 
 .views-row div{
 	display: inline;
@@ -691,14 +826,21 @@ article .comment > footer{
     list-style-image: url(../images/ex5-bullet4.gif);
     list-style-type: square;
 }
+.panels-flexible-row-4-18-inside, .panels-flexible-row-4-3{
+	margin-top: 10px;
+}
 
 
 
+
+
+.panels-flexible-row-4-3, .panels-flexible-row-4-18-inside,
 .panel-2col-stacked .panel-col-bottom .panel-pane{
 	background-image:url(../images/ex5-full-column-bg.gif);
 	background-repeat:repeat-y;
 	width: 640px;
 }
+.panels-flexible-row-4-3 .panels-flexible-region-4-manage_community_heading-inside .pane-title,
 .panel-2col-stacked .panel-col-bottom .panel-pane .pane-title{
 	margin: 0 5px;
 	background-image:url(../images/ex5-accordion-header.png);
@@ -716,6 +858,27 @@ article .comment > footer{
     text-transform: uppercase;
 	font-weight: normal;
 }
+
+.panels-flexible-row{
+	padding: 0;
+}
+
+
+.panels-flexible-row-4-17-inside, .panels-flexible-region-4-content_structure .panels-flexible-region-inside-last{
+	background-image:url(../images/ex5-full-column-footer-bg.gif);
+	background-position: bottom left;
+	background-repeat: no-repeat;
+	padding-bottom: 10px;
+}
+
+.panels-flexible-region-4-content_structure,
+.panels-flexible-region-4-manage_community_heading{
+	width: 100%;
+}
+
+
+.panels-flexible-row-4-18-inside .pane-1 h4,
+.panels-flexible-row-4-3 .panels-flexible-region-4-manage_community_heading-inside h4,
 .panel-col-bottom h4{
 	height: 6px;
 	background-image:url(../images/ex5-full-column-header-bg.gif);
@@ -741,6 +904,24 @@ article .comment > footer{
 
 .views-row{
 	margin: 15px 0;
+}
+
+
+
+/* Pager
+-----------------------------------------------------------------------------*/
+.item-list .pager {
+    clear: both;
+    text-align: left;
+	margin: 30px 0;
+}
+
+.item-list .pager li {
+    padding-left: 0;
+	margin-left: 4px;
+}
+.item-list .pager li a{
+	color: #607890;
 }
 
 
@@ -807,3 +988,209 @@ article .comment > footer{
 	list-style: none;
 	display: inline;
 }
+
+
+
+
+
+
+
+
+/* reset styles v1.0 | 20080212 */
+/* cssr = css reset
+
+*/
+
+#cssr div, #cssr span, #cssr object, #cssr iframe, #cssr h1, #cssr h2, #cssr h3, #cssr h4, #cssr h5, #cssr h6, #cssr p, #cssr blockquote, #cssr pre,#cssr a, #cssr abbr, #cssr acronym, #cssr address, #cssr big, #cssr cite, #cssr code, #cssr del, #cssr dfn, #cssr em, #cssr img, #cssr ins, #cssr kbd, #cssr q, #cssr s, #cssr samp, #cssr small, #cssr strike, #cssr strong, #cssr sub, #cssr sup, #cssr tt, #cssr var,#cssr dl,#cssr dt,#cssr dd,#cssr ol,#cssr ul,#cssr li,#cssr fieldset,#cssr form,#cssr label,#cssr legend, #cssr table,#cssr caption,#cssr tbody,#cssr tfoot,#cssr thead,#cssr tr,#cssr th,#cssr td {margin: 0;padding: 0;border: 0;outline: 0;vertical-align: baseline;background: transparent;}
+#cssr {line-height: 1;}
+#cssr ol, #cssr ul {list-style: none;}
+#cssr blockquote, #cssr q {quotes: none;}
+#cssr blockquote:before, #cssr blockquote:after,
+#cssr q:before, #cssr q:after {content: '';content: none;}
+
+/* remember to define focus styles! */
+#cssr :focus {outline: 0;}
+
+/* tables still need 'cellspacing="0"' in the markup */
+#cssr table {border-collapse: collapse;border-spacing: 0;}
+
+/* Put it back on certain elements */
+#cssr h1, #cssr h2, #cssr h3, #cssr h4, #cssr h5, #cssr h6, #cssr p, #cssr pre, #cssr blockquote, #cssr form, #cssr fieldset, #cssr table, #cssr ol, #cssr ul, #cssr dl {
+	margin: 0 0 1em;
+}
+
+/* end reset styles */
+
+/* reset the font size to 1em.
+background: the browser font-size default is 16pt. multiple by 62.5% to reset font size to 1em.
+1em is now equal to 10pt. 1.2em is 12pt, 1.6em is 16pt, etc. (unless nested) */
+#cssr * {font-size: 10px;}
+
+
+/* default text sizes
+-----------------------------------------------------------------------------*/
+#cssr p, #cssr li, #cssr dt, #cssr dd, #cssr td, #cssr th, #cssr blockquote, #cssr code {font-size:1.3em; line-height: 140%;}
+#cssr p input {font-size:1em;}
+
+#cssr a {font-size:100%;}
+#cssr td p {font-size:inherit; line-height: 140%;}
+#cssr td li {font-size:1em;}
+
+#cssr li * {font-size:inherit;}
+#cssr h1 { font-size: 2.4em;}
+#cssr h2 { font-size: 2.0em;}
+#cssr h3 { font-size: 1.8em;}
+#cssr h4 { font-size: 1.5em;}
+#cssr h5 { font-size: 1.4em;}
+#cssr h6 { font-size: 1.3em;}
+
+#cssr h1, #cssr h2, #cssr h3, #cssr h4, #cssr h5, #cssr h6 {margin: .5em 0 .5em 0; line-height: 140%;}
+
+#cssr sup {vertical-align:super;}
+#cssr sub {vertical-align:sub;}
+
+#cssr .clear, #cssr .clearing {clear: both;}
+#cssr .left {float: left}
+#cssr .right {float: right;}
+#cssr .hide {display:none;}
+#cssr .nowrap {white-space: nowrap;}
+
+
+/* Tables
+-----------------------------------------------------------------------------*/
+#cssr table { 
+	width: 100%;
+	color: #000;
+	border: 1px solid #ddd;
+	margin: 0 0 1.5em;
+}
+
+#cssr table.halfwidth { 
+	width: 50%;
+}
+
+#cssr th {
+	margin: 0;
+	padding: .1em .5em;
+	text-align: left;
+	white-space: nowrap;
+	background: #eee;
+	border: 1px solid #ddd;
+	border-bottom:  1px solid #ccc;
+}
+#cssr td {
+	margin: 0;
+	padding: .3em .5em;
+	text-align: left;
+	font-weight: normal;
+	border-bottom:  1px solid #a9c9e5;
+	vertical-align:middle;
+}
+
+#cssr tr.shaded {background: #e9f1ff;}
+#cssr table.hover tr:hover { background: #dbe8ff;color: #000;}
+#cssr table.hover tr.shaded:hover {background: #dbe8ff;color: #000;}
+
+#cssr table td a          {color: blue; text-decoration: none; display: block; }
+#cssr table td a:link     {color: #00356e;}
+#cssr table td a:visited  {color: #00356e;}
+#cssr table td a:hover    {color: blue; text-decoration: underline;}
+
+#cssr table.inlinelinks td a {display: inline;  padding:2px 6px 1px; -webkit-border-radius: .5em;-moz-border-radius: .5em;border-radius: .5em; text-transform:uppercase; font-size:8pt; text-shadow: 0 1px 1px rgba(0,0,0,.5);}
+#cssr table.inlinelinks td a:link     {color: #fff; background:#8c96a9;}
+#cssr table.inlinelinks td a:visited  {color: #fff; background:#8c96a9;}
+#cssr table.inlinelinks td a:hover    {color: #fff; background:#244b92; text-decoration:none;}
+
+#cssr table caption {font-size:1.4em; line-height:2em;font-weight:bold;color: #12396e;margin: .35em 0 0 0;padding:0;caption-side:top;text-align:left;}
+
+
+
+
+
+
+/* Classes and IDs originating from CoP Wiki templates
+-----------------------------------------------------------------------------*/
+/* .hiddenStructure is pulled over from CoP wiki templates */
+.hiddenStructure {position:absolute;left:-5000px;display:hidden;}
+
+/* Template:calloutbox */
+.calloutbox {font-size:1.2em; padding:1.2em; margin:0 0 1.5em; border: 1px solid #ccc; background:#fffff2;}
+.calloutbox p {font-size:1.2em !important;padding: 0; margin: 0 0 .9em;}
+.calloutbox h2 {font-size:1.7em !important;padding: 0; margin: 0 0 .9em; margin-top:0 !important;}
+.calloutbox li {font-size:1.2em !important;padding: 0; margin: 0 0 .9em; margin-top:0 !important;}
+
+/* Template:multipage */
+.multipage {background: #fff0bb; padding:0 1em;margin:0;}
+.multipage .nextpage {float:right; padding:0;margin:0;}
+
+/* Template:photomontage */
+.photocontainercenter {text-align: center; background: #fff; border: 1px solid #ebebeb; padding: 10px;}
+.photocontainercenter .heading {text-align: left; font-weight: bold; font-size:1.4em;padding:0;margin:0;}
+
+/* Template:image */
+.singleimage {padding: 3px; margin: 5px; border: 1px solid #ebebeb; float:left;}
+.singleimage.right {float:right;clear:right;}
+.singleimage.center {clear:both;float:none;}
+.singleimage.center div {margin-left:auto;margin-right:auto;}
+.singleimage.center img {display:block;float:none;margin-left:auto;margin-right:auto;}
+.thumbcaption {font-size:1.3em;}
+.rightcolmodule .singleimage {float:none; border:0; padding-left:40px;}
+
+/* Template:footer */
+#contentfooter {font-size:.9em; line-height:1.5em; margin-top:4em;border-top:1px solid #ccc;}
+
+
+/* Classes and IDs that are manipulated by javascript at load time
+-----------------------------------------------------------------------------*/
+#second_column_content {padding: 0; margin: 10px 0  0; width: 215px; float: right; margin-left: 5px; padding-left: 5px; border-left: 1px solid #bbb;}
+#second_column_content ul {padding-left:20px;}
+.primarycolumn {width:400px !important;}
+
+
+/*this was added to allow content to be cleared below images without clearing the rightsidebar*/
+#article {float:left;line-height: 1.8em; }
+#article p {font-size:1.3em;}
+.content {width: 600px}
+.faq {width: 600px;margin-top:1.1em;}
+
+/* Resest all styles for articles imported from the wiki
+-----------------------------------------------------------------------------*/
+#cssr {margin:0;padding:0;width:653px !important;}
+#cssr h1,
+#cssr h2,
+#cssr h3,
+#cssr h4,
+#cssr h5,
+#cssr h6 {color:#333;}
+#cssr h1 {margin-bottom:.5em;}
+#cssr h2 {font-size:2.2em; margin:1em 0 .5em; color:#000;}
+#cssr dl {margin:1em;}
+#cssr dl dt {font-size:1.2em !important;}
+#cssr dl dt dt {font-size:inherit;}
+#cssr dl dd {font-size:1.2em;}
+#cssr dl dd dd {font-size:inherit;}
+#cssr table {background:#fff;}
+#cssr table,
+#cssr table caption {font-weight:bold;font-size:1.1em;line-height:1.3em;margin-bottom:1em;}
+#cssr table th,
+#cssr table td,
+#cssr table th {color:#222;border: 1px solid #bbb;} 
+#cssr table th {background:#ededed;}
+#cssr table p {font-size:1em;}
+#cssr table li {font-size:1em;}
+#cssr th {white-space: normal;}
+
+/* Removed overflow:auto from ul lists because it was preventing the block from flowing around floated content. the problem is that I know this was solving another issue, will have to wait and see what breaks. */
+#cssr ul {padding:0 1.5em 0;margin:0 0 1em;}
+
+#cssr li {margin:0 0 .5em 1.5em; padding:0; list-style:disc;font-size:1.4em;}
+#cssr ol li {list-style:decimal;}
+#cssr p {font-size:1.4em;}
+
+/* this constrains the div when there images or tables that exceed the column width */
+#cssr #article {width:653px;}
+
+
+
+
+.field-name-body

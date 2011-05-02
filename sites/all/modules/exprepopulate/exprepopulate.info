@@ -1,0 +1,7 @@
+; $Id$
+name = eXtension Prepopulate
+description = "Tool used to prepopulate form fields on load"
+version = VERSION
+core = 7.x
+package = eXtension
+files[] = exprepopulate.module
