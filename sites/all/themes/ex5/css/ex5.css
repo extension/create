@@ -439,14 +439,21 @@ ul.primary li a:hover{
 .view-og-user-groups .views-row{
 	margin: 0;
 }
-.view-og-user-groups .view-footer{
+.view-og-user-groups .view-footer,
+.pane-og-nodes .more-link{
 	margin: 5px 10px;
 	padding: 0 0 0 10px;
 	background-image:url(../images/ex5-bullet3.gif);
 	background-repeat:no-repeat;
 	background-position: 0 7px;
 }
-.view-og-user-groups .view-footer a{
+
+.pane-og-nodes .more-link{
+	text-align: left;
+	margin: 15px 0 0 0;
+}
+.view-og-user-groups .view-footer a,
+.pane-og-nodes .more-link a{
 	font-size: 12px;
 	text-decoration:none;
 	color: #4F6786;
