@@ -42,7 +42,7 @@
 			}
 			
 			if ($url == NULL) {
-			  $global $base_url;
+			    global $base_url;
 				$url = $base_url . $_SERVER['REQUEST_URI'];
 			}
 			
