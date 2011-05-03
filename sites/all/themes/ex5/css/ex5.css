@@ -515,6 +515,11 @@ article .field-name-field-image img{
 }
 
 
+#comments{
+	clear: both;
+}
+
+
 /* Taking care of the space under the title
 -----------------------------------------------------------------------------*/
 
