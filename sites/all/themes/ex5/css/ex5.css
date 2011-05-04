@@ -514,6 +514,12 @@ article .field-name-field-image img{
 	border: 1px solid #B3B3B3;
 }
 
+.field-name-body h1, .field-name-body h2, .field-name-body h3, .field-name-body h4{
+	margin: .5em 0 .5em 0; 
+	line-height: 140%;
+}
+
+
 
 #comments{
 	clear: both;
@@ -1201,8 +1207,3 @@ background: the browser font-size default is 16pt. multiple by 62.5% to reset fo
 
 /* this constrains the div when there images or tables that exceed the column width */
 #cssr #article {width:653px;}
-
-
-
-
-.field-name-body
