@@ -300,6 +300,14 @@ header.menu-bar #block-system-main-menu ul.menu li a.active{
 	margin:35px 5px;
 }
 
+#block-system-main > div > .view{
+	margin: 0 6px;
+}
+
+.view-content .views-table{
+	width: 100%;
+	margin-top: 20px;
+}
 
 
 /* Updated date and user name under the title
@@ -597,6 +605,22 @@ article .comment > footer{
 	font-size: 11px;
 	margin-bottom: 18px;
 }
+
+
+/* Exposed filters in the headers of the views
+-----------------------------------------------------------------------------*/
+.views-exposed-widgets .form-text{
+	width: 170px;
+	
+}
+.views-exposed-form .views-widget-filter-title{
+	width: 180px;
+}
+
+.views-exposed-form .views-widget-filter-title label{
+	width: 160px;
+}
+
 
 /* Dashboard panels
 -----------------------------------------------------------------------------*/
