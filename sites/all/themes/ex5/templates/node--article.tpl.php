@@ -22,12 +22,8 @@
       hide($content['comments']);
       hide($content['links']);
 	  hide($content['additional_field']);
-	  ?>
-	  <div id="for_pubsite">
-	  <?php
       print render($content);
     ?>
-    </div>
   </div>
   <div class="clearfix">
   <?php print render($content['additional_field']); ?>
