@@ -28,6 +28,13 @@ function exlistview_schema() {
       'not null' => TRUE,
     ),
     
+    'group_audience_filter' => array(
+      'description' => 'The comma separated list of group audiences to filter by.', 
+      'type' => 'text', 
+      'size' => 'medium', 
+      'not null' => TRUE
+    ),
+    
     'show_faqs' => array(
       'description' => 'Boolean of whether the filter includes faqs or not.',
       'type' => 'int',
@@ -91,4 +98,8 @@ function exlistview_schema() {
   
   return $schema;
 
+}
+
+function exlistview_update_7000() {
+  db_add_field('listview_preferences', 'group_audience_filter', array('description' => 'The comma separated list of group audiences to filter by.', 'type' => 'text', 'size' => 'medium', 'not null' => TRUE, 'initial' => ''));
 }

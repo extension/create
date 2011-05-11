@@ -111,9 +111,10 @@ function exlistview_show() {
   
   }
   
-  // find user preference for tag filtering if it exists
+  
   $listview_preference = db_query('SELECT * FROM {listview_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
   
+  // find user preference for tag filtering if it exists
   if($listview_preference != false) {
     $tag_string = $listview_preference->tag_filter;
     
@@ -167,7 +168,39 @@ function exlistview_show() {
     foreach ($node_records as $node_record) {
       array_push($node_id_array, $node_record->node_id);
     }
-  }
+  
+  if(count($node_id_array) > 0) {
+    // find user preference for group audience if it exists and filter by it
+    $group_string = $listview_preference->group_audience_filter;
+    if(trim($group_string) != '') {
+      $group_array = explode(',', $group_string);
+      $group_count = count($group_array);
+      
+      $listview_query = db_select('field_data_group_audience', 'ga');
+      $listview_query->join('group_resource_tags', 'grt', 'ga.group_audience_gid = grt.nid');
+      $listview_query->addExpression('DISTINCT(ga.entity_id)', 'node_id');
+      $listview_query->addExpression('COUNT(ga.entity_id)', 'node_count');
+    
+      // want to make sure we have the group resource tag names for the nodes in the saved pref for group list, 
+      // we also want to make sure the node id's fall in the list of the nodes already filtered by tag
+      $listview_query->condition(db_and()
+                                 ->condition('grt.resource_tag_name', $group_array, 'IN')
+                                 ->condition('ga.entity_id', $node_id_array, 'IN'))
+                ->groupBy('node_id')
+                ->having("node_count = {$group_count}");
+                
+      $node_records = $listview_query->execute();
+      
+      //create a new node_id_array based on the tag and type filters plus the groups audience filter
+      $node_id_array = array();
+      foreach ($node_records as $node_record) {
+        array_push($node_id_array, $node_record->node_id);
+      }
+      
+    } // end of did we have groups in the pref for this user
+  } // end of did we have nodes that matched the tag filter and type filter
+  
+  } // end of did we have a listview preference
   
   // if there were no listview prefs set or listview prefs set and records were found, continue w/ query,
   // otherwise, return no nodes
@@ -268,7 +301,7 @@ function exlistview_show() {
     }
   }
   
-  // else we have no node records b/c the tag filter filtered them all out
+  // else we have no node records b/c the filters filtered them all out
   else {
     $record_array = array();
     return theme('exlistview_show', array('listview_nodes' => $record_array, 'tag_form' => drupal_get_form('exlistview_tag_form')));
@@ -294,22 +327,44 @@ function exlistview_tag_form($form, &$form_state) {
   
   if($listview_preference != false) {
     $tag_default_value = $listview_preference->tag_filter;
+    $selected_group_preferences = _exlistview_return_selected_groups($listview_preference, $user->uid);
+    
+    if(trim($listview_preference->group_audience_filter) != '') {
+      $selected_group_string = 'Currently, '.$listview_preference->group_audience_filter.' selected';  
+    }
+    else {
+      $selected_group_string = 'Currently, no groups are selected.';
+    }
+    
     $show_faqs = $listview_preference->show_faqs;
     $show_articles = $listview_preference->show_articles;
     $show_news = $listview_preference->show_news;
   }
   else {
     $tag_default_value = '';
+    $selected_group_preferences = array();
+    $selected_group_string = 'Currently, no groups are selected.';
     $show_faqs = true;
     $show_articles = true;
     $show_news = false;
   }
+  
+  $group_array = _exlistview_return_group_tags();
   
   // build the form
   $form['filter_tags'] = array(
     '#type' => 'textfield', 
     '#title' => t('Filter by Tags (comma separated)'), 
     '#default_value' => $tag_default_value,
+  );
+  
+  $form['select_group_audience'] = array(
+    '#type' => 'select',
+    '#multiple' => true,
+    '#title' => 'Group Audience ('.$selected_group_string.')',
+    '#empty_value' => '',
+    '#default_value' => $selected_group_preferences,
+    '#options' => $group_array,
   );
   
   if(isset($_GET['order']) && isset($_GET['field'])) {  
@@ -342,11 +397,26 @@ function exlistview_tag_form($form, &$form_state) {
   return $form;
 }
 
-// handle tag form submission
+// handle tag form submission and group filter submission
 function exlistview_tag_form_submit($form, &$form_state) {
   // get current user
   global $user;
   $tags_to_filter_by = $form_state['values']['filter_tags'];
+  
+  // handle group filter stuff
+  $groups_to_filter_by = $form_state['values']['select_group_audience'];
+  $group_array = array();
+  foreach($groups_to_filter_by as $group_tag => $group_tag_value) {
+    $group_array[] = trim($group_tag_value);
+  }
+  
+  if(count($group_array) > 0) {
+    $group_string = implode(",", $group_array);
+  }
+  else {
+    $group_string = '';
+  }
+  // end of handling groups stuff
   
   $show_faqs = $form_state['values']['show_faqs'];
   $show_articles = $form_state['values']['show_articles'];
@@ -357,11 +427,13 @@ function exlistview_tag_form_submit($form, &$form_state) {
   
   $tags_to_save = prepare_tags($tags_to_filter_by);
   
+  
   // if a tag preference was found for this user, update it
   if($listview_preference != false) {
     db_update('listview_preferences')
       ->fields(array(
                'tag_filter' => $tags_to_save,
+               'group_audience_filter' => $group_string,
                'show_faqs' => $show_faqs,
                'show_articles' => $show_articles,
                'show_news' => $show_news,
@@ -377,6 +449,7 @@ function exlistview_tag_form_submit($form, &$form_state) {
     $fields = array(
               'user_id' => $user->uid, 
               'tag_filter' => $tags_to_save,
+              'group_audience_filter' => $group_string,
               'show_faqs' => $show_faqs,
               'show_articles' => $show_articles,
               'show_news' => $show_news,
@@ -388,7 +461,7 @@ function exlistview_tag_form_submit($form, &$form_state) {
     
   }
   
-  drupal_set_message("Tag preferences updated successfully!");
+  drupal_set_message("Workflow filter preferences updated successfully!");
 
 }
 
@@ -417,3 +490,34 @@ function prepare_tags($tag_string) {
   
   return $return_string;
 }
+
+// get a list of available group tags (CoP tags)
+function _exlistview_return_group_tags() {
+	$query = db_select('group_resource_tags');
+  $query->addField('group_resource_tags', 'resource_tag_name');
+  $query->orderBy('resource_tag_name');
+  $result = $query->execute()->fetchAllAssoc('resource_tag_name');
+  $returnarray = array();
+  foreach($result as $tagdata) {
+    $returnarray[$tagdata->resource_tag_name] = $tagdata->resource_tag_name;
+  }
+  return $returnarray;
+}
+
+// find group filter preferences
+function _exlistview_return_selected_groups($listview_pref, $user_id) {
+  $group_audience_string = $listview_pref->group_audience_filter;
+  
+  if(trim($group_audience_string) == '') {
+    return array();
+  }
+  else {
+    $group_array = explode(',', $group_audience_string);
+    foreach($group_array as $group_tag) {
+      $return_array[$group_tag] = $group_tag;    
+    }
+    return $return_array;
+  }  
+  
+}
+
