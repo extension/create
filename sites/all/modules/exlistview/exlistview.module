@@ -349,7 +349,7 @@ function exlistview_tag_form($form, &$form_state) {
     $show_news = false;
   }
   
-  $group_array = _exlistview_return_group_tags();
+  $group_array = array_merge(array('' => '--Clear Groups--'), _exlistview_return_group_tags());
   
   // build the form
   $form['filter_tags'] = array(
@@ -362,9 +362,9 @@ function exlistview_tag_form($form, &$form_state) {
     '#type' => 'select',
     '#multiple' => true,
     '#title' => 'Group Audience ('.$selected_group_string.')',
-    '#empty_value' => '',
     '#default_value' => $selected_group_preferences,
     '#options' => $group_array,
+    '#required' => FALSE,
   );
   
   if(isset($_GET['order']) && isset($_GET['field'])) {  
@@ -406,7 +406,7 @@ function exlistview_tag_form_submit($form, &$form_state) {
   // handle group filter stuff
   $groups_to_filter_by = $form_state['values']['select_group_audience'];
   $group_array = array();
-  foreach($groups_to_filter_by as $group_tag => $group_tag_value) {
+  foreach($groups_to_filter_by as $group_name => $group_tag_value) {
     $group_array[] = trim($group_tag_value);
   }
   
@@ -494,12 +494,13 @@ function prepare_tags($tag_string) {
 // get a list of available group tags (CoP tags)
 function _exlistview_return_group_tags() {
 	$query = db_select('group_resource_tags');
+	$query->addField('group_resource_tags', 'community_name');
   $query->addField('group_resource_tags', 'resource_tag_name');
-  $query->orderBy('resource_tag_name');
+  $query->orderBy('community_name');
   $result = $query->execute()->fetchAllAssoc('resource_tag_name');
   $returnarray = array();
-  foreach($result as $tagdata) {
-    $returnarray[$tagdata->resource_tag_name] = $tagdata->resource_tag_name;
+  foreach($result as $community => $community_data) {
+    $returnarray[$community] = $community_data->community_name;
   }
   return $returnarray;
 }
