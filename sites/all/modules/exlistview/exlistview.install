@@ -51,14 +51,6 @@ function exlistview_schema() {
       'default' => 1,  
     ),
     
-    'show_events' => array(
-      'description' => 'Boolean of whether the filter includes events or not.',
-      'type' => 'int',
-      'size' => 'tiny',
-      'not null' => TRUE,
-      'default' => 1,  
-    ),
-  
     'show_news' => array(
       'description' => 'Boolean of whether the filter includes news or not.',
       'type' => 'int',
@@ -102,4 +94,5 @@ function exlistview_schema() {
 
 function exlistview_update_7000() {
   db_add_field('listview_preferences', 'group_audience_filter', array('description' => 'The comma separated list of group audiences to filter by.', 'type' => 'text', 'size' => 'medium', 'not null' => TRUE, 'initial' => ''));
+  db_drop_field('listview_preferences', 'show_events');
 }
