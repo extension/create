@@ -10,6 +10,7 @@
 		<?php print $page_top; ?>
         <?php print $page; ?>
         <?php print $scripts; ?>
+		<?php print $page_bottom; ?>
 <?php print $belatedpng; ?>
     </body>
 </html>
