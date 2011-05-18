@@ -400,6 +400,7 @@ class DateObject extends DateTime {
         case 'Y':
           $final_date['year'] = $value;
           $this->addGranularity('year');
+          if (strlen($value) < 4) $this->errors['year'] = t('The year is invalid. Please check that entry includes four digits.');
           break;
         case 'y':
           $year = $value;
@@ -450,7 +451,7 @@ class DateObject extends DateTime {
     if ($tz) {
       $this->addGranularity('timezone');
     }
-
+    
     // SetDate expects an integer value for the year, results can 
     // be unexpected if we feed it something like '0100' or '0000';
     $final_date['year'] = intval($final_date['year']);
@@ -728,10 +729,6 @@ class DateObject extends DateTime {
   }
 }
 
-function date_db_type() {
-  return $GLOBALS['databases']['default']['default']['driver'];
-}
-
 /**
  * Helper function for getting the format string for a date type.
  */
@@ -776,17 +773,18 @@ function date_month_names_untranslated() {
 }
 
 /**
- * A translated array of month names
+ * Returns a translated array of month names.
  *
  * @param $required
  *   If not required, will include a blank value at the beginning of the list.
+ *
  * @return
- *   an array of month names
+ *   An array of month names
  */
 function date_month_names($required = FALSE) {
   $month_names = array();
   foreach (date_month_names_untranslated() as $key => $month) {
-    $month_names[$key] = t($month, array(), array('context' => 'month_name'));
+    $month_names[$key] = t($month, array(), array('context' => 'Long month name'));
   }
   $none = array('' => '');
   return !$required ? $none + $month_names : $month_names;
@@ -829,17 +827,18 @@ function date_week_days_untranslated($refresh = TRUE) {
 }
 
 /**
- * A translated array of week days
+ * Returns a translated array of week names.
  *
  * @param $required
  *   If not required, will include a blank value at the beginning of the array.
+ *
  * @return
- *   an array of week day names
+ *   An array of week day names
  */
 function date_week_days($required = FALSE, $refresh = TRUE) {
   $weekdays = array();
   foreach (date_week_days_untranslated() as $key => $day) {
-    $weekdays[$key] = t($day, array(), array('context' => 'day_name'));
+    $weekdays[$key] = t($day, array(), array('context' => ''));
   }
   $none = array('' => '');
   return !$required ? $none + $weekdays : $weekdays;
@@ -863,7 +862,7 @@ function date_week_days_abbr($required = FALSE, $refresh = TRUE, $length = 3) {
       $context = 'day_abbr2';
       break;
     default:
-      $context = 'day_abbr';
+      $context = '';
       break; 
   }
   foreach (date_week_days_untranslated() as $key => $day) {
@@ -1219,13 +1218,13 @@ function date_format_date($date, $type = 'medium', $format = '', $langcode = NUL
     $c = $format[$i];
     switch ($c) {
       case 'l':
-        $datestring .= t($date->format('l'), array(), array('context' => 'day_name', 'langcode' => $langcode));
+        $datestring .= t($date->format('l'), array(), array('context' => '', 'langcode' => $langcode));
         break;
       case 'D':
-        $datestring .= t($date->format('D'), array(), array('context' => 'day_abbr', 'langcode' => $langcode));
+        $datestring .= t($date->format('D'), array(), array('context' => '', 'langcode' => $langcode));
         break;
       case 'F':
-        $datestring .= t($date->format('F'), array(), array('context' => 'month_name', 'langcode' => $langcode));
+        $datestring .= t($date->format('F'), array(), array('context' => 'Long month name', 'langcode' => $langcode));
         break;  
       case 'M':
         $datestring .= t($date->format('M'), array(), array('context' => 'month_abbr', 'langcode' => $langcode));
@@ -1778,15 +1777,6 @@ function date_api_theme() {
     'date_calendar_day' => $base + array('variables' => array('date' => NULL)),  
     'date_time_ago' => $base + array('variables' => array('start_date' => NULL, 'end_date' => NULL, 'interval' => NULL))
   );
-}
-
-/**
- * Wrapper around date handler setting for timezone.
- */
-function date_api_set_db_timezone($offset = '+00:00') {
-  module_load_include('inc', 'date_api', 'date_api_sql');
-  $handler = new date_sql_handler();
-  return $handler->set_db_timezone($offset);
 }
 
 /**

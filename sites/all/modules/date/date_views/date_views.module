@@ -230,7 +230,7 @@ function date_views_field_views_data_alter(&$result, $field, $module) {
           // Not sure yet if we still need a custom field handler in D7 now that custom formatters are available.
           // Might still need it to handle grouping of multiple value dates.
           //$result[$table][$column]['field']['handler'] = 'date_handler_field_date';
-          $result[$table][$column]['field']['add fields to query'] = TRUE;
+          //$result[$table][$column]['field']['add fields to query'] = TRUE;
         } 
       } 
     }

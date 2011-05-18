@@ -502,8 +502,7 @@ function date_select_validate($element, &$form_state) {
   }
 
   $label = !empty($element['#date_title']) ? $element['#date_title'] : (!empty($element['#title']) ? $element['#title'] : '');
-
-  if (isset($element['#value']['ampm'])) {
+  if (isset($input['ampm'])) {
     if ($input['ampm'] == 'pm' && $input['hour'] < 12) {
       $input['hour'] += 12;
     }
@@ -513,7 +512,6 @@ function date_select_validate($element, &$form_state) {
   }
   unset($input['ampm']);
   $date = date_select_input_date($element, $input);
-
   if (empty($date) && $element['#required']) {
     form_error($element, t('A valid value is required.'));
   }
@@ -536,6 +534,15 @@ function date_select_input_date($element, $input) {
     return NULL;
   }  
   $granularity = date_format_order($element['#date_format']);
+  if (isset($input['ampm'])) {
+    if ($input['ampm'] == 'pm' && $input['hour'] < 12) {
+      $input['hour'] += 12;
+    }
+    elseif ($input['ampm'] == 'am' && $input['hour'] == 12) {
+      $input['hour'] -= 12;
+    }
+  }
+  unset($input['ampm']);
   $date = new DateObject($input, $element['#date_timezone']);
   if (is_object($date)) {
     $date->limitGranularity($granularity);
