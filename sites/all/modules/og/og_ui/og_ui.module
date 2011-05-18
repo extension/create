@@ -1,13 +1,12 @@
 <?php
 
-
 /**
  * @file
- * Group UI.
+ * Organic groups UI.
  */
 
 /**
- * Implement hook_menu().
+ * Implements hook_menu().
  */
 function og_ui_menu() {
   $items = array();
@@ -187,6 +186,20 @@ function og_ui_menu() {
 }
 
 /**
+ * Implements hook_ctools_plugin_directory().
+ */
+function og_ui_ctools_plugin_directory($module, $plugin) {
+  // Safety: go away if CTools is not at an appropriate version.
+  if (!module_invoke('ctools', 'api_version', OG_MIGRATE_REQUIRED_CTOOLS_API)) {
+    return;
+  }
+
+  if ($module == 'ctools' || $module == 'og_migrate') {
+    return 'plugins/' . $plugin;
+  }
+}
+
+/**
  * Implements hook_admin_paths().
  */
 function og_ui_admin_paths() {
@@ -222,6 +235,15 @@ function og_ui_theme() {
   );
 }
 
+/**
+ * Implements hook_og_fields_info_alter().
+ *
+ * Change the default formatter of the group field.
+ */
+function og_ui_og_fields_info_alter(&$items) {
+  $items[OG_GROUP_FIELD]['instance']['display']['default']['type'] = 'og_group_subscribe';
+}
+
 
 /**
  * Implement hook_field_formatter_info().
@@ -246,6 +268,42 @@ function og_ui_field_formatter_view($entity_type, $entity, $field, $instance, $l
   }
 
   return $element;
+}
+
+/**
+ * Implements hook_mail().
+ */
+function og_ui_mail($key, &$message, $params) {
+  $language = $message['language'];
+  $message['subject'] .= _og_mail_text($key . '_subject', $language, $params);
+  $message['body'][] = _og_mail_text($key . '_body', $language, $params);
+}
+
+/**
+ * Implements hook_field_attach_form().
+ *
+ * Hide the group audience field from the user page, for non-privileged users.
+ */
+function og_ui_field_attach_form($entity_type, $entity, &$form, $form_state, $langcode) {
+  if ($entity_type == 'user' && !user_access('administer group')) {
+    $form[OG_AUDIENCE_FIELD][LANGUAGE_NONE]['#access'] = FALSE;
+  }
+}
+
+/**
+ * Implements hook_og_user_access_alter().
+ *
+ * Add a permission to pending users to unsubscribe form group.
+ */
+function og_ui_og_user_access_alter(&$perms, $context) {
+  if ($context['string'] == 'unsubscribe' && empty($perm['unsubscribe'])) {
+    // Check user's state.
+    $state = og_get_entity_state($context['group']->gid, 'user', $context['account']);
+    if ($state == OG_STATE_PENDING) {
+      // Allow user to unsubscribe.
+      $perms['unsubscribe'] = TRUE;
+    }
+  }
 }
 
 
@@ -276,14 +334,9 @@ function og_ui_subscribe_link($entity_type, $entity, $account = NULL) {
       );
     }
     else {
-      // check the user state.
-      if ($state = og_get_entity_state($group->gid, 'user', $account)) {
-
-        if ($state == OG_STATE_PENDING && og_user_access($group->gid, 'subscribe')) {
-          $links['title'] = t('Re-request group membership');
-          $links['href'] = "group/$entity_type/$id/subscribe";
-        }
-        elseif ($state == OG_STATE_ACTIVE && og_user_access($group->gid, 'unsubscribe', $account)) {
+      // Check if the user is a group member.
+      if (og_is_member($group->gid, 'user', $account, array(OG_STATE_ACTIVE, OG_STATE_PENDING))) {
+        if (og_user_access($group->gid, 'unsubscribe', $account)) {
           $links['title'] = t('Unsubscribe from group');
           $links['href'] = "group/$entity_type/$id/unsubscribe";
         }
@@ -550,7 +603,8 @@ function og_ui_user_operations_block($gid, $uids) {
 function _group_ui_user_operations_set_state($gid, $uids, $state) {
   $accounts = user_load_multiple($uids);
   foreach ($accounts as $account) {
-    og_group($gid, 'user', $account, $state);
+    $values = array('entity' => $account, 'state' => $state);
+    og_group($gid, $values);
   }
 }
 
@@ -634,15 +688,4 @@ function og_ui_get_group_admin($gid) {
   drupal_alter('og_ui_get_group_admin', $data, $gid);
 
   return $data;
-}
-
-/**
- * Implements hook_field_attach_form().
- *
- * Hide the group audience field from the user page, for non-privileged users.
- */
-function og_ui_field_attach_form($entity_type, $entity, &$form, $form_state, $langcode) {
-  if ($entity_type == 'user' && !user_access('administer group')) {
-    $form[OG_AUDIENCE_FIELD][LANGUAGE_NONE]['#access'] = FALSE;
-  }
 }
