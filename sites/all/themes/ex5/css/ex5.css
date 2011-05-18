@@ -1205,7 +1205,8 @@ background: the browser font-size default is 16pt. multiple by 62.5% to reset fo
 #cssr h5,
 #cssr h6 {color:#333;}
 #cssr h1 {margin-bottom:.5em;}
-#cssr h2 {font-size:2.2em; margin:1em 0 .5em; color:#000;}
+#cssr h2 {font-size:2.2em; margin:1em 0 .5em; color:#005;} 
+#cssr h1 *, #cssr h2 *, #cssr h3 *, #cssr h4 *, #cssr h5 *, #cssr h6 * {font-size:inherit;}
 #cssr dl {margin:1em;}
 #cssr dl dt {font-size:1.2em !important;}
 #cssr dl dt dt {font-size:inherit;}
@@ -1228,6 +1229,8 @@ background: the browser font-size default is 16pt. multiple by 62.5% to reset fo
 #cssr li {margin:0 0 .5em 1.5em; padding:0; list-style:disc;font-size:1.4em;}
 #cssr ol li {list-style:decimal;}
 #cssr p {font-size:1.4em;}
+#cssr p * {font-size:inherit;}
+#cssr b {font-weight:bold;}
 
 /* this constrains the div when there images or tables that exceed the column width */
 #cssr #article {width:653px;}

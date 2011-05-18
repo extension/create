@@ -6,6 +6,9 @@
  * Admin settings for Organic grops module.
  */
 
+/**
+ * Menu callback; Admin settings form.
+ */
 function og_ui_user_admin_settings($form_state) {
   $form = array();
 
@@ -15,7 +18,6 @@ function og_ui_user_admin_settings($form_state) {
     '#description' => t('When enabled the group manager will have all the permissions in the group.'),
     '#default_value' => variable_get('og_group_manager_full_access', TRUE),
   );
-
 
   return system_settings_form($form);
 }
@@ -65,6 +67,7 @@ function og_ui_add_users($form, &$form_state, $entity_type, $etid) {
       '#type' => 'textfield',
       '#title' => t('User name'),
       '#autocomplete_path' => 'user/autocomplete',
+      '#required' => TRUE,
     );
     $form['og_user']['og_add_user_state'] = array(
       '#type' => 'select',
@@ -72,6 +75,34 @@ function og_ui_add_users($form, &$form_state, $entity_type, $etid) {
       '#options' => og_group_content_states(),
       '#description' => t('Select the state of the membership.'),
     );
+    $options = array();
+    foreach (entity_load('og_membership_type') as $type) {
+      $options[$type->name] = check_plain($type->description);
+    }
+
+    $form['og_user']['og_add_user_membership_type'] = array(
+      '#type' => 'select',
+      '#title' => t('Membership type'),
+      '#options' => $options,
+      '#default_value' => 'OG_MEMBERSHIP_TYPE_DEFAULT',
+      '#description' => t('Select the group membership type of the membership.'),
+      '#ajax' => array(
+        'callback' => 'og_ui_admin_add_user_ajax_callback',
+        'wrapper' => 'og-ui-membership-type',
+      ),
+    );
+
+    // Add group membership form.
+    $name = !empty($form_state['values']['og_add_user_membership_type']) ? $form_state['values']['og_add_user_membership_type'] : OG_MEMBERSHIP_TYPE_DEFAULT;
+    $dummy_entity = og_membership_create(0, 'user', 0, array('name' => $name));
+    $form['membership_fields'] = array(
+      '#prefix' => '<div id="og-ui-membership-type">',
+      '#suffix' => '</div>',
+      '#tree' => TRUE,
+      '#parents' => array('membership_fields'),
+    );
+    field_attach_form('og_membership', $dummy_entity, $form['membership_fields'], $form_state);
+
     $form['actions'] = array('#type' => 'actions');
     $form['actions']['submit'] = array('#type' => 'submit', '#value' => t('Add users'));
 
@@ -82,6 +113,16 @@ function og_ui_add_users($form, &$form_state, $entity_type, $etid) {
 }
 
 /**
+ * AJAX callback to attach the group membership type fields to the form.
+ *
+ * Since the controlling logic for populating the form is in the form builder
+ * function, all we do here is select the element and return it to be updated.
+ */
+function og_ui_admin_add_user_ajax_callback(array $form, array &$form_state) {
+  return $form['membership_fields'];
+}
+
+/**
  * Validate handler; Add users to group.
  */
 function og_ui_add_users_validate($form, &$form_state) {
@@ -89,6 +130,14 @@ function og_ui_add_users_validate($form, &$form_state) {
   if (!$account) {
     form_set_error('og_add_user', t('You have entered an invalid user name.'));
   }
+  // @see entity_form_field_validate().
+  $dummy_entity = new stdClass();
+  if (!empty($form_state['values']['membership_fields'])) {
+    $dummy_entity = (object) $form_state['values']['membership_fields'];
+  }
+  $dummy_entity->name = $form_state['values']['og_add_user_membership_type'];
+
+  field_attach_form_validate('og_membership', $dummy_entity, $form['membership_fields'], $form_state);
 }
 
 /**
@@ -97,7 +146,16 @@ function og_ui_add_users_validate($form, &$form_state) {
 function og_ui_add_users_submit($form, &$form_state) {
   $account = user_load_by_name($form_state['values']['og_add_user']);
 
-  og_group($form_state['values']['group']->gid, 'user', $account, $form_state['values']['og_add_user_state']);
+  $form_state['values'] += array('membership_fields' => array());
+
+  $values = array(
+    // Entity type is user by default.
+    'entity' => $account,
+    'state' => $form_state['values']['og_add_user_state'],
+    'membership type' => $form_state['values']['og_add_user_membership_type'],
+    'membership fields' => $form_state['values']['membership_fields']
+  );
+  og_group($form_state['values']['group']->gid, $values);
   drupal_set_message(t('%user has been added to group.', array('%user' => $account->name)));
 }
 
@@ -112,14 +170,7 @@ function og_ui_user_admin_account($form, $form_state, $entity_type, $etid) {
   og_set_breadcrumb($entity_type, $etid, array(l(t('Group'), "$entity_type/$etid/group")));
   $group = og_get_group($entity_type, $etid);
   // Get the group real entity, so we can check the user ID of the entity.
-  $entity = og_load_entity_from_group($group->gid);
-
-  $header = array(
-    'username' => array('data' => t('Username'), 'field' => 'u.name'),
-    'status' => array('data' => t('Status'), 'field' => 'group_audience.group_audience_state'),
-    'roles' => array('data' => t('Roles')),
-    'member_for' => array('data' => t('Member for'), 'field' => 'group_audience.group_audience_created', 'sort' => 'desc'),
-  );
+  $entity = $group->getEntity();
 
   $form['group'] = array('#type' => 'value', '#value' => $group);
   $form['options'] = array(
@@ -148,52 +199,53 @@ function og_ui_user_admin_account($form, $form_state, $entity_type, $etid) {
     '#value' => t('Update'),
   );
 
-  $status = og_group_content_states();
+  $states = og_group_content_states();
   $roles = og_roles($group->gid);
+  $header = array(
+    'username' => array('data' => t('Username'), 'field' => 'u.name'),
+    'state' => array('data' => t('State'), 'field' => 'ogm.state'),
+    'roles' => array('data' => t('Roles')),
+    'member_for' => array('data' => t('Member for'), 'field' => 'ogm.created', 'sort' => 'desc'),
+  );
 
-  $query = new EntityFieldQuery();
+  $query = db_select('users', 'u');
+  $query->innerJoin('og_membership', 'ogm', 'u.uid = ogm.etid');
   $query
-    ->entityCondition('entity_type', 'user')
-    ->fieldCondition(OG_AUDIENCE_FIELD, 'gid', $group->gid, '=')
-    ->pager(25);
+    ->condition('ogm.gid', $group->gid, '=')
+    ->condition('ogm.entity_type', 'user', '=');
 
-  if ($result = $query->execute()) {
-    $uids = array_keys($result['user']);
-    $states = og_group_content_states();
-    // We load all the accounts as it's will happen in og_get_user_roles() and
-    // we prefer loading all accounts at once.
-    $accounts = user_load_multiple($uids);
+  $count_query = clone $query;
+  $count_query->addExpression('COUNT(u.uid)');
 
-    foreach ($accounts as $account) {
-      // We allow editing of the group manager, but will make sure on submit
-      // that they can not be removed from group.
-      $users_roles = array();
-      foreach (og_get_user_roles($group->gid, $account->uid) as $rid) {
-        if (!in_array($roles[$rid], array(OG_ANONYMOUS_ROLE, OG_AUTHENTICATED_ROLE))) {
-          // Show the user's roles, except of the authenticated role, that all
-          // group members have, or anonymous that blocked members have.
-          $users_roles[] = $roles[$rid];
-        }
+  $query = $query->extend('PagerDefault')->extend('TableSort');
+  $query
+    ->fields('u', array('uid', 'name'))
+    ->fields('ogm', array('state', 'created'))
+    ->limit(25)
+    ->orderByHeader($header)
+    ->setCountQuery($count_query);
+  $result = $query->execute();
+
+  foreach ($result as $row) {
+    // Note that we allow editing of the group manager, but will make sure on
+    // submit that they can not be removed from group.
+    $users_roles = array();
+    foreach (og_get_user_roles($group->gid, $row->uid) as $rid) {
+      if (!in_array($roles[$rid], array(OG_ANONYMOUS_ROLE, OG_AUTHENTICATED_ROLE))) {
+        // Show the user's roles, except of the authenticated role, that all
+        // group members have, or anonymous that blocked members have.
+        $users_roles[] = $roles[$rid];
       }
-      asort($users_roles);
-
-      // Find the group in the user's field.
-      $property = OG_AUDIENCE_FIELD;
-      foreach ($account->{$property}[LANGUAGE_NONE] as $value) {
-        if ($value['gid'] == $group->gid) {
-          $row = $value;
-          break;
-        }
-      }
-
-      $options[$account->uid] = array(
-        'username' => theme('username', array('account' => $account)),
-        'status' =>  $states[$row['state']],
-        'roles' => theme('item_list', array('items' => $users_roles)),
-        'member_for' => format_interval(REQUEST_TIME - $row['created']),
-      );
-
     }
+    asort($users_roles);
+
+    $account = user_load($row->uid);
+    $options[$account->uid] = array(
+      'username' => theme('username', array('account' => $account)),
+      'state' =>  $states[$row->state],
+      'roles' => theme('item_list', array('items' => $users_roles)),
+      'member_for' => format_interval(REQUEST_TIME - $row->created),
+    );
   }
 
   // Add group manager details.
@@ -238,7 +290,7 @@ function og_ui_user_admin_account_submit($form, &$form_state) {
   // isn't being processed, if they were selected.
   if (in_array($form_state['values']['operation'], array('unblock', 'deny', 'block'))) {
     // Get the entity from group.
-    $entity = og_load_entity_from_group($form_state['values']['group']->gid);
+    $entity = $group->getEntity();
 
     if (!empty($entity->uid) && in_array($entity->uid, $accounts)) {
       // Remove from the accounts array, and give a message.
@@ -323,6 +375,7 @@ function og_ui_user_admin_roles($form, $form_state, $entity_type = '', $etid = 0
         '#title_display' => 'invisible',
         '#size' => 32,
         '#maxlength' => 64,
+        '#required' => TRUE,
       );
       $form['add'] = array(
         '#type' => 'submit',

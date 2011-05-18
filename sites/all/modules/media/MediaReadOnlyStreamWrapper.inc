@@ -1,6 +1,9 @@
 <?php
-// $Id: MediaReadOnlyStreamWrapper.inc,v 1.4 2010/11/11 18:57:06 JacobSingh Exp $
-
+/**
+ * DO NOT EDIT. This file will be removed in the next release. It has been moved
+ * to the includes folder, but is retained here so that the autoloader doesn't
+ * trigger a fatal error before media_update_7015() runs.
+ */
 /**
  * A base class for Resource Stream Wrappers.
  *
@@ -196,8 +199,8 @@ abstract class MediaReadOnlyStreamWrapper implements DrupalStreamWrapperInterfac
     $this->_debug(t('Stream open: %url', array('%url' => $url)));
 
     // We only handle Read-Only mode by default.
-    if ($mode != 'r') {
-      return $this->_report_error('Attempted to open %url as mode: @mode.', array('%url' => $url, '%mode' => $mode), ($options & STREAM_REPORT_ERRORS));
+    if ($mode != 'r' && $mode != 'rb') {
+      return $this->_report_error('Attempted to open %url as mode: %mode.', array('%url' => $url, '%mode' => $mode), ($options & STREAM_REPORT_ERRORS));
     }
 
     // We parse a URL as youtube://v/dsyiufo34/t/cats+dogs to store

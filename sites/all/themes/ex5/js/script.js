@@ -4,6 +4,7 @@
   $(function(){
 	  
 	  
+	  // Implementing tooltips in the calendar block
 	  
 	  $('.mini-day-on > a').bt({
 		  contentSelector: "$(this).next().html()",
@@ -34,11 +35,3 @@
 	});
 
 })(jQuery);
-
-
-
-
-jQuery(document).ready(function() {
-   jQuery("#for_pubsite .field-name-body").attr("id","cssr");
-});
-
