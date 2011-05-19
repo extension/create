@@ -297,7 +297,7 @@ header.menu-bar #block-system-main-menu ul.menu li a.active{
 }
 
 .node-blog{
-	margin:35px 5px;
+	margin: 0 5px 35px 5px;
 }
 
 #block-system-main > div > .view{
@@ -307,6 +307,14 @@ header.menu-bar #block-system-main-menu ul.menu li a.active{
 .view-content .views-table{
 	width: 100%;
 	margin-top: 20px;
+}
+
+.views-field-field-image{
+	float: left;
+	margin: 2px 10px 0 0;
+}
+.views-field-field-image img{
+	border: 1px solid #ccc;
 }
 
 
