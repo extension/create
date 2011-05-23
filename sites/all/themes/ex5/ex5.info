@@ -7,6 +7,7 @@ engine = phptemplate
 
 base theme = drupal_html5_boilerplate
 
+stylesheets[all][] = css/common_fixedfont.css
 stylesheets[all][] = css/ex5.css
 
 regions[header] = Header

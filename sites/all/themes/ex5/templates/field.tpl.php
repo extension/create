@@ -49,7 +49,7 @@ See http://api.drupal.org/api/function/theme_field/7 for details.
 After copying this file to your theme's folder and customizing it, remove this
 HTML comment.
 -->
-<div <?php print ($element['#field_name']=='body'?'id="cssr"':''); ?>class="<?php print $classes; ?> clearfix"<?php print $attributes; ?>>
+<div <?php print ($element['#field_name']=='body'?'id="content_css_reset"':''); ?>class="<?php print $classes; ?> clearfix"<?php print $attributes; ?>>
   <?php if (!$label_hidden) : ?>
     <div class="field-label"<?php print $title_attributes; ?>><?php print $label ?>:&nbsp;</div>
   <?php endif; ?>
