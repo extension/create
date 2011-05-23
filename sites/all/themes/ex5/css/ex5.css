@@ -1042,11 +1042,6 @@ article .comment > footer{
 
 
 
-
-
-
-
-
 /* Classes and IDs originating from CoP Wiki templates
 -----------------------------------------------------------------------------*/
 /* .hiddenStructure is pulled over from CoP wiki templates */
@@ -1097,12 +1092,12 @@ article .comment > footer{
 /* Resest all styles for articles imported from the wiki
 -----------------------------------------------------------------------------*/
 #content_css_reset {margin:0;padding:0;width:653px;}
-#content_css_reset h1,
-#content_css_reset h2,
-#content_css_reset h3,
-#content_css_reset h4,
-#content_css_reset h5,
-#content_css_reset h6 {color:#333;}
+#content_css_reset h1 {font-size: 21px; color:#333;}
+#content_css_reset h2 {font-size: 19px; color:#333;}
+#content_css_reset h3 {font-size: 18px; color:#333;}
+#content_css_reset h4 {font-size: 16px; color:#333;}
+#content_css_reset h5 {font-size: 14px; color:#333;}
+#content_css_reset h6 {font-size: 14px; color:#333;}
 #content_css_reset h1 {margin-bottom:.5em;}
 #content_css_reset h2 {margin:1em 0 .5em; color:#000;}
 #content_css_reset dl {margin:1em;}
@@ -1135,3 +1130,17 @@ blockquote {padding:2em 2em 1em; font-size:1.1em; background:#ebf2f8;margin:1.5e
 #table_of_contents ul {margin: 0 0 0 15px; padding: 0 0 1em 10px;}
 #table_of_contents h3 {padding:0 .5em;margin:.5em;}
 #table_of_contents h3 a {font-weight:normal}
+
+
+/* Wiki articles that receive special treatment via embedded classes and ID's
+-----------------------------------------------------------------------------*/
+/* /main/sponsors */
+.sponsor {margin:1em 0;border-top:1px solid #ddd;width:650px;float:left;padding:3em 0 2em;text-align:left;}
+.sponsor p.logo {float:right;width:320px;overflow:hidden;}
+.sponsor img {padding:20px; border:1px solid #eee;}
+.sponsor p {float:left;width:305px;clear:left;margin:0 0 1em;padding-right:10px;}
+
+/* main/contact_us */
+#article.contactus {margin-top:0;}
+#article.contactus h2 {margin:1em 0 .5em;}
+#article.contactus p {margin:0 0 1.5em;}
