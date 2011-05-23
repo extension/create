@@ -447,7 +447,9 @@ function _eximport_process_entry_categories($atom_entry, &$entry){
       $entry->type = 'news';
     } elseif ($cat['term'] == 'originalnews') {
       $entry->type = 'news';
-    }
+    } elseif ($cat['term'] == 'copdoc') {
+      $entry->type = 'cop_document';
+	}
     
     if ($cat['term'] == 'published') {
        $entry->published = TRUE;
