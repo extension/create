@@ -12,6 +12,13 @@
 // Implements hook_node_view
 // Display the workflow form on node view
 function exworkflow_node_view($node, $view_mode) {
+  // get current user
+  global $user;
+  
+  // if you ain't logged in, no workflow goodies for you
+  if(!isset($user) || $user->uid == NULL) {
+    return;
+  }
   
   drupal_add_css(drupal_get_path('module', 'exworkflow') . '/exworkflow.css', array('group' => CSS_DEFAULT));
   
@@ -27,9 +34,7 @@ function exworkflow_node_view($node, $view_mode) {
   }
   
   if(($node->type == 'article' || $node->type == 'faq' || $node->type == 'news') && $view_mode == 'full') {
-    // get current user
-    global $user;
-
+    
     // get workflow preference to show or hide it
     $workflow_show_pref = db_query('SELECT * FROM {node_workflow_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
     
@@ -423,6 +428,13 @@ function exworkflow_toggle_form($form, &$form_state) {
 // probably not necessary, but will check anyways
 // workflow toggle validation
 function exworkflow_toggle_form_validate($form, &$form_state) {
+  global $user;
+  
+  // make sure we're logged in
+  if(!isset($user) || $user->uid == NULL) {
+    form_set_error('toggle_pref', "You must be logged in to set this preference.");
+  }
+  
   if (!isset($form_state['values']['toggle_pref'])) {
     form_set_error('toggle_pref', "You must submit a preference.");
   }
