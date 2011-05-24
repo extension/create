@@ -1,5 +1,4 @@
 <?php
-// $Id: simple.inc,v 1.5 2011/01/07 20:59:02 merlinofchaos Exp $
 
 /**
  * @file
@@ -104,11 +103,11 @@ function panels_simple_cache_get_id($conf, $display, $args, $contexts, $pane) {
     global $language;
     $id .= ':' . $language->language;
   }
-  
-  if($pane->configuration['use_pager'] == 1) {
+
+  if(!empty($pane->configuration['use_pager'])) {
     $id .= ':p' . check_plain($_GET['page']);
   }
-  
+
   return $id;
 }
 

@@ -1,4 +1,4 @@
-// $Id: field_group.js,v 1.5.2.8 2010/11/08 21:30:56 stalski Exp $
+// $Id: field_group.js,v 1.5.2.12 2011/01/07 09:52:30 stalski Exp $
 
 (function($) {
 
@@ -13,7 +13,10 @@ Drupal.FieldGroup.Effects = Drupal.FieldGroup.Effects || {};
  */
 Drupal.FieldGroup.Effects.processAccordion = {
   execute: function (context, settings) {
-    $('div.field-group-accordion-wrapper', context).accordion({ autoHeight: false });
+    $('div.field-group-accordion-wrapper', context).accordion({
+      autoHeight: false,
+      active: '.field-group-accordion-active'
+    });
   }
 }
 
@@ -49,7 +52,16 @@ Drupal.FieldGroup.Effects.processDiv = {
         // Don't animate multiple times.
         if (!wrapper.animating) {
           wrapper.animating = true;
-          $('> .field-group-format-wrapper', wrapper).toggle('blind', {}, 500);
+          var speed = $wrapper.hasClass('speed-fast') ? 300 : 1000;
+          if ($wrapper.hasClass('effect-none') && $wrapper.hasClass('speed-none')) {
+            $('> .field-group-format-wrapper', wrapper).toggle();
+          }
+          else if ($wrapper.hasClass('effect-blind')) {
+            $('> .field-group-format-wrapper', wrapper).toggle('blind', {}, speed);
+          }
+          else {
+            $('> .field-group-format-wrapper', wrapper).toggle(speed);
+          }
           wrapper.animating = false;
         }
         return false;
@@ -64,10 +76,10 @@ Drupal.FieldGroup.Effects.processDiv = {
  */
 Drupal.behaviors.fieldGroup = {
   attach: function (context, settings) {
-    if (settings.field_group == undefined || settings.fieldGroupWrapper == undefined) {
+    if (settings.field_group == undefined) {
       return;
     }
-    $('#' + settings.fieldGroupWrapper, context).once('fieldgroup-effects', function () {
+    $('body', context).once('fieldgroup-effects', function () {
       // Execute all of them.
       $.each(Drupal.FieldGroup.Effects, function (func) {
         // We check for a wrapper function in Drupal.field_group as 

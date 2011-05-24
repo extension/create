@@ -4,18 +4,18 @@
  * Implements hook_schema().
 */
 function exlistview_schema() {
-  $schema['tag_preferences'] = array(
-  'description' => 'Table for storing user defined tag preferences for filtering information like content listviews.',
+  $schema['listview_preferences'] = array(
+  'description' => 'Table for storing user defined list view preferences for filtering information like content listviews.',
   'fields' => array(  
-    'tpid' => array(
-      'description' => 'Unique identifier for the tag preference.',
+      'lpid' => array(
+      'description' => 'Unique identifier for the listview preference.',
       'type' => 'serial',
       'unsigned' => TRUE,
       'not null' => TRUE,
     ),
     
     'user_id' => array(
-      'description' => 'Id of the user who selected this tag preference.',
+      'description' => 'Id of the user who selected this preference.',
       'type' => 'int',
       'unsigned' => TRUE,
       'not null' => TRUE,
@@ -27,22 +27,53 @@ function exlistview_schema() {
       'size' => 'medium',
       'not null' => TRUE,
     ),
+    
+    'group_audience_filter' => array(
+      'description' => 'The comma separated list of group audiences to filter by.', 
+      'type' => 'text', 
+      'size' => 'medium', 
+      'not null' => TRUE
+    ),
+    
+    'show_faqs' => array(
+      'description' => 'Boolean of whether the filter includes faqs or not.',
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 1,  
+    ),
+    
+    'show_articles' => array(
+      'description' => 'Boolean of whether the filter includes articles or not.',
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 1,  
+    ),
+    
+    'show_news' => array(
+      'description' => 'Boolean of whether the filter includes news or not.',
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 1,  
+    ),
   
     'created' => array(
-      'description' => 'The Unix timestamp when the tag filter was set.',
+      'description' => 'The Unix timestamp when the filter was set.',
       'type' => 'int',
       'not null' => TRUE,
     ),
     
     'changed' => array(
-      'description' => 'The Unix timestamp when the tag filter was most recently updated.',
+      'description' => 'The Unix timestamp when the filter was most recently updated.',
       'type' => 'int',
       'not null' => TRUE,
     ),  
   
   ),
   
-  'primary key' => array('tpid'),
+  'primary key' => array('lpid'),
 
   'unique keys' => array(
     'user_id' => array('user_id'),
@@ -59,4 +90,9 @@ function exlistview_schema() {
   
   return $schema;
 
+}
+
+function exlistview_update_7000() {
+  db_add_field('listview_preferences', 'group_audience_filter', array('description' => 'The comma separated list of group audiences to filter by.', 'type' => 'text', 'size' => 'medium', 'not null' => TRUE, 'initial' => ''));
+  db_drop_field('listview_preferences', 'show_events');
 }

@@ -1,5 +1,5 @@
 <?php
-// $Id: notifications.module,v 1.6.2.9.2.50.2.18.2.67 2010/07/22 11:57:49 jareyero Exp $
+// $Id: notifications_account.module,v 1.1.2.1 2011/01/18 01:36:24 jareyero Exp $
 
 /**
  * @file

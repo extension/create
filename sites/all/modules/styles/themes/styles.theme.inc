@@ -1,5 +1,5 @@
 <?php
-// $Id: styles.theme.inc,v 1.1.4.4 2010/10/26 21:13:06 aaron Exp $
+// $Id: styles.theme.inc,v 1.1.4.5 2011/01/11 19:28:41 aaron Exp $
 
 /**
  * @file styles.theme.inc
@@ -24,7 +24,7 @@ function template_preprocess_styles(&$variables) {
   // Otherwise, we'll build a new Styles object instance from our settings.
   $variables['instance'] = $variables['instance'] ? $variables['instance'] : styles_instance($variables['field_type'], $variables['style_name'], $variables['object']);
 
-  $variables['classes'] = 'styles-wrapper';
+  $variables['instance']->array_push('classes', $variables['style_name']);
 
   if ($variables['instance']) {
     $variables['prefix'] = $variables['instance']->get_prefix();

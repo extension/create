@@ -1,5 +1,4 @@
 <?php
-// $Id: calendar-view-ical.tpl.php,v 1.6 2010/11/21 12:44:43 karens Exp $
 /**
  * $calname
  *   The name of the calendar.

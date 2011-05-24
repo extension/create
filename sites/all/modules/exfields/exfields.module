@@ -1,0 +1,260 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Defines a eXtension filds field types.
+ */
+ 
+/**
+ * Implements hook_help().
+ */
+function exfields_help($path, $arg) {
+  switch ($path) {
+    case 'admin/help#exfields':
+      $output = '';
+      $output .= '<h3>' . t('About eXtension Fields Module') . '</h3>';
+      $output .= '<p>' . t('On this page we will provide help about eXtension Fields module. 
+	              See the <a href="@field-help">Field module help page</a> for more 
+				  information about fields.', array('@field-help' => url('admin/help/field'))) . '</p>';
+      return $output;
+  }
+}
+ 
+ 
+/***************************************************************
+ * Field Type API hooks
+ ***************************************************************/
+ 
+/**
+ * Implements hook_field_info().
+ */
+function exfields_field_info() {
+  return array(
+    'contribution' => array(
+	  'label' => t('eX Contribution'),
+	  'description' => t('Stores contribution data.'),
+	  'default_widget' => 'contributionfield',
+	  'default_formatter' => 'contributionformat',
+	),
+    'relation' => array(
+	  'label' => t('eX Relation'),
+	  'description' => t('Stores relation data.'),
+	  'default_widget' => 'relationfield',
+	  'default_formatter' => 'relationformat',
+	),
+  );
+}
+
+/**
+ * Implements hook_field_schema().
+ */
+function exfields_field_schema($field) {
+  switch ($field['type']) {
+    case 'contribution':
+      $columns = array(
+        'contribution_role' => array(
+          'type' => 'varchar',
+          'length' => 60,
+          'not null' => FALSE,
+        ),
+		'contribution_author' => array(
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => FALSE,
+        ),
+		'contribution_date' => array(
+          'type' => 'int',
+          'not null' => FALSE,
+		  'default'  => 0,
+        ),
+      );
+      break;
+    case 'relation':
+      $columns = array(
+        'relation_kind' => array(
+          'type' => 'varchar',
+          'length' => 60,
+          'not null' => FALSE,
+        ),
+		'relation_source' => array(
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => FALSE,
+        ),
+      );
+      break;
+  }
+
+  return array('columns' => $columns);
+}
+
+
+
+/**
+ * Implements hook_field_is_empty().
+ */
+function exfields_field_is_empty($item, $field) {
+  switch ($field['type']) {
+    case 'contribution':
+      return empty($item['contribution_role']);
+      break;
+    case 'relation':
+      return empty($item['relation_kind']);
+      break;
+  }
+}
+
+/***********************************************************************
+ *  Field Type API: Formatter
+ **********************************************************************/
+ 
+/**
+ * Implements hook_field_formatter_info().
+ */
+function exfields_field_formatter_info() {
+  return array(
+    'contributionformat' => array(
+      'label' => t('Default'),
+      'field types' => array('contribution', ),
+    ),
+    'relationformat' => array(
+      'label' => t('Default'),
+      'field types' => array('relation'),
+    ),
+  );
+}
+ 
+/**
+ * Implements hook_field_formatter_view().
+ */
+function exfields_field_formatter_view($object_type, $object, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+  
+  if($display['type']=='contributionformat') {
+      foreach ($items as $delta => $item) {
+	    $output = t('<em>Role:</em> @role<br /><em>Author:</em> @author<br /><em>Date:</em> @date ', 
+						array('@role' =>$item['contribution_role'], '@author' =>$item['contribution_author'], '@date' =>_dateToString($item['contribution_date']) ) );
+        $element[$delta]['#markup'] = '<p>' . $output . '</p>';
+      }
+  }
+  if($display['type']=='relationformat') {
+      foreach ($items as $delta => $item) {
+		 	$output = t('<em>Kind:</em> @kind<br /><em>Source:</em> @source', 
+						array('@kind' =>$item['relation_kind'], '@source' =>$item['relation_source'] ) );
+        	$element[$delta]['#markup'] = '<p>' . $output . '</p>';
+      }
+  }
+  return $element;
+}
+
+/**************************************************************************
+ * Field Type API: Widget
+ **************************************************************************/
+ 
+/**
+ * Implements hook_field_widget_info().
+ */
+function exfields_field_widget_info() {
+  return array(
+    'contributionfield' => array(
+	  'label' => t('Multiple Fields'),
+	  'field types' => array('contribution'),
+	),
+    'relationfield' => array(
+	  'label' => t('Multiple Fields'),
+	  'field types' => array('relation'),
+	),
+  );
+}
+
+
+/**
+ * Implements hook_field_widget_form().
+ */
+function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $base) {
+  $element = $base;
+  switch ($instance['widget']['type']) {
+    case 'contributionfield':
+		// Separate the timestamp of the date storage to an array of alements needed for the date widget
+		$contribution_date_value = isset($items[$delta]['contribution_date']) ? _intToDateArray($items[$delta]['contribution_date']) : _intToDateArray(time());
+	
+	
+		
+       $element['contribution_role'] = array(
+	  		'#title'=>'Role',
+	  		 '#type' => 'select',
+			 '#options' => array('' => '','author' => 'author', 'publisher' => 'publisher', 'unknown' => 'unknown', 'initiator' => 'initiator', 'terminator' => 'terminator', 'validator' => 'validator', 'editor' => 'editor', 'graphical designer' => 'graphical designer', 'technical implementor' => 'technical implementor', 'educational validator' => 'educational validator', 'script writer' => 'script writer', 'instructional designer' => 'instructional designer', 'subject matter expert' => 'subject matter expert', ),
+			 '#default_value' => isset($items[$delta]['contribution_role']) ? $items[$delta]['contribution_role'] : NULL,
+	  	);
+		$element['contribution_author'] = array(
+		'#title'=>'Author',
+        '#type' => 'textfield',
+        '#default_value' => isset($items[$delta]['contribution_author']) ? $items[$delta]['contribution_author'] : NULL,
+      	);
+		$element['contribution_date'] = array(
+		'#title'=>'Date',
+        '#type' => 'date',
+        '#default_value' => $contribution_date_value,
+		'#element_validate' => array('strToDateValidate'),
+      	);
+      break;
+    case 'relationfield':
+      $element['relation_kind'] = array(
+        '#type' => 'select',
+		'#options' => array('' => '','is part of' => 'is part of', 'has part' => 'has part', 'is version of' => 'is version of', 'has version' => 'has version', 'is format of' => 'is format of', 'has format' => 'has format', 'references' => 'references', 'is referenced by' => 'is referenced by', 'is based on' => 'is based on', 'is basis for' => 'is basis for', 'requires' => 'requires', 'is required by' => 'is required by',
+		),		
+        '#default_value' => isset($items[$delta]['relation_kind']) ? $items[$delta]['relation_kind'] : NULL,
+      );
+	   $element['relation_source'] = array(
+        '#type' => 'textfield',
+        '#default_value' => isset($items[$delta]['relation_source']) ? $items[$delta]['relation_source'] : NULL,
+      );
+      break;
+  }
+  return $element;
+}
+
+
+
+/**
+ * Utility function which converts the 3 elements, month, day and year
+ * in to a unix timestamp (number of seconds) 
+ */
+function strToDateValidate($element, &$form_state) {
+  if (isset($element['#value'])) {
+     $day = $element['#value']['day'];
+     $month = $element['#value']['month'];
+     $year = $element['#value']['year'];
+     $value = mktime(0, 0, 0, $month, $day, $year);
+     form_set_value($element, array('contribution_date' => $value), $form_state);
+  }
+}
+/**
+ * Utility function which converts a string representation of a unix timestamp
+ * and converts to a human readable format.
+ */
+function _dateToString($dateValue) {
+  $str = "Unable to Format Date";
+  try {
+   $timestamp = intval($dateValue);
+   $str = format_date($timestamp, 'custom', 'M-d-Y');
+  } catch (Exception $e) {
+     $str = "Unable to Format Date" . $e->getMessage();
+  }
+  return $str;
+}
+ 
+ 
+/**
+ * Utility function which converts a string representation of a unix timestamp
+ * and converts to an array suitable for the Drupal date widget (3 drop down combo 
+ * boxes, month, day, year).
+ */
+function _intToDateArray($timestr) {
+  $timestamp = intval($timestr);
+  $year = date('Y', $timestamp);
+  $month = date('n',$timestamp);
+  $day = date('j',$timestamp);
+  return array('year' => $year, 'month' => $month, 'day' => $day);
+}

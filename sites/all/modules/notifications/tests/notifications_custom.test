@@ -115,7 +115,7 @@ class NotificationsCustomTests extends NotificationsTestCase {
     $this->drupalPost(NULL, $edit, t(t('Save fields')));
     $this->assertText('The fields for this subscription have been updated.');
     // Reload subscription
-    drupal_static_reset('notifications_custom_load');
+    messaging_static_reset('notifications_custom_load');
     $saved = notifications_custom_load($subscription->csid);
     $this->assertEqual(count($saved->fields), $index, "The right number of fields have been added for this subscription. ($index)");
     return $subscription;

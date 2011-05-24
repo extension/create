@@ -1,5 +1,4 @@
 <?php
-// $Id: panels_layouts.inc,v 1.4 2010/10/22 18:23:51 merlinofchaos Exp $
 
 $plugin = array(
   'schema' => 'panels_layout',

@@ -1,97 +1,38 @@
 <?php
-// $Id: media.install,v 1.17 2010/10/26 13:36:36 JacobSingh Exp $
 
 /**
  * @file
  * Install, update and uninstall functions for the Media module.
  */
 
+define('MEDIA_UPDATE_RECORDS_ON_INSTALL', 200);
+
 /**
  * Implements hook_install().
  */
 function media_install() {
-  /**
-   * DISCLAIMER:
-   * Yes I am altering a core table.
-   * No I am not on crack.
-   * Basically, the problem we're facing is the media "type" which is not the
-   * mime type, but is probably computed from it.
-   *
-   * The file table has no type field.  As a result, we would have to either:
-   *
-   * 1). Create a media_files table to join them.  This is nice and clean,
-   * however it requires keeping the tables in sync, and it also means we have
-   * to write our own SQL instead of using BaseEntityController, and that's
-   * kinda scary.
-   *
-   * 2). Make the media type a "computed" field.  Wherein, everytime we loaded
-   * a piece of media, we would need to compute its type from the mime-type.
-   * This is unacceptable from a performance standpoint and also requires us
-   * override the Controller in ways we probably don't want to.
-   *
-   * I know it's a sin, but I think it is also excusable because:
-   *
-   * 1). This is hoping to be a core addition, so think of it as a core patch
-   * that will eventually go in.
-   *
-   * 2). It is adding a new field, so it shouldn't cause any conflicts.  If it
-   * does that INSERT / SELECT code is badly written and should use complete
-   * INSERTS or column names.
-   */
-
-  // Alter {file_managed}.type and add it as an index.
-  db_add_field('file_managed', 'type', _media_type_field_spec());
-  db_add_index('file_managed', 'file_type', array('type'));
-}
-
-/**
- *  Implement hook_enable().
- */
-function media_enable() {
-  // @TODO: Revisit the default types to provide. For instance, PDFs and text.
   // @TODO: We may need to disable the media bundle & field in hook_disable.
-
-  $view_mode_defaults = array(
-    'media_link'   => 'file_generic',
-    'media_preview' => 'media_large_icon',
-    //@TODO: We need a real "original" formatter
-    'media_original' => 'file_generic',
-    //@TODO: Non-sequiter small == medium.  Why medium if there is no small?
-    'media_small'   => 'hidden',
-    'media_large'   => 'file_generic',
-  );
 
   $types = array();
 
-  // This is the default type which will be used if no other type is found
+  // Define the default type to be used if no other type is found. Give it a
+  // high weight to ensure it runs last.
   $types['default'] = new StdClass();
   $types['default']->name = 'default';
   $types['default']->label = "Other";
   $types['default']->base = TRUE;
-  //@todo: I don't like this but we have to do something here.
-  $view_mode_settings['default'] = $view_mode_defaults;
-
-  // This should always run last because it is a fallback in case no other
-  // types claim the media.
   $types['default']->weight = 1000;
-  // This is the default.
   $types['default']->type_callback_args = array(
     'match_type' => 'any',
     'mimetypes' => array('/.*/'),
   );
 
-  // Add the common media types.
+  // Define the common media types: image, audio, and video.
   $types['image'] = new StdClass();
   $types['image']->name = 'image';
   $types['image']->label = "Image";
   $types['image']->base = TRUE;
-  $view_mode_settings['image'] = $view_mode_defaults;
-  $view_mode_settings['image']['media_preview'] = 'styles_file_square_thumbnail';
-  $view_mode_settings['image']['media_large'] = 'styles_file_large';
-  $view_mode_settings['image']['media_original'] = 'styles_file_original';
-
-  $types['image']->type_callback_args =
-  array(
+  $types['image']->type_callback_args = array(
     'match_type' => 'all',
     'mimetypes' => array('/^image/'),
     'extensions' => array('jpg', 'jpeg', 'gif', 'png', 'tiff'),
@@ -102,58 +43,66 @@ function media_enable() {
   $types['audio']->name = 'audio';
   $types['audio']->label = "Audio";
   $types['audio']->base = TRUE;
-
-  // @todo: these are image specific, needs to change
-  $view_mode_settings['audio'] = $view_mode_defaults;
   $types['audio']->type_callback_args = array(
     'match_type' => 'all',
     'mimetypes' => array('/^audio/'),
     'extensions' => array('mp3', 'ogg', 'wma'),
     'streams' => array('public', 'private'),
   );
-  
+
   $types['video'] = new StdClass();
   $types['video']->name = 'video';
   $types['video']->label = "Video";
   $types['video']->base = TRUE;
-
-  // @todo: these are image specific, needs to change
-  $view_mode_settings['video'] = $view_mode_defaults;
-  $view_mode_settings['video']['media_preview'] = 'styles_file_square_thumbnail';
-  $view_mode_settings['video']['media_large'] = 'styles_file_large';
-
-  // This is the default, otherwise could provide
-  //$types['video']->type_callback = 'media_default_is_type';
-  $types['video']->type_callback_args =
-  array(
+  $types['video']->type_callback_args = array(
     'match_type' => 'all',
     'mimetypes' => array('/^video/'),
     'extensions' => array('mov', 'mp4', 'avi'),
     'streams' => array('public', 'private'),
   );
 
+  // Create the defined types.
   foreach ($types as $name => $type) {
     media_type_save($type);
-    media_type_configure_formatters($type->name, $view_mode_settings[$type->name]);
+
+    // @todo We hide the file display in the 'small' view mode for legacy
+    //   reasons. Does it still make sense to do so?
+    $bundle_settings = field_bundle_settings('file', $name);
+    $bundle_settings['extra_fields']['display']['file']['media_small'] = array('weight' => 0, 'visible' => FALSE);
+    field_bundle_settings('file', $name, $bundle_settings);
   }
-  
-  // Set permissions
+
+  // Set permissions.
   $roles = user_roles();
   foreach ($roles as $rid => $role) {
     user_role_grant_permissions($rid, array('view media'));
   }
+
+  // Updates the type field for the first MEDIA_UPDATE_RECORDS_ON_INSTALL files.
+  $invalid_files = media_type_invalid_files_count();
+  if ($invalid_files <= MEDIA_UPDATE_RECORDS_ON_INSTALL) {
+    media_type_batch_update(FALSE, MEDIA_UPDATE_RECORDS_ON_INSTALL);
+  }
+
+  $invalid_files = media_type_invalid_files_count();
+  if ($invalid_files > 0) {
+    // Not all files could be converted. Display a persistant nag message on
+    // every page for the administrator, urging them to finish the process.
+    media_variable_set('show_file_type_rebuild_nag', TRUE);
+  }
 }
 
 /**
- *  Define the database {file_managed}.type field.
+ * Implement hook_uninstall().
  */
-function _media_type_field_spec() {
-  return array(
-    'description' => 'Type of file for use in Media Bundles',
-    'type' => 'varchar',
-    'length' => 50,
-    'not null' => FALSE,
-  );
+function media_uninstall() {
+  drupal_uninstall_schema('media_list_type');
+  drupal_uninstall_schema('media_type');
+  drupal_uninstall_schema('cache_media_xml');
+  drupal_uninstall_schema('media_filter_usage');
+  foreach (media_variable_default() as $name => $value) {
+    media_variable_del($name);
+  }
 }
 
 /**
@@ -189,6 +138,8 @@ function media_schema() {
   $schema['cache_media_xml'] = drupal_get_schema_unprocessed('system', 'cache');
   $schema['cache_media_xml']['description'] = 'Cache table for the the results of retreived XML documents for remote streams.';
 
+  $schema['media_filter_usage'] = _media_update_7012_schema_media_filter_usage();
+
   return $schema;
 }
 
@@ -221,27 +172,6 @@ function media_field_schema($field) {
       'fid' => array('fid'),
     ),
   );
-}
-
-/**
- * Implement hook_schema_alter().
- */
-function media_schema_alter(&$schema) {
-  // Alter {file_managed}.type.
-  $schema['file_managed']['fields']['type'] = _media_type_field_spec();
-}
-
-/**
- * Implement hook_uninstall().
- */
-function media_uninstall() {
-  /**
-   * See comment above in media_install.
-   */
-  db_drop_field('file_managed', 'type');
-  foreach (media_variable_default() as $name => $value) {
-    media_variable_del($name);
-  }
 }
 
 /**
@@ -381,6 +311,8 @@ function media_update_7006() {
  * Changes the preview formatter for non-image types to the icon view.
  */
 function media_update_7007() {
+  // @todo media_type_configure_formatters() is a deprecated function, so remove
+  //   this code entirely?
   drupal_load('module', 'media');
   drupal_load('module', 'field');
 
@@ -405,6 +337,8 @@ function media_update_7008() {
  * Changes the preview formatter for video types to a square thumbnail, like for images.
  */
 function media_update_7009() {
+  // @todo media_type_configure_formatters() is a deprecated function, so remove
+  //   this code entirely?
   drupal_load('module', 'media');
   drupal_load('module', 'field');
   media_type_configure_formatters('video', array('media_preview' => 'styles_file_square_thumbnail'));
@@ -414,6 +348,8 @@ function media_update_7009() {
  * Changes the large formatter for video types to the large file style.
  */
 function media_update_7010() {
+  // @todo media_type_configure_formatters() is a deprecated function, so remove
+  //   this code entirely?
   // This formatter association was added to media_enable() at one point, but
   // without a corresponding update function, so here's that update function.
   drupal_load('module', 'media');
@@ -426,4 +362,198 @@ function media_update_7010() {
  */
 function media_update_7011() {
   media_variable_set('wysiwyg_allowed_types', array('image','video'));
+}
+
+/**
+ * Add media_filter_usage.
+ */
+function media_update_7012() {
+  db_create_table('media_filter_usage', _media_update_7012_schema_media_filter_usage());
+}
+
+/**
+ * Schema definition for media_update_7012().
+ */
+function _media_update_7012_schema_media_filter_usage() {
+  return array(
+    'description' => 'Stores fids that have been included in the media tag in formatted textareas.',
+    'fields' => array(
+      'fid' => array(
+        'description' => 'The media {file_managed}.fid.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'timestamp' => array(
+        'description' => 'The timestamp the fid was last recorded by media_filter()',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'foreign keys' => array(
+      'file_managed' => array(
+        'table' => 'file_managed',
+        'columns' => array('fid' => 'fid'),
+      ),
+    ),
+    'primary key' => array('fid'),
+    'indexes' => array(
+      'timestamp' => array('timestamp'),
+    ),
+  );
+}
+
+/**
+ * Work around a core bug where text format cacheability is not updated.
+ *
+ * @see http://drupal.org/node/993230
+ */
+function media_update_7013() {
+  $formats = filter_formats();
+  foreach ($formats as $format) {
+    $format->filters = filter_list_format($format->format);
+    // filter_format_save() expects filters to be an array, however
+    // filter_list_format() gives us objects.
+    foreach ($format->filters as $key => $value) {
+      $format->filters[$key] = (array) $value;
+    }
+    filter_format_save($format);
+  }
+}
+
+/**
+ * Renames the badly named variable for the theme used for the media browser
+ * and other media related dialogs.
+ */
+function media_update_7014() {
+  if ($old_value = variable_get('media__dialog_get_theme_name')) {
+    variable_del('media__dialog_get_theme_name');
+    variable_set('media__dialog_theme', $old_value);
+  }
+}
+
+/**
+ * Rebuild the registry to locate class files in new location.
+ */
+function media_update_7015() {
+  registry_rebuild();
+}
+
+/**
+ * Update Media entities to File entities.
+ */
+function media_update_7016() {
+  // Allow File Entity module to take over the {file_managed}.type field. It
+  // will create new indexes as it needs to, but it doesn't know about old ones,
+  // so delete them.
+  if (db_index_exists('file_managed', 'file_type')) {
+    db_drop_index('file_managed', 'file_type');
+  }
+  module_enable(array('file_entity'));
+
+  // Move all field instances from Media entity to File entity.
+  $instances = field_read_instances(array('entity_type' => 'media'), array('include_inactive' => TRUE, 'include_deleted' => TRUE));
+  foreach ($instances as $instance) {
+    // Skip the old self-referencing file field. It will be deleted later in
+    // this function.
+    if ($instance['field_name'] === 'file') {
+      continue;
+    }
+
+    $fields = field_read_fields(array('id' => $instance['field_id']), array('include_inactive' => TRUE, 'include_deleted' => TRUE));
+    $field = $fields[$instance['field_id']];
+
+    // There is no API for updating the entity_type foreign key within field
+    // data storage. We can do a direct db_update() for when the default SQL
+    // storage back-end is being used, but must skip updating fields that use a
+    // different storage type.
+    // @todo What else should be added here (e.g., logging and/or a message to
+    //   the administrator)?
+    if ($field['storage']['type'] !== 'field_sql_storage' || !module_exists('field_sql_storage') || !$field['storage']['active']) {
+      continue;
+    }
+
+    // Update the data tables.
+    $table_name = _field_sql_storage_tablename($field);
+    $revision_name = _field_sql_storage_revision_tablename($field);
+    db_update($table_name)
+      ->fields(array('entity_type' => 'file'))
+      ->condition('entity_type', 'media')
+      ->condition('bundle', $instance['bundle'])
+      ->execute();
+    db_update($revision_name)
+      ->fields(array('entity_type' => 'file'))
+      ->condition('entity_type', 'media')
+      ->condition('bundle', $instance['bundle'])
+      ->execute();
+
+    // Once all the data has been updated, update the {field_config_instance}
+    // record.
+    db_update('field_config_instance')
+      ->fields(array('entity_type' => 'file'))
+      ->condition('id', $instance['id'])
+      ->execute();
+  }
+
+  // Update the field_bundle_settings configuration variable: move media bundle
+  // settings to file bundles, and move settings of the old self-referencing
+  // file field to the new file pseudo-field.
+  $settings = variable_get('field_bundle_settings', array());
+  if (!isset($settings['file'])) {
+    $settings['file'] = array();
+  }
+  if (isset($settings['media'])) {
+    $settings['file'] = array_merge($settings['file'], $settings['media']);
+    unset($settings['media']);
+  }
+  foreach ($instances as $instance) {
+    if ($instance['field_name'] === 'file' && !$instance['deleted']) {
+      if (isset($instance['widget']['weight'])) {
+        $settings['file'][$instance['bundle']]['extra_fields']['form']['file']['weight'] = $instance['widget']['weight'];
+      }
+      if (isset($instance['display'])) {
+        foreach ($instance['display'] as $view_mode => $display) {
+          if (isset($display['weight'])) {
+            $settings['file'][$instance['bundle']]['extra_fields']['display']['file'][$view_mode]['weight'] = $display['weight'];
+          }
+          if (isset($display['type'])) {
+            $settings['file'][$instance['bundle']]['extra_fields']['display']['file'][$view_mode]['visible'] = ($display['type'] != 'hidden');
+          }
+        }
+      }
+    }
+  }
+  variable_set('field_bundle_settings', $settings);
+
+  // Copy field formatter settings of old self-referencing file field to file
+  // pseudo-field formatter settings.
+  $file_displays = variable_get('file_displays', array());
+  foreach ($instances as $instance) {
+    if ($instance['field_name'] === 'file' && !$instance['deleted']) {
+      if (isset($instance['display'])) {
+        foreach ($instance['display'] as $view_mode => $display) {
+          if (isset($display['type']) && $display['type'] != 'hidden') {
+            $file_formatter = 'file_field_' . $display['type'];
+            $file_displays[$instance['bundle']][$view_mode][$file_formatter]['status'] = TRUE;
+            if (isset($display['settings'])) {
+              $file_displays[$instance['bundle']][$view_mode][$file_formatter]['settings'] = $display['settings'];
+            }
+          }
+        }
+      }
+    }
+  }
+  variable_set('file_displays', $file_displays);
+
+  // Delete the old self-referencing file field instances. If all instances are
+  // deleted, field_delete_instance() will delete the field too.
+  foreach ($instances as $instance) {
+    if ($instance['field_name'] === 'file' && !$instance['deleted']) {
+      field_delete_instance($instance);
+    }
+  }
+
+  field_cache_clear();
 }

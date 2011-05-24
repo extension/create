@@ -1,27 +1,28 @@
-; $Id: media.info,v 1.4 2010/04/07 06:29:34 JacobSingh Exp $
 
 name = Media
 description = Provides the core Media API
 package = Media
 core = 7.x
-php = 5.2
+
 files[] = media.install
 files[] = media.module
-files[] = media.admin.inc
-files[] = media.theme.inc
-files[] = media.types.inc
-files[] = MediaReadOnlyStreamWrapper.inc
+files[] = includes/media.admin.inc
+files[] = includes/media.theme.inc
+files[] = includes/media.types.inc
+files[] = includes/MediaReadOnlyStreamWrapper.inc
 ; Tests
 files[] = test/media.types.test
 files[] = test/media.entity.test
-dependencies[] = file
-dependencies[] = image
-dependencies[] = file_styles
-dependencies[] = entity
+files[] = test/media.filter.test
 
-; Information added by drupal.org packaging script on 2010-11-15
-version = "7.x-1.0-beta2"
+dependencies[] = file_entity
+dependencies[] = image
+
+testing_api = 2.x
+
+; Information added by drupal.org packaging script on 2011-05-11
+version = "7.x-1.x-dev"
 core = "7.x"
 project = "media"
-datestamp = "1289835670"
+datestamp = "1305073549"
 

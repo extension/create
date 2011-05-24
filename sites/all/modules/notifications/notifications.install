@@ -1,5 +1,5 @@
 <?php
-// $Id: notifications.install,v 1.4.2.5.2.6.2.2.4.9 2010/06/01 11:00:12 jareyero Exp $
+// $Id: notifications.install,v 1.4.2.5.2.6.2.2.4.9.2.1 2011/01/18 01:36:24 jareyero Exp $
 
 /**
  * Test and report Drupal installation requirements.

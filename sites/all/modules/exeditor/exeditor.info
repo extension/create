@@ -1,0 +1,7 @@
+name = eXtension JS editor fixes
+description = Provides ability for advanced settings to the WISIWYG editors
+version = VERSION
+core = 7.x
+package = eXtension
+
+dependencies[] = wysiwyg

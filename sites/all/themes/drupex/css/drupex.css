@@ -41,6 +41,9 @@ body, #site-slogan, .ui-widgetz{
 	color: #999;
 	border-bottom: 1px solid #ccc;
 }
+td.title{
+	font-size: 1.3em;
+}
 .views-field-timestamp{
 	float:right;
 	text-align: right;
@@ -87,3 +90,20 @@ body, #site-slogan, .ui-widgetz{
 	border-top: 1px solid #ccc;
 	padding-top: 2px;
 }
+.create_content-links > div{
+	width: 24%;
+	margin: 0;
+	padding: 0;
+	float:left;
+}
+.create_content-links > div > a{
+	display: block;
+	padding: 10px;
+	margin: 10px;
+	text-align: center;
+	border: 1px solid #ccc;
+}
+.clearfix:after { content: "."; display: block; height: 0; clear: both; visibility: hidden; }
+.clearfix { display: inline-block; }
+* html .clearfix { height: 1%; }
+.clearfix { display: block; }

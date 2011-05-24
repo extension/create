@@ -1,5 +1,4 @@
 <?php
-// $Id: panels.install,v 1.10 2011/01/07 22:12:56 merlinofchaos Exp $
 
 /**
  * Test requirements for installation and running.

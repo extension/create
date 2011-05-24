@@ -1,5 +1,4 @@
 <?php
-// $Id: media.variables.inc,v 1.12 2010/10/26 13:36:36 JacobSingh Exp $
 
 
 /* ***************************************** */
@@ -125,9 +124,10 @@ function media_variable_default($name = NULL) {
       'wysiwyg_allowed_attributes' => array('height', 'width', 'hspace', 'vspace', 'border', 'align', 'style', 'alt', 'title', 'class', 'id'),
 
       'field_select_media_text' => 'Select media',
+      'field_remove_media_text' => 'Remove media',
 
-      // Name of the theme to use in media popup dialogs
-      'dialog_get_theme_name' => 'seven',
+      // Name of the theme to use in media popup dialogs, defaults to admin_theme
+      'dialog_theme' => '',
       // @TODO: Make a configuration form with this.
       'file_extensions' => 'jpg jpeg gif png txt doc xls pdf ppt pps odt ods odp mp3 mov m4v mp4 mpeg avi ogg wmv ico',
       'max_filesize' => '',
@@ -148,6 +148,10 @@ function media_variable_default($name = NULL) {
       'type_icon_directory' => drupal_get_path('module', 'media') . '/images/types',
       'icon_base_directory' => drupal_get_path('module', 'media') . '/images/icons',
       'icon_set' => 'default',
+      
+       // This is set in media_enable().  It will show a persistant dsm on every page
+       // until the user runs the batch operation provided by media_admin_rebuild_types_form().
+      'show_file_type_rebuild_nag' => FALSE,
     );
   }
 

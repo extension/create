@@ -1,6 +1,4 @@
 <?php
-// $Id: calendar.inc,v 1.31 2011/01/03 02:39:45 karens Exp $
-
 /**
  * @file
  * Calendar building functions for the Calendar module.
@@ -29,11 +27,11 @@ function calendar_build_calendar($view, $items) {
   }
   $items = $values;
   ksort($items);
-  
+
   $rows = array();
   $curday = clone($view->date_info->min_date);
-  
-  switch ($view->date_info->granularity) {
+
+  switch ($view->calendar_type) {
     case 'year':
       $rows = array();
       $view->date_info->mini = TRUE;
@@ -59,7 +57,7 @@ function calendar_build_calendar($view, $items) {
       break;
   }
   return $rows;
-  
+
 }
 
 /**
@@ -89,13 +87,13 @@ function calendar_build_week(&$curday, $view, $items, $check_month = FALSE) {
   $today = date_format(date_now(date_default_timezone()), DATE_FORMAT_DATE);
   $month = date_format($curday, 'n');
   $week = date_week($curday_date);
-  $first_day = variable_get('date_first_day', 0);
+  $first_day = variable_get('date_first_day', 1);
 
   // move backwards to the first day of the week
   $day_wday = date_format($curday, 'w');
   date_modify($curday, '-' . strval((7 + $day_wday - $first_day) % 7) . ' days');
   $curday_date = date_format($curday, DATE_FORMAT_DATE);
-    
+
   // If we're displaying the week number, add it as the
   // first cell in the week.
   if (!empty($view->date_info->style_with_weekno) && !in_array($view->date_info->granularity, array('day', 'week'))) {
@@ -135,7 +133,7 @@ function calendar_build_week(&$curday, $view, $items, $check_month = FALSE) {
       $content = calendar_build_day($curday, $view, $items);
       $class .= ($curday_date == $today ? ' today' : '') . ($curday_date < $today ? ' past' : '') . ($curday_date > $today ? ' future' : '');
     }
-    
+
     $rows[$week][] = array(
       'data' => $content,
       'class' => $class, 'id' => $view->name . '-' . $curday_date);
@@ -166,7 +164,12 @@ function calendar_build_day($curday, $view, $items) {
       foreach ($day as $time => $hour) {
         foreach ($hour as $key => $item) {
           $count++;
-          $types[$item->type] = $item;
+
+          // @TODO $node->type may or may not exist any more, or be relevant.
+          // Dig into the theme code to either remove it or get it working differently.
+          if (isset($item->type)) {
+            $types[$item->type] = $item;
+          }
           if (!$view->date_info->mini && (empty($max_events) || ($max_events > 0 && $count <= $max_events))) {
             // Theme the item here unless this is a 'Day' or 'Week' view.
             // Day and week views need to do more processing before rendering
@@ -209,7 +212,7 @@ function calendar_build_day($curday, $view, $items) {
     }
     $link = theme('calendar_' . $view->date_info->calendar_type . '_multiple_node', $variables);
   }
-  
+
   $variables = array(
     'date' => $curday_date, 
     'view' => $view, 
@@ -224,6 +227,6 @@ function calendar_build_day($curday, $view, $items) {
     'all_day' => $all_day,
     'items' => $inner,
     );
+
   return $content;
 }
-

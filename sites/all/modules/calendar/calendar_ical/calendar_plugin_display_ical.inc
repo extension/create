@@ -1,5 +1,4 @@
 <?php
-// $Id: calendar_plugin_display_ical.inc,v 1.9 2010/12/21 13:05:15 karens Exp $
 
 /**
  * @file
@@ -228,4 +227,3 @@ class calendar_plugin_display_ical extends views_plugin_display_page {
     return $errors;
   }
 }
-

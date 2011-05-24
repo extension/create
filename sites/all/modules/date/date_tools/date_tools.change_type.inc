@@ -1,5 +1,4 @@
 <?php
-// $Id: date_tools.change_type.inc,v 1.4 2010/10/02 11:39:08 karens Exp $
 
 /**
  * A form to change the type of date used in date fields.
@@ -13,7 +12,7 @@ function date_tools_change_type_form() {
   $fields = content_fields();
   $date_options = array();
   $type_options = array();
-  
+
   $labels = array();
   foreach (date_field_info() as $type => $info) {
     $type_options[$type] = $info['label'] .': '. $info['description'];
@@ -73,11 +72,11 @@ function date_tools_change_type_form_submit($form, &$form_state) {
   foreach (date_field_info() as $type => $info) {
     $labels[$type] = $info['label'];
   }
-  
+
   // Is there any data in this field? If not, we can
   // skip some steps.
   $has_data = db_query("SELECT COUNT(*) FROM {". $table ."}")->fetchField();
-  
+
   // Create a backup copy of the original values.
   // The values are going to get corrupted when we
   // change the column type.
@@ -85,7 +84,7 @@ function date_tools_change_type_form_submit($form, &$form_state) {
     $temp_table = $table .'_temp';
     db_query("CREATE TABLE {". $temp_table ."} SELECT * FROM {". $table ."}");
   }
-  
+
   // Change the field definition to the new type.
   $field['type'] = $new_type;
   require_once('./'. drupal_get_path('module', 'content') .'/includes/content.crud.inc');
@@ -98,16 +97,15 @@ function date_tools_change_type_form_submit($form, &$form_state) {
     '@field_name' => $field['widget']['label'], '@old_type' => $labels[$old_type], '@new_type' => $labels[$new_type])));
     return;
   }
-   
+
   // Replace old values with modified values, massaging the 
   // original values as necessary for the new type.
-  
+
   require_once('./'. drupal_get_path('module', 'date_api') .'/date_api_sql.inc');
   $date_handler = new date_sql_handler();
-  $date_handler->construct();
   $date_handler->granularity = $field['granularity'];  
   $date_handler->date_type = $old_type;
-  
+
   $new_columns = array();
   $old_columns = array('nid', 'vid');
   $new_columns[] = $temp_table . '.nid AS nid';
@@ -155,18 +153,18 @@ function date_tools_change_type_form_submit($form, &$form_state) {
         break;  
     }
   }
-  
+
   // Make sure database timezone is set to UTC.
   $date_handler->set_db_timezone();
-  
+
   // Make the replacement.  
   $sql = 'REPLACE INTO {'. $table .'} ('. implode(', ', $old_columns) .') '.
     ' SELECT '. implode(', ', $new_columns) .' FROM {'. $temp_table .'}';
   db_query($sql);
   //dsm($sql);
   db_query("DROP TABLE {". $temp_table ."}");
-  
+
   drupal_set_message(t('The field @field_name has been changed from @old_type to @new_type.', array(
     '@field_name' => $field['widget']['label'], '@old_type' => $labels[$old_type], '@new_type' => $labels[$new_type])));
-  
+
 }

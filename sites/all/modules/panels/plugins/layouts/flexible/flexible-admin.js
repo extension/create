@@ -1,4 +1,3 @@
-// $Id: flexible-admin.js,v 1.5 2011/01/08 21:12:50 merlinofchaos Exp $
 (function ($) {
 
 Drupal.flexible = Drupal.flexible || {};

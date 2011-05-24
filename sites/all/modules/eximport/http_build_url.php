@@ -42,7 +42,8 @@
 			}
 			
 			if ($url == NULL) {
-				$url = $_SERVER['HTTP_ORIGIN'] . $_SERVER['REQUEST_URI'];
+			    global $base_url;
+				$url = $base_url . $_SERVER['REQUEST_URI'];
 			}
 			
 			if (! is_array($url)) {

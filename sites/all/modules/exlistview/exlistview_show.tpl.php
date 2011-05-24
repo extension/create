@@ -1,5 +1,6 @@
 <?php print drupal_render($tag_form) ?>
 
+
 <?php if (count($listview_nodes) > 0):?>
 
 <?php print $pager; ?>

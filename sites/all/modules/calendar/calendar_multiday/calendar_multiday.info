@@ -1,4 +1,3 @@
-; $Id: calendar_multiday.info,v 1.5 2011/01/03 12:28:28 karens Exp $
 name = Calendar Multiday
 description = "Use the calendar multiday display as an alternative to the standard display. (BETA version)"
 dependencies[] = calendar
@@ -24,9 +23,9 @@ files[] = theme/calendar-day-overlap.tpl.php
 files[] = theme/calendar-week-overlap.tpl.php
 files[] = theme/calendar-month-col.tpl.php
 files[] = theme/calendar-month-row.tpl.php
-; Information added by drupal.org packaging script on 2011-01-05
-version = "7.x-1.x-dev"
+; Information added by drupal.org packaging script on 2011-04-20
+version = "7.x-2.x-dev"
 core = "7.x"
 project = "calendar"
-datestamp = "1294229311"
+datestamp = "1303257878"
 

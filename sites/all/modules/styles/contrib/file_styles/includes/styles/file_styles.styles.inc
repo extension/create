@@ -1,8 +1,8 @@
 <?php
-// $Id: file_styles.styles.inc,v 1.1.2.3 2010/10/23 16:07:15 aaron Exp $
+// $Id: file_styles.styles.inc,v 1.1.2.8 2011/01/12 21:49:17 aaron Exp $
 
 /**
- * @file includes/styles/file_styles.styles.inc
+ * @file styles/contrib/file_styles/includes/styles/file_styles.styles.inc
  * Implementations of various Styles hooks.
  */
 
@@ -13,9 +13,11 @@ function file_styles_styles_default_containers() {
   $containers = array();
   foreach (array('image', 'audio', 'video', 'default') as $type) {
     $containers[$type] = array(
+      'label' => t(ucfirst($type)),
       'class' => 'FileStyles',
     );
   }
+  $containers['image']['preview'] = 'file_styles_image_preview';
   return array(
     'file' => array(
       'admin' => array(
@@ -70,7 +72,7 @@ function file_styles_styles_default_presets() {
   // @TODO: The real deal for video/audio/etc.
   foreach (array('image', 'audio', 'video', 'default') as $type) {
     $containers[$type] = array(
-      'default preset' => 'unlinked_thumbnail',
+      'default preset' => 'original',
       'styles' => array(
         'thumbnail' => array(
           'default preset' => 'linked_thumbnail',
@@ -81,9 +83,24 @@ function file_styles_styles_default_presets() {
         'large' => array(
           'default preset' => 'large',
         ),
+        'medium' => array(
+          'default preset' => 'medium',
+        ),
       ),
       'presets' => array(
+        'original' => array(
+          array(
+            'name' => 'thumbnail',
+            'settings' => array(),
+          )
+        ),
         'unlinked_thumbnail' => array(
+          array(
+            'name' => 'image_style',
+            'settings' => array(
+              'image_style' => 'thumbnail',
+            ),
+          ),
           array(
             'name' => 'thumbnail',
             'settings' => array(),
@@ -93,6 +110,12 @@ function file_styles_styles_default_presets() {
           array(
             'name' => 'link_to_media',
             'settings' => array(),
+          ),
+          array(
+            'name' => 'image_style',
+            'settings' => array(
+              'image_style' => 'thumbnail',
+            ),
           ),
           array(
             'name' => 'thumbnail',
@@ -105,10 +128,9 @@ function file_styles_styles_default_presets() {
             'settings' => array(),
           ),
           array(
-            'name' => 'resize',
+            'name' => 'image_style',
             'settings' => array(
-              'width' => 120,
-              'height' => 120,
+              'image_style' => 'square_thumbnail',
             ),
           ),
           array(
@@ -121,6 +143,18 @@ function file_styles_styles_default_presets() {
             'name' => 'image_style',
             'settings' => array(
               'image_style' => 'large',
+            ),
+          ),
+          array(
+            'name' => 'thumbnail',
+            'settings' => array(),
+          ),
+        ),
+        'medium' => array(
+          array(
+            'name' => 'image_style',
+            'settings' => array(
+              'image_style' => 'medium',
             ),
           ),
           array(

@@ -1,0 +1,40 @@
+name = eX5
+description = A html5 theme for eXtension
+package = Core
+version = VERSION
+core = 7.x
+engine = phptemplate
+
+base theme = drupal_html5_boilerplate
+
+stylesheets[all][] = css/common_fixedfont.css
+stylesheets[all][] = css/ex5.css
+
+regions[header] = Header
+regions[help] = Help
+regions[page_top] = Page top
+regions[menu_bar] = Menu bar
+regions[page_bottom] = Page bottom
+regions[highlighted] = Highlighted
+
+regions[featured] = Featured
+regions[content] = Content
+regions[sidebar_first] = Sidebar first
+regions[sidebar_second_user] = Sidebar second user area
+regions[sidebar_second] = Sidebar second
+
+regions[triptych_first] = Triptych first
+regions[triptych_middle] = Triptych middle
+regions[triptych_last] = Triptych last
+
+regions[footerfirstrow] = Footer first row
+regions[footer_secondrow] = Footer second row
+regions[footer_thirdrow] = Footer third row
+regions[footer_fourthrow] = Footer fourth row
+regions[footer] = Footer
+
+regions[global_nav_bar] = Global Nav Bar
+
+scripts[] = js/script.js
+scripts[] = js/plugins.js
+

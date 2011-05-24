@@ -1,5 +1,4 @@
 <?php
-// $Id: panels.module,v 1.32 2010/10/26 22:46:53 merlinofchaos Exp $
 
 /**
  * @file panels.module
@@ -53,7 +52,7 @@ function panels_theme() {
     'file' => 'includes/common.inc',
   );
   $theme['panels_render_display_form'] = array(
-    'variables' => array('form' => NULL),
+    'render element' => 'element',
   );
 
   $theme['panels_dashboard'] = array(
@@ -150,6 +149,7 @@ function panels_menu() {
   $items['panels/ajax'] = array(
     'access arguments' => array('access content'),
     'page callback' => 'panels_ajax_router',
+    'theme callback' => 'panels_ajax_theme_callback',
     'type' => MENU_CALLBACK,
   );
 
@@ -1028,7 +1028,7 @@ function panels_render_display(&$display, $renderer = NULL) {
       $form_context->form['#theme'] = 'panels_render_display_form';
       $form_context->form['#display'] = &$display;
       $form_context->form['#form_context_id'] = $form_context->id;
-      return drupal_render_form($form_context->form_id, $form_context->form);
+      return $form_context->form;
     }
   }
   return $display->render($renderer);
@@ -1044,8 +1044,8 @@ function panels_render_display(&$display, $renderer = NULL) {
  */
 function theme_panels_render_display_form($vars) {
   // @todo this is probably broken in D7
-  $vars['form']['#children'] = $vars['form']['#display']->render();
-  render($vars['form']);
+  $render = $vars['element']['#display']->render();
+  $vars['element']['#children'] = $render;
   return theme('form', $vars);
 }
 
@@ -1162,7 +1162,7 @@ function template_preprocess_panels_pane(&$vars) {
 
     // Take any that may have been in the render array we were given and
     // move them up so they appear outside the pane properly.
-    if (is_array($content->content) && isset($content->content['#contextual_links'])) {
+    if (is_array($content->content) && isset($content->content['#contextual_links']) && module_exists('contextual')) {
       $element = array(
         '#type' => 'contextual_links',
         '#contextual_links' => $content->content['#contextual_links'],
@@ -1232,6 +1232,18 @@ function template_preprocess_panels_pane(&$vars) {
 }
 
 /**
+ * Menu theme callback.
+ *
+ * This simply ensures that Panels ajax calls are rendered in the same
+ * theme as the original page to prevent .css file confusion.
+ */
+function panels_ajax_theme_callback() {
+  if (!empty($_POST['ajax_page_state']['theme'])) {
+    return $_POST['ajax_page_state']['theme'];
+  }
+}
+
+/**
  * Route Panels' AJAX calls to the correct object.
  *
  * Panels' AJAX is controlled mostly by renderer objects. This menu callback
@@ -1251,6 +1263,9 @@ function panels_ajax_router() {
   $args = func_get_args();
   if (count($args) < 3) {
     return MENU_NOT_FOUND;
+  }
+  if (!empty($_POST['ajax_page_state']['theme'])) {
+    $GLOBALS['custom_theme'] = $_POST['ajax_page_state']['theme'];
   }
 
   ctools_include('display-edit', 'panels');

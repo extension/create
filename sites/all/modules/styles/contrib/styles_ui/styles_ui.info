@@ -7,9 +7,9 @@ core = 7.x
 files[] = styles_ui.admin.inc
 dependencies[] = styles
 
-; Information added by drupal.org packaging script on 2011-01-05
-version = "7.x-2.0-alpha1"
+; Information added by drupal.org packaging script on January 1, 1970 - 00:00
+version = "7.x-2.0-alpha5"
 core = "7.x"
 project = "styles"
-datestamp = "1294262466"
+datestamp = "1295391391"
 
