@@ -8,6 +8,11 @@
 */
 
 
+/* Apply margins and padding back to certain elements
+-----------------------------------------------------------------------------*/
+ul.menu {margin:.5em 0 1em 2em;}
+
+
 /* Common styles for form inputs and buttons
 -----------------------------------------------------------------------------*/
 
@@ -1038,7 +1043,6 @@ article .comment > footer{
 	list-style: none;
 	display: inline;
 }
-
 
 
 
