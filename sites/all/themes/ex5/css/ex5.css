@@ -11,7 +11,7 @@
 /* Apply margins and padding back to certain elements
 -----------------------------------------------------------------------------*/
 ul.menu {margin:.5em 0 1em 2em;}
-
+.panel-pane h4 {margin:0;}
 
 /* Common styles for form inputs and buttons
 -----------------------------------------------------------------------------*/
