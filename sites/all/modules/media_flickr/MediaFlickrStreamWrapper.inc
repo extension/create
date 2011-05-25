@@ -1,5 +1,4 @@
 <?php
-// $Id: MediaFlickrStreamWrapper.inc,v 1.1.2.2 2010/09/19 00:19:06 JacobSingh Exp $
 
 /**
  *  @file

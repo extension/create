@@ -1,4 +1,3 @@
-// $Id: README.txt,v 1.1.4.1 2010/01/20 22:36:10 aaron Exp $
 
 Readme for Media: Flicker
 

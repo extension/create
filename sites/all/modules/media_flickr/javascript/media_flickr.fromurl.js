@@ -1,4 +1,3 @@
-// $Id: media_flickr.fromurl.js,v 1.1.2.1 2010/01/20 22:49:22 aaron Exp $
 
 /**
  *  @file
