@@ -1,5 +1,4 @@
 <?php
-// $Id: media_flickr.utilities.inc,v 1.1.2.4.2.2 2010/01/21 18:56:02 aaron Exp $
 
 /**
  *  @file

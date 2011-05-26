@@ -1,5 +1,4 @@
 <?php
-// $Id: media_flickr.module,v 1.1.2.9.2.10 2011/01/11 21:00:21 aaron Exp $
 
 /**
  *  @file
@@ -47,7 +46,6 @@ function media_flickr_menu() {
  *  Create stream wrapper for Flickr videos.
  */
 function media_flickr_stream_wrappers() {
-  stream_wrapper_register('flickr', 'MediaFlickrStreamWrapper');
   return array(
     'flickr' => array(
       'name' => t('Flickr photos'),
@@ -79,7 +77,28 @@ function media_flickr_theme($existing, $type, $theme, $path) {
     ),
   );
 }
-
+/**
+ * Implementation of Styles module hook_styles_register().
+ */
+function media_flickr_styles_register() {
+	return array(
+	  'MediaFlickrStyles' => array(
+	    'field_types' => 'file',
+	    'name' => t('MediaFlickr'),
+	    'description' => t('Media Flickr styles.'),
+	    'path' => drupal_get_path('module', 'media_flickr') .'/includes',
+	    'file' => 'media_flickr.styles.inc',
+	  ),
+	);
+}
+/**
+ * Implementation of the File Styles module's hook_file_styles_filter().
+ */
+function media_flickr_file_styles_filter($object) {
+	if ((file_uri_scheme($object->uri) == 'flickr') && ($object->filemime == 'image/jpeg')) {
+		return 'media_flickr';
+	}
+}
 function theme_media_flickr_field_formatter_styles($variables) {
   $element = $variables['element'];
   $style = $variables['style'];
@@ -113,61 +132,70 @@ function theme_media_flickr_styles($variables) {
 }
 
 function theme_media_flickr_embed($variables) {
-  $preset_name = $variables['preset_name'];
-  $preset = styles_containers_available_styles('file', 'media_flickr', $preset_name);
-  if (!empty($preset)) {
-    // Build the URL for display.
-    $uri = $variables['uri'];
-    $wrapper = file_stream_wrapper_get_instance_by_uri($uri);
-    $parts = $wrapper->get_parameters();
-    $url = 'http://flickr.com/photos/' . check_plain($parts['u']) . '/' . check_plain($parts['p']);
 
-    $fullscreen_value = $autoplay = 'false';
-    $in_browser = $thumbnail = FALSE;
+	if(isset($variables['preset']) && isset($variables['object'])){
+		//get preset information from the variables object
+		$preset_name = $variables[(string)'preset'];
+		$all_presets = $variables[(string)'presets'];
 
-    $width = $height = 0;
+		$preset = array(
+			'effects' => $all_presets[(string)'presets'][(string)$preset_name],
+		);
 
-    foreach ($preset['effects'] as $effect) {
-      switch ($effect['name']) {
-        case 'resize':
-          $width = isset($effect['data']['width']) ? $effect['data']['width'] : NULL;
-          $height = isset($effect['data']['height']) ? $effect['data']['height'] : NULL;
-          break;
-      }
-    }
-    if (isset($variables['object']->override)) {
-      $override = $variables['object']->override;
-      if (isset($override['width'])) {
-        $width = $override['width'];
-      }
-      if (isset($override['height'])) {
-        $height = $override['height'];
-      }
-      if (isset($override['browser']) && $override['browser']) {
-        $in_browser = TRUE;
-      }
-    }
+		if (!empty($preset)) {
+			// Build the URL for display.
+			$uri = $variables['uri'];
+			$wrapper = file_stream_wrapper_get_instance_by_uri($uri);
+			$parts = $wrapper->get_parameters();
+			$url = 'http://flickr.com/photos/' . check_plain($parts['u']) . '/' . check_plain($parts['p']);
 
-    $attributes = array();
-    if ($width) {
-      $attributes['width'] = $width;
-    }
-    if ($height) {
-      $attributes['height'] = $height;
-    }
-    $output = theme('image', array(
-      'path' => media_flickr_image_url($parts['p'], $width, $height),
-      'alt' => $variables['alt'],
-      'title' => $variables['title'],
-      'attributes' => $attributes,
-      'getsize' => FALSE,
-    ));
-    if ($in_browser) {
-      // Add an overlay that says 'Flickr' to media library browser thumbnails.
-      $output .= '<span />';
-    }
-    return $output;
-  }
+			$fullscreen_value = $autoplay = 'false';
+			$in_browser = $thumbnail = FALSE;
+
+			$width = $height = 0;
+
+			foreach ($preset['effects'] as $effect) {
+				switch ($effect['name']) {
+					case 'resize':
+						$width = isset($effect['settings']['width']) ? $effect['settings']['width'] : NULL;
+						$height = isset($effect['settings']['height']) ? $effect['settings']['height'] : NULL;
+						break;
+				}
+			}
+			if (isset($variables['object']->override)) {
+				$override = $variables['object']->override;
+				if (isset($override['width'])) {
+					$width = $override['width'];
+				}
+				if (isset($override['height'])) {
+					$height = $override['height'];
+				}
+				if (isset($override['browser']) && $override['browser']) {
+					$in_browser = TRUE;
+				}
+			}
+
+			$attributes = array();
+			if ($width) {
+				$attributes['width'] = $width;
+			}
+			if ($height) {
+				$attributes['height'] = $height;
+			}
+			$output = theme('image', array(
+			  'path' => media_flickr_image_url($parts['p'], $width, $height),
+			  'alt' => $variables['alt'],
+			  'title' => $variables['title'],
+			  'attributes' => $attributes,
+			  'getsize' => FALSE,
+			));
+			if ($in_browser) {
+				// Add an overlay that says 'Flickr' to media library browser thumbnails.
+				$output .= '<span />';
+			}
+			return $output;
+		}
+	}
 }
 
 /**
