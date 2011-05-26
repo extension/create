@@ -32,7 +32,7 @@
 	<header class="menu-bar clearfix" role="banner">
    		<div>
 			<div class="logo">
-				<a href="/"><img src="<?php print base_path() . path_to_theme(); ?>/images/ex5-logo.png" border="0" width="164" height="81" /></a>
+				<a href="/"><img src="<?php print base_path() . path_to_theme(); ?>/images/create_logo.png" border="0" width="260" height="100" /></a>
 			</div>
 		<?php print render($page['header']); ?>
 		<?php print render($page['menu_bar']); ?>

@@ -174,7 +174,7 @@ th.specalt {
 .region-global-nav-bar input{
 	width: 200px;
 	border: 1px solid #c5cad1;
-	margin: 5px 30px 0 0;
+	margin: 14px 30px 0 0;
 	padding: .2em .25em;
 	font-size:15px;
 	
@@ -183,23 +183,27 @@ th.specalt {
 /* Top menu bar, logo and breadcrumb area
 -----------------------------------------------------------------------------*/
 header.menu-bar{
-	height: 80px;
-	background-image:url(../images/ex5-header-bg.gif);
-	background-repeat: repeat-x;
+	height: 100px;
+/* background-image:url(../images/ex5-header-bg.gif);*/
+/* background-repeat: repeat-x;*/
+background:#eee;
+margin-bottom:25px;
 }
 header.menu-bar > div{
 	width: 960px;
 	margin: 0 auto;
 }
 header.menu-bar div.logo{
-	width: 164px;
-	height: 80px;
+	width: 260px;
+	height: 100px;
 	float: left;
-	margin: 0 0 0 20px;
+	padding: 0 20px;
+	margin: 0 10px 0 0;
+	background:#fff;
 }
 .region-menu-bar{
-	width: 500px;
 	float: left;
+	margin-top:10px;
 }
 #block-system-main-menu > h2{
 	display: none;
