@@ -643,7 +643,7 @@ article .comment > footer{
 }
 /* right column of manage community in group dashboards */
 .panels-flexible-column-4-9{
-	width: 190px;
+	width: 375px;
 	height: 210px;
 	border-left: 1px solid #B3B3B3;
 	padding-left: 15px;
@@ -651,6 +651,9 @@ article .comment > footer{
 
 
 .panels-flexible-column-4-9 ul{
+	list-style: disc;
+	width: 48%;
+	float: left;
 	margin: 15px 0 0;
 	padding: 0;
 }
@@ -690,7 +693,6 @@ article .comment > footer{
 /* events list */
 
 .panels-flexible-region-4-calendar_list_view .pane-views{
-	padding-left: 15px;
 	font-size: 10px;
 }
 .panels-flexible-region-4-calendar_list_view .view-content h3{
@@ -716,6 +718,15 @@ article .comment > footer{
 	clear: both;
 }
 
+.panels-flexible-region-4-manage_community_heading h5{
+	margin: 0;
+}
+.panels-flexible-region-4-manage_community_heading .pane-content{
+	height: 12px;
+}
+.panels-flexible-region-4-upcoming_calendar_events-inside .pane-content{
+	height: 1px;
+}
 .panels-flexible-region-4-calendar_list_view .views-row-last{
 	margin-bottom: 10px;
 }
