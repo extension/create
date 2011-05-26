@@ -8,10 +8,12 @@
 */
 
 
-/* Apply margins and padding back to certain elements
+/* Apply margins and padding back to certain elements in the theme layout
 -----------------------------------------------------------------------------*/
 ul.menu {margin:.5em 0 1em 2em;}
 .panel-pane h4 {margin:0;}
+#comments ul {margin: 0 0 1em;padding: 0 1.5em;}
+#comments li {list-style: disc outside none;margin: 0 0 0.5em 1.5em;}
 
 /* Common styles for form inputs and buttons
 -----------------------------------------------------------------------------*/
