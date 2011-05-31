@@ -1,5 +1,4 @@
 <?php
-// $Id: media_flickr.variables.inc,v 1.1.2.1 2011/01/11 21:00:21 aaron Exp $
 
 /**
  * @file media_flickr/includes/media_flickr.variables.inc

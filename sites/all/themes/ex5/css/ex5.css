@@ -8,10 +8,12 @@
 */
 
 
-/* Apply margins and padding back to certain elements
+/* Apply margins and padding back to certain elements in the theme layout
 -----------------------------------------------------------------------------*/
 ul.menu {margin:.5em 0 1em 2em;}
-
+.panel-pane h4 {margin:0;}
+#comments ul {margin: 0 0 1em;padding: 0 1.5em;}
+#comments li {list-style: disc outside none;margin: 0 0 0.5em 1.5em;}
 
 /* Common styles for form inputs and buttons
 -----------------------------------------------------------------------------*/
@@ -151,76 +153,59 @@ th.specalt {
 	color: #797268;
 }
 
+/* Global nav banner
+-----------------------------------------------------------------------------*/
+#extensionNav {text-align: center; background: #091f47; padding: .15em 0 .2em; margin: 0;}
+#extensionNav .group {display:inline; padding:0 1em; border-right:1px solid #666;}
+#extensionNav .last {border:0;}
+#extensionNav .group span {display:none;}
+#extensionNav .group li {display:inline;}
+#extensionNav li li {font-size:1em;}
+#extensionNav a {padding: 0 .4em; color: #ddd;text-decoration: none;}
+#extensionNav ul {display:inline;}
+#extensionNav a:hover { text-decoration: underline;}
 
-
-/* Global eXtension navigation and search bar
+/* search bar
 -----------------------------------------------------------------------------*/
 
-#top-bar{
-	background-image: url(../images/ex5-top-bar.gif);
-	background-repeat: repeat-x;
-	height: 29px;
-}
-#top-bar > div{
-	width: 960px;
-	margin: 0 auto;
-}
-#extensionNav{
-	list-style: none;
-	padding: 6px 0 0 20px;
-	margin: 0;
-	width: 600px;
-	float: left;
-}
-#extensionNav li{
-	list-style: none;
-	display:inline;
-	padding: 2px 4px 0 1px;
-	height: 12px;
-	border-right: 1px solid #c5cad1;
-	margin: 0;
-}
-#extensionNav li a{
-	color: #e5e7e9;
-	text-decoration: none;
-	font-size: 12px;
-}
-#extensionNav li a:hover{
-	color: #fff;
-}
 .region-global-nav-bar{
-	width: 200px;
+	width: 260px;
 	float: right;
 	text-align: right;
 }
 .region-global-nav-bar input{
-	width: 130px;
+	width: 200px;
 	border: 1px solid #c5cad1;
-	height: 10px;
-	margin: 5px 30px 0 0;
-	padding: 3px;
+	margin: 14px 30px 0 0;
+	padding: .2em .25em;
+	font-size:15px;
+	
 }
 
 /* Top menu bar, logo and breadcrumb area
 -----------------------------------------------------------------------------*/
 header.menu-bar{
-	height: 80px;
-	background-image:url(../images/ex5-header-bg.gif);
-	background-repeat: repeat-x;
+	height: 100px;
+/* background-image:url(../images/ex5-header-bg.gif);*/
+/* background-repeat: repeat-x;*/
+background:#eee;
+margin-bottom:25px;
 }
 header.menu-bar > div{
 	width: 960px;
 	margin: 0 auto;
 }
 header.menu-bar div.logo{
-	width: 164px;
-	height: 80px;
+	width: 260px;
+	height: 100px;
 	float: left;
-	margin: 0 0 0 20px;
+	padding: 0 20px;
+	margin: 0 10px 0 0;
+	background:#fff;
 }
 .region-menu-bar{
-	width: 500px;
 	float: left;
+	margin-top:10px;
 }
 #block-system-main-menu > h2{
 	display: none;
@@ -658,7 +643,7 @@ article .comment > footer{
 }
 /* right column of manage community in group dashboards */
 .panels-flexible-column-4-9{
-	width: 190px;
+	width: 375px;
 	height: 210px;
 	border-left: 1px solid #B3B3B3;
 	padding-left: 15px;
@@ -666,6 +651,9 @@ article .comment > footer{
 
 
 .panels-flexible-column-4-9 ul{
+	list-style: disc;
+	width: 48%;
+	float: left;
 	margin: 15px 0 0;
 	padding: 0;
 }
@@ -705,7 +693,6 @@ article .comment > footer{
 /* events list */
 
 .panels-flexible-region-4-calendar_list_view .pane-views{
-	padding-left: 15px;
 	font-size: 10px;
 }
 .panels-flexible-region-4-calendar_list_view .view-content h3{
@@ -731,6 +718,15 @@ article .comment > footer{
 	clear: both;
 }
 
+.panels-flexible-region-4-manage_community_heading h5{
+	margin: 0;
+}
+.panels-flexible-region-4-manage_community_heading .pane-content{
+	height: 12px;
+}
+.panels-flexible-region-4-upcoming_calendar_events-inside .pane-content{
+	height: 1px;
+}
 .panels-flexible-region-4-calendar_list_view .views-row-last{
 	margin-bottom: 10px;
 }
