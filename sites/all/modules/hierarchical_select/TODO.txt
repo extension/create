@@ -1,0 +1,42 @@
+HS core:
+✓ port: initial port
+✓ fix: JS code cleanup (remove hardcoded hacks)
+✓ fix: title + description (i.e. something's off with the theme wrapper)
+✓ fix: #value_callback may be necessary? (see file.module) OR: ensure #return_value works
+✓ fix: #element_validate callback: _hierarchical_select_validate() — verify this still works
+✓ port: support multiple HS on the same page
+✓ port: admin UI
+✓ port: "dropbox" support
+- port: "create new item" support
+- port: render_flat_select support
+- upgrade path: delete cache_hierarchical_select
+- upgrade path: documentation
+- port: client-side caching (use _hierarchical_select_json_convert_hierarchy_to_cache())
+- port: status report
+- feature: live preview of HS on the common config form
+- refactor: use the proper #value_callback -> #process callback -> #after_build callback pipeline as described in the documentation for form_builder() in form.inc
+
+Taxonomy:
+✓ port: admin UI
+✓ port: "dropbox" support
+- port: taxonomy term form should be altered to include HS
+- port: "save lineage" support (i.e. support multiple parents, automatic warning shown through hs_taxonomy_hierarchical_select_root_level())
+- port: "create new item" support
+- refactor: use the vocabulary machine name internally instead of the vid
+- upgrade path: migrate settings
+- upgrade path: documentation
+- port: field formatters (from content_taxonomy)
+- port: token support
+- refactor: optimize HS API implementation: take advantage of improvements in Taxonomy
+
+HS Taxonomy Views: 
+- everything
+
+Menu: 
+- everything
+
+Flat List:
+✓ everything
+
+Small Hierarchy:
+✓ everything
