@@ -251,8 +251,8 @@ function og_field_widget_form(&$form, &$form_state, $field, $instance, $langcode
           $audience[$key] = og_label_multiple($audience[$key], FALSE);
         }
       }
-	  asort( $audience['content groups'] );
-      asort( $audience['other groups'] );
+      natcasesort( $audience['content groups'] );
+      natcasesort( $audience['other groups'] );
       // The group options presented to the user.
       $options = array();
       $hidden_selected_gids = array();
