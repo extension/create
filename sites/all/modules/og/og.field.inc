@@ -251,7 +251,8 @@ function og_field_widget_form(&$form, &$form_state, $field, $instance, $langcode
           $audience[$key] = og_label_multiple($audience[$key], FALSE);
         }
       }
-
+      natcasesort( $audience['content groups'] );
+      natcasesort( $audience['other groups'] );
       // The group options presented to the user.
       $options = array();
       $hidden_selected_gids = array();
@@ -261,6 +262,7 @@ function og_field_widget_form(&$form, &$form_state, $field, $instance, $langcode
         if ($my_groups = array_diff_key($audience['content groups'], $excludes)) {
           $options += array(t('My groups') => $my_groups);
         }
+		
         if ($other_groups = array_diff_key($audience['other groups'], $excludes)) {
           $options += array(t('Other groups') => $other_groups);
         }

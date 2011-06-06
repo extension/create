@@ -1,0 +1,29 @@
+<?php
+// $Id: hs_taxonomy.install,v 1.4.4.2 2011/02/15 09:59:27 wimleers Exp $
+
+/**
+ * @file
+ * Install file for the Hierarchical Select Taxonomy module.
+ */
+
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function hs_taxonomy_uninstall() {
+  db_delete('variable')
+  ->condition('name', 'taxonomy_hierarchical_select_%', 'LIKE')
+  ->execute();
+}
+
+
+//----------------------------------------------------------------------------
+// Schema updates.
+
+/**
+ * Upgrade path from Drupal 6 to Drupal 7 version of Hierarchical Select:
+ * - delete the taxonomy_override_selector variable if it exists.
+ */
+function hs_taxonomy_update_7300() {
+  variable_del('taxonomy_override_selector');
+}
