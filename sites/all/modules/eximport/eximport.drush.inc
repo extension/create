@@ -53,7 +53,7 @@ function drush_eximport_import($arg1 = NULL) {
   }
 
   //log to the command line with an OK status
-  drush_log('Running import', 'ok');
+  drush_log('  finished import', 'ok');
 }
 
 /**
@@ -63,7 +63,7 @@ function drush_eximport_rewrite_links() {
 
   eximport_rewrite_imported_urls();
   //log to the command line with an OK status
-  drush_log('Running rewrite_links', 'ok');
+  drush_log(' finished rewriting imported links', 'ok');
   
 }
 
