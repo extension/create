@@ -308,6 +308,10 @@ header.menu-bar #block-system-main-menu ul.menu li a.active{
 }
 
 
+#block-system-main div table{
+	margin-top: 20px;
+}
+
 /* Updated date and user name under the title
 -----------------------------------------------------------------------------*/
 footer.submitted{
