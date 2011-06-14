@@ -257,10 +257,11 @@ function eximport_import_from_file($filename) {
   
   $logfile = fopen($target.".log",'a');
   $pagelistfile = fopen($target.".pagelist",'a');
-  
+    
   $xml = simplexml_load_file($target);
   
   $nids = array();
+  $pagelist = array();
   
   $total = count($xml->entry);
   fwrite($logfile, "[".strftime('%F %X')."] - Starting import : ".$total." revisions\n");
@@ -271,13 +272,18 @@ function eximport_import_from_file($filename) {
     // use an intermediate object to reduce complexity and aid debugging
     $entry = eximport_entry_create($atom_entry);
     fwrite($logfile, "[".strftime('%F %X')."] - [".($i+1)."/".$total."] importing node revision : ".$entry->title." , "."$entry->old_link"."\n");
-    fwrite($pagelistfile, $entry->title."\n");
+    $pagelist[] = $entry->title;
     $nid = eximport_node_create($entry);
     if ($nid) {
       $added++;
     } else {
       $errors++;
     }
+  }
+  
+  $unique_pagelist = array_unique($pagelist);
+  foreach($unique_pagelist as $k => $v){
+    fwrite($pagelistfile, $v."\n");
   }
   fwrite($logfile, "[".strftime('%F %X')."] - Finished import of ".$filename." - ".$added." added, ".$errors." errors"."\n");
   fclose($logfile);
