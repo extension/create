@@ -42,6 +42,9 @@
           $entity_value = $entities[$index];
           if(!empty($dates[$index])) {
             $date_value = strtotime($dates[$index]);
+            if(!$date_value) {
+              $date_value = time();
+            }
             $metadata_items[] = array('contribution_role' => $role_value,'contribution_author' => $entity_value, 'contribution_date' => $date_value);
           } 
         } 
