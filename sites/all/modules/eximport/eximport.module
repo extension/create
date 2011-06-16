@@ -257,10 +257,11 @@ function eximport_import_from_file($filename) {
   
   $logfile = fopen($target.".log",'a');
   $pagelistfile = fopen($target.".pagelist",'a');
-  
+    
   $xml = simplexml_load_file($target);
   
   $nids = array();
+  $pagelist = array();
   
   $total = count($xml->entry);
   fwrite($logfile, "[".strftime('%F %X')."] - Starting import : ".$total." revisions\n");
@@ -271,13 +272,18 @@ function eximport_import_from_file($filename) {
     // use an intermediate object to reduce complexity and aid debugging
     $entry = eximport_entry_create($atom_entry);
     fwrite($logfile, "[".strftime('%F %X')."] - [".($i+1)."/".$total."] importing node revision : ".$entry->title." , "."$entry->old_link"."\n");
-    fwrite($pagelistfile, $entry->title."\n");
+    $pagelist[] = $entry->title;
     $nid = eximport_node_create($entry);
     if ($nid) {
       $added++;
     } else {
       $errors++;
     }
+  }
+  
+  $unique_pagelist = array_unique($pagelist);
+  foreach($unique_pagelist as $k => $v){
+    fwrite($pagelistfile, $v."\n");
   }
   fwrite($logfile, "[".strftime('%F %X')."] - Finished import of ".$filename." - ".$added." added, ".$errors." errors"."\n");
   fclose($logfile);
@@ -670,25 +676,38 @@ function eximport_rewrite_imported_urls() {
   // get imported node list (list of nids)
   $nids = _eximport_load_imported_node_list();
   
+  $rewritelog = eximport_get_fullpath("rewrite.log");
+  $rewritelogfile = fopen($rewritelog,'a');
+  fwrite($rewritelogfile, "[".strftime('%F %X')."] - Starting url rewrites : ".sizeof($nids)." nodes\n");
+  
   $total = 0;
   $processed = 0;
   $errors = 0;
+  $node_count = 1;
+  $num_nodes = count($nids);
+  
   // loop thru all nodes and get all revisions
   foreach ($nids as $nid) {
     // create fake node to load revision list
+    fwrite($rewritelogfile, "[".strftime('%F %X')."] - Rewriting URLs for node [".($node_count)."/".$num_nodes."]\n");
     $fakenode = new stdClass();
     $fakenode->nid = $nid;
     $revisions = node_revision_list($fakenode);
     $total += count($revisions);
+    $revcount = 1;
     foreach ($revisions as $vid => $rev) {
       set_time_limit(30);
       $node = node_load($nid, $vid);
+      fwrite($rewritelogfile, "[".strftime('%F %X')."] -   Rewriting URLs for ".$node->title." [".$revcount."/".count($revisions)."]\n");
       $GLOBALS['eximport_nid'] = $node->nid;
       _eximport_rewrite_urls($node);
       eximport_node_update_revision($node);
       $processed++;
+      $revcount++;
     }
+    $node_count++;
   }
+  fclose($rewritelogfile);
   return array($total, $processed, $errors);
 }
 
