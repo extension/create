@@ -1,0 +1,20 @@
+<?php
+// UTILITIES FOR FAQ IMPORT
+
+// if there was an overflow of a faq on import (ie. question was longer than 255 characters), then 
+// the truncated version gets stored in the title field and the full version gets stored 
+// in the field_original_question field. This field will be visible (but not editable) to 
+// those editing a faq with overflow so they can use it to fix their titles, but 
+// for faqs with no overflow, this field is hidden.
+// We're using a form alter hook on the form name given by drupal to make modifications to the form.
+function exfaqimport_form_faq_node_form_alter(&$form, &$form_state, $form_id) {
+  $faq_node = node_load($form['nid']['#value']);
+  
+  // hide original question field if there is no value for it
+  if((!isset($faq_node->field_original_question['und'][0]['value']) || (trim($faq_node->field_original_question['und'][0]['value']) == ''))) {
+    $form['field_original_question']['#access'] = FALSE;  
+  } 
+  
+  // this field is read-only
+  $form['field_original_question']['#disabled'] = TRUE;    
+}

@@ -1,0 +1,115 @@
+<?php
+
+/**
+ * Implements hook_schema().
+*/
+function exfaqimport_schema() {
+  $schema['faq_drupal_mapping'] = array(
+    'description' => 'Table for storing mapping of faq id from faq system to new drupal node id.',
+    'fields' => array(
+    
+    'fdmid' => array(
+      'description' => 'Unique identifier for the faq to drupal mapping.',
+      'type' => 'serial',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+     ),
+     
+     'faq_id' => array(
+      'description' => 'Id of the faq imported to drupal',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,  
+     ),
+     
+     'node_id' => array(
+      'description' => 'Id of the new node created from the faq import',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+     ),
+     
+     'current_revision_id' => array(
+       'description' => 'Id of the most current revision.',
+       'type' => 'int',
+       'unsigned' => TRUE,
+       'not null' => FALSE,
+      ),
+     
+     'published_revision_id' => array(
+      'description' => 'Id of the published revision.',
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+     ),
+     
+     'created' => array(
+       'description' => 'The Unix timestamp when the mapping occured.',
+       'type' => 'int',
+       'not null' => TRUE,
+     ), 
+  ),
+  
+  'primary key' => array('fdmid'),
+  
+  'indexes' => array(
+    'faq_id' => array('faq_id'),
+    'published_revision_id' => array('published_revision_id'),
+    'current_revision_id' => array('current_revision_id'),
+  ),
+  
+  'foreign keys' => array(
+    'node' => array(
+    'table' => 'node',
+    'columns' => array('node_id' => 'nid'),
+    ),
+  ),
+  
+  );
+  
+  $schema['faq_drupal_revision_mapping'] = array(
+    'description' => 'Table for storing mapping of revision ids from faq to drupal.',
+    'fields' => array(
+    
+    'fdrmid' => array(
+      'description' => 'Unique identifier for the faq to drupal revision mapping.',
+      'type' => 'serial',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+     ),
+     
+     'node_id' => array(
+       'description' => 'Id of the new node created from the faq import related to drupal_revision_id',
+       'type' => 'int',
+       'unsigned' => TRUE,
+       'not null' => TRUE,
+      ),
+     
+     'faq_revision_id' => array(
+       'description' => 'Revision id from faq/dega database.',
+       'type' => 'int',
+       'unsigned' => TRUE,
+       'not null' => TRUE,
+     ),
+     
+     'drupal_revision_id' => array(
+        'description' => 'Revision id from create/drupal database.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      
+      ),
+      
+      'primary key' => array('fdrmid'),
+
+      'indexes' => array(
+        'faq_revision_id' => array('faq_revision_id'),
+        'drupal_revision_id' => array('drupal_revision_id'),
+        'node_id' => array('node_id'),
+      ),
+  );
+      
+  
+  return $schema;
+}
