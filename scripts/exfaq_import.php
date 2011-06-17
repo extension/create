@@ -50,7 +50,6 @@
   // query to get faqs for pulling workflow
   $workflow_query = db_select('questions', 'q')
                     ->fields('q');
-                    
   $faq_workflows_to_import = $workflow_query->execute();
   
   // query to get faq workflow events
@@ -58,7 +57,7 @@
                            ->fields('qe');
   $workflow_events_query->addField('u', 'login', 'user_login');
   $workflow_events_query->join('users', 'u', 'qe.user_id = u.id');
-  $workflow_events_query->condition('description', array('edited public site tags', 'reverted'), 'NOT IN');
+  $workflow_events_query->condition('description', array('edited public site tags', 'reverted'), 'NOT IN');                       
   $workflow_events_to_import = $workflow_events_query->execute();
   
   // query to get both published and personal tags for faqs
@@ -80,7 +79,7 @@
     $author_of_revision = find_faq_author($revision_to_import->login);
     
     $GLOBALS['user'] = $author_of_revision;
-    $prepared_node = prepare_node($revision_to_import, $imported_faq, $author_of_revision);
+    $prepared_node = prepare_node($revision_to_import, $imported_faq, $author_of_revision, $combined_taglist);
     node_save($prepared_node);
     
     drush_print("Imported faq:" . $prepared_node->nid);
@@ -140,7 +139,7 @@
     
     $fields = array(
       'node_id' => $reference_record->node_id,
-      'active'  => ($faq_workflow->status == 'archived') ? false : true,
+      'active'  => ($faq_workflow->status == 'archived') ? 0 : 1,
       'current_revision_id' => $reference_record->current_revision_id,
       'review_count' => (is_null($faq_workflow->review_count)) ? 0 : $faq_workflow->review_count,
       'status' => $status_number,
@@ -231,7 +230,7 @@
   }
   
 
-function prepare_node($imported_revision, $already_saved_faq, $revision_author) {
+function prepare_node($imported_revision, $already_saved_faq, $revision_author, $combined_taglist) {
   if($already_saved_faq != false) {
     $node = node_load($already_saved_faq->node_id, NULL, TRUE);
     # Drupal hack to tell node_save that we have another revision on it's way in the import, because 
@@ -284,7 +283,8 @@ function prepare_node($imported_revision, $already_saved_faq, $revision_author) 
     }
     
     foreach($tag_array as $import_tag) {
-      $fomatted_tag = strtolower(trim($import_tag));
+      $formatted_tag = trim(mb_strtolower($import_tag,'UTF-8'));
+      
       // check and see if it's a group tag
       if(array_key_exists($formatted_tag, $group_tags_list)) {
         $group_tag = array('gid' => $group_tags_list[$formatted_tag]->nid);
@@ -293,8 +293,7 @@ function prepare_node($imported_revision, $already_saved_faq, $revision_author) 
       // else just save it as a tag
       else {
         $tid = 'autocreate';
-    		$term_name = $formatted_tag;
-    		$terms = taxonomy_get_term_by_name($term_name);
+    		$terms = taxonomy_get_term_by_name($formatted_tag);
 
     		if ($terms) {
     		  $term = array_shift($terms);
@@ -305,17 +304,18 @@ function prepare_node($imported_revision, $already_saved_faq, $revision_author) 
 
     		$tag_entry = array('vid' => '1',
     						   'tid' => $tid,
-    						   'name' => $term_name);
-    		$tags_to_import[] = $tag_entry; 
+    						   'name' => $formatted_tag);
+  
+    		$taglist_to_save[] = $tag_entry; 
       } 
     }
     
     if(isset($groups) && (count($groups) > 0)) {
-      $node->group_audience = array(LANGUAGE_NONE =>$groups);
+      $node->group_audience = array(LANGUAGE_NONE => $groups);
     }
     
-    if(isset($tags_to_import) && (count($tags_to_import) > 0)) {
-      $node->field_tags = array(LANGUAGE_NONE => $tags_to_import);
+    if(isset($taglist_to_save) && (count($taglist_to_save) > 0)) {
+      $node->field_tags = array(LANGUAGE_NONE => $taglist_to_save);
     }
     
   }
