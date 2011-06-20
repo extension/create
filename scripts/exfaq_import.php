@@ -50,6 +50,7 @@
   // query to get faqs for pulling workflow
   $workflow_query = db_select('questions', 'q')
                     ->fields('q');
+  
   $faq_workflows_to_import = $workflow_query->execute();
   
   // query to get faq workflow events
@@ -64,7 +65,9 @@
   $combined_tags_query = db_select('taggings', 'tgs');
   $combined_tags_query->addField('tgs', 'taggable_id', 'question_id');
   $combined_tags_query->addField('tgs', 'created_at');
-  $combined_tags_query->condition('tagging_kind', array(1,2), 'IN');                      
+  $combined_tags_query->condition(db_and()
+                                  ->condition('tagging_kind', array(1,2), 'IN')
+                                  ->condition('taggable_type', 'Question'));                      
   $combined_tags_query->groupBy('question_id');
   $combined_tags_query->addExpression('GROUP_CONCAT(DISTINCT tgs.tag_display)', 'tag_names');
   $combined_taglist = $combined_tags_query->execute()->fetchAllAssoc('question_id');
@@ -241,9 +244,12 @@ function prepare_node($imported_revision, $already_saved_faq, $revision_author, 
   else {
     $node = new stdClass();
     $node->type = 'faq';
-    $node->field_from_aaeid = $imported_revision->from_aaeid;
+    
+    if($imported_revision->from_aaeid != null) {
+      $node->field_from_aaeid = array(und => array(0 => array('value' => $imported_revision->from_aaeid)));
+    }
+    
     node_object_prepare($node);
-	
 	
     $node->language = LANGUAGE_NONE;
     $node->created = strtotime((string)$imported_revision->created_at);
@@ -251,19 +257,21 @@ function prepare_node($imported_revision, $already_saved_faq, $revision_author, 
   
   $node->uid = $revision_author->uid;
   
-  # make safe import of utf8, limit 255 chars for title and wordsafe is on
-  $node->title = truncate_utf8($imported_revision->question_text, 255, TRUE);
   if(strlen($imported_revision->question_text) > 255) {
-    $node->field_original_question = $imported_revision->question_text;
+    $node->field_original_question = array(und => array(0 => array('value' => $imported_revision->question_text)));
     $title_overflow = true;
   }
   else {
     $title_overflow = false;
   }
   
+  # make safe import of utf8, limit 255 chars for title and wordsafe is on
+  $node->title = truncate_utf8($imported_revision->question_text, 255, TRUE);
+  
   // make this tagging deal happen
   // only do this for the current revision b/c we only want to apply tags to a node once
   if($imported_revision->current == true) {  
+    $groups = array();
     $group_tags_query = db_select('group_resource_tags', 'grt');
     $group_tags_query->addField('grt', 'resource_tag_name', 'tag_name');
     $group_tags_query->addField('grt', 'nid');
@@ -288,7 +296,9 @@ function prepare_node($imported_revision, $already_saved_faq, $revision_author, 
       // check and see if it's a group tag
       if(array_key_exists($formatted_tag, $group_tags_list)) {
         $group_tag = array('gid' => $group_tags_list[$formatted_tag]->nid);
-        $groups[] = $group_tag;
+        if (!in_array($group_tag, $groups)){
+          $groups[] = $group_tag;
+        }
       }
       // else just save it as a tag
       else {
