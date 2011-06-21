@@ -18,6 +18,8 @@ ul.menu {margin:.5em 0 1em 2em;}
 /* Common styles for form inputs and buttons
 -----------------------------------------------------------------------------*/
 
+/*make FF show a larger multiple select area*/
+select[multiple="multiple"] {height:12em;}
 
 input.form-submit,
 a.button {
