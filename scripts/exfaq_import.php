@@ -2,9 +2,10 @@
   $db_login = drush_get_option('faq_login');
   $db_pw = drush_get_option('faq_pw');
   $db_name = drush_get_option('db_name');
+  $db_host = drush_get_option('db_host');
 
-  if (!isset($db_login) || !isset($db_pw) || !isset($db_name)) {
-    drush_print("You must provide a login, password and database name");
+  if (!isset($db_login) || !isset($db_pw) || !isset($db_name) || !isset($db_host)) {
+    drush_print("You must provide a login, password, database name and host");
     return;
   }
 
@@ -12,7 +13,7 @@
         'database' => $db_name,
         'username' => $db_login, 
         'password' => $db_pw, 
-        'host' => 'localhost', 
+        'host' => $db_host, 
         'driver' => 'mysql', 
   );
 
