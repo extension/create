@@ -1,0 +1,10 @@
+; $Id$
+name = eXtension Faq Import
+description = "Adds a table to store reference ids from faq to drupal for redirecting and included are utilities for faq import."
+version = VERSION
+core = 7.x
+package = eXtension
+dependencies[] = exworkflow
+files[] = exfaqimport.module
+files[] = exfaqimport.install
+
