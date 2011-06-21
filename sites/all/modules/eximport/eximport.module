@@ -255,17 +255,24 @@ function eximport_import_from_file($filename) {
   
   $target = eximport_get_fullpath($filename);
   
+  $logfile = fopen($target.".log",'a');
+  $pagelistfile = fopen($target.".pagelist",'a');
+    
   $xml = simplexml_load_file($target);
   
   $nids = array();
+  $pagelist = array();
   
   $total = count($xml->entry);
+  fwrite($logfile, "[".strftime('%F %X')."] - Starting import : ".$total." revisions\n");
   
   for ($i=0; $i < $total; $i++) {
     set_time_limit(30);
     $atom_entry = $xml->entry[$i];
     // use an intermediate object to reduce complexity and aid debugging
     $entry = eximport_entry_create($atom_entry);
+    fwrite($logfile, "[".strftime('%F %X')."] - [".($i+1)."/".$total."] importing node revision : ".$entry->title." , "."$entry->old_link"."\n");
+    $pagelist[] = $entry->title;
     $nid = eximport_node_create($entry);
     if ($nid) {
       $added++;
@@ -274,6 +281,13 @@ function eximport_import_from_file($filename) {
     }
   }
   
+  $unique_pagelist = array_unique($pagelist);
+  foreach($unique_pagelist as $k => $v){
+    fwrite($pagelistfile, $v."\n");
+  }
+  fwrite($logfile, "[".strftime('%F %X')."] - Finished import of ".$filename." - ".$added." added, ".$errors." errors"."\n");
+  fclose($logfile);
+  fclose($pagelistfile);
   return array($total, $added, $errors);
 }
 
@@ -456,29 +470,11 @@ function _eximport_process_entry_categories($atom_entry, &$entry){
        continue;
     }elseif(array_key_exists((string)$cat['term'], $group_tags)){
 		// the tag is a group identifier
-		$groups[] = 
-			array(
-				'gid' => $group_tags[(string)$cat['term']]
-				);
-	}elseif( preg_match('@:@', (string)$cat['term']) ){
-		// If there is a colon in the tag's name, than this tag is supposed to be part of category tree.
-		// It is put into "Categories" vocabulary
-		$cats = explode(':', (string)$cat['term']);
-		$cats = array_map('trim', $cats);
-		$vocabulary_id = 5;
-		// check if branch with this structure exist
-		if(_eximport_category_exists($cats, $vocabulary_id)){
-			$term_name = array_pop($cats);
-			$terms = taxonomy_get_term_by_name($term_name);	
-			$term = array_shift($terms);
-			$tid = $term->tid;
-		}else{
-			list($tid, $term_name) = _eximport_create_category($cats, $vocabulary_id);
-		}
-		$cat_entry = array('vid' => $vocabulary_id,
-						   'tid' => $tid,
-						   'name' => $term_name);
-		$article_categories[] = $cat_entry;
+		$current_group_tag = array('gid' => $group_tags[(string)$cat['term']]);
+		if (!in_array($current_group_tag,$groups)){
+		  $groups[] = $current_group_tag;
+	  }
+			
 	}else{
 		// if anything else is not taking place, the tag is considered a tag
 		$tid = 'autocreate';
@@ -680,25 +676,38 @@ function eximport_rewrite_imported_urls() {
   // get imported node list (list of nids)
   $nids = _eximport_load_imported_node_list();
   
+  $rewritelog = eximport_get_fullpath("rewrite.log");
+  $rewritelogfile = fopen($rewritelog,'a');
+  fwrite($rewritelogfile, "[".strftime('%F %X')."] - Starting url rewrites : ".sizeof($nids)." nodes\n");
+  
   $total = 0;
   $processed = 0;
   $errors = 0;
+  $node_count = 1;
+  $num_nodes = count($nids);
+  
   // loop thru all nodes and get all revisions
   foreach ($nids as $nid) {
     // create fake node to load revision list
+    fwrite($rewritelogfile, "[".strftime('%F %X')."] - Rewriting URLs for node [".($node_count)."/".$num_nodes."]\n");
     $fakenode = new stdClass();
     $fakenode->nid = $nid;
     $revisions = node_revision_list($fakenode);
     $total += count($revisions);
+    $revcount = 1;
     foreach ($revisions as $vid => $rev) {
       set_time_limit(30);
       $node = node_load($nid, $vid);
+      fwrite($rewritelogfile, "[".strftime('%F %X')."] -   Rewriting URLs for ".$node->title." [".$revcount."/".count($revisions)."]\n");
       $GLOBALS['eximport_nid'] = $node->nid;
       _eximport_rewrite_urls($node);
       eximport_node_update_revision($node);
       $processed++;
+      $revcount++;
     }
+    $node_count++;
   }
+  fclose($rewritelogfile);
   return array($total, $processed, $errors);
 }
 
