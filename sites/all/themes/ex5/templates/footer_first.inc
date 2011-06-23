@@ -6,7 +6,7 @@ credable resource to the public.
 			</div>
 		  	<div class="links">
 				<ul class="menu">
-					<li class="first leaf"><a href="/admin/structure/taxonomy/categories" title="">Content categories</a></li>
+					<li class="first leaf"><a href="" title="">Content categories</a></li>
 					<li class="leaf"><a href="/node/add/faq" title="">Create FAQ</a></li>
 					<li class="leaf"><a href="/node/add/article" title="">Create article</a></li>
 				</ul>
