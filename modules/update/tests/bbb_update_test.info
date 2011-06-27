@@ -1,4 +1,3 @@
-; $Id: bbb_update_test.info,v 1.2 2010/12/20 19:59:44 webchick Exp $
 name = BBB Update test
 description = Support module for update module testing.
 package = Testing

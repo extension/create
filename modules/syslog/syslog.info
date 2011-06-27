@@ -1,4 +1,3 @@
-; $Id: syslog.info,v 1.7 2010/12/20 19:59:43 webchick Exp $
 name = Syslog
 description = Logs and records system events to syslog.
 package = Core

@@ -1,4 +1,3 @@
-; $Id: file_test.info,v 1.1 2008/09/20 07:35:53 webchick Exp $
 name = "File test"
 description = "Support module for file handling tests."
 package = Testing

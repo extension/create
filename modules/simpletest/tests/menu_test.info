@@ -1,4 +1,3 @@
-; $Id: menu_test.info,v 1.2 2010/12/20 19:59:43 webchick Exp $
 name = "Hook menu tests"
 description = "Support module for menu hook testing."
 package = Testing
