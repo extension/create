@@ -1,0 +1,41 @@
+#edit-registration .fieldset-wrapper {
+  width: 60%
+}
+
+#edit-registration .form-item  {
+  height: auto;
+  margin: 35px 10px;
+}
+
+#edit-registration .form-type-textarea {
+  margin-top: 30px;
+}
+
+#edit-registration .form-item label {
+  clear: left;
+  float: left;
+  padding-right: 10px;
+  width: 180px;
+}
+
+#edit-registration .form-item label.error {
+  max-width: 100%;
+  float: left;
+}
+
+#edit-registration .form-item-terms,
+#edit-registration .form-item .form-textarea-wrapper,
+#edit-registration .form-item select,
+#edit-registration .form-item input {
+  float: left;
+}
+
+#edit-registration .form-item-terms {
+  width: 100%;
+}
+
+#edit-registration .form-item-terms label {
+  clear: none;
+  margin-left: 5px;
+  width: 70%;
+}

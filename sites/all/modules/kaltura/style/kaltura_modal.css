@@ -1,0 +1,31 @@
+#modal-content .grippie {
+  display: none;
+}
+
+#modal-content input.form-text {
+  width: 30em;
+  clear: left;
+  float: left;
+}
+
+#modal-content textarea {
+  width: 31em;
+}
+
+#modal-content .resizable-textarea {
+  float: left;
+  clear: both;
+  margin-left: 0;
+}
+
+#modal-content .form-item label {
+  clear: both;
+  float: left;
+}
+
+.buttons {
+  float: left;
+  clear: both;
+  margin-top: 1em;
+}
+

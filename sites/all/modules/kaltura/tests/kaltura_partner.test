@@ -1,0 +1,39 @@
+<?php
+
+
+/**
+ * Ensure that adding partner info  works properly.
+ */
+class KalturaPartnerTestCase extends  DrupalWebTestCase {
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Create Partner',
+      'description' => 'Create Partner',
+      'group' => 'Kaltura',
+    );
+  }
+
+  function setUp() {
+    parent::setUp('kaltura');
+    $admin_user = $this->drupalCreateUser(array('administer site configuration', 'administer kaltura'));
+    $this->drupalLogin($admin_user);
+  }
+
+  function testCreatePartner() {
+    $this->drupalGet('admin/config/kaltura/general');
+    $edit['first_name'] = 'name';
+    $edit['last_name'] = 'last';
+    $edit['email'] = $this->randomname(1) . '@example.com';
+    $edit['phone'] = '111111111';
+    $edit['company'] = 'autotest';
+    $edit['title'] = 'autotestbot';
+    $edit['vertical'] = 'Media';
+    $edit['country'] = 'IL';
+    $edit['would_you_like_to_be_contacted'] = 'no';
+    $edit['terms'] = TRUE;
+    $this->drupalPost(NULL, $edit, t('submit'));
+    $this->assertText(t('Congratulations!'), t('Make sure instaltion is complate'));
+  }
+}
+

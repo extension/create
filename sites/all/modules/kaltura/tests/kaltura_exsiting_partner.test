@@ -1,0 +1,34 @@
+
+<?php
+
+
+/**
+ * Ensure that the convertion works properly.
+ */
+class KalturaExistingPartnerTestCase extends  DrupalWebTestCase {
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Existing Partner',
+      'description' => 'Add existing partner info',
+      'group' => 'Kaltura',
+    );
+  }
+
+  function setUp() {
+    parent::setUp('kaltura');
+    $admin_user = $this->drupalCreateUser(array('administer site configuration', 'administer kaltura'));
+    $this->drupalLogin($admin_user);
+  }
+
+  function testAddPartner() {
+    $this->drupalGet('admin/config/kaltura/general');
+    $edit['new_partner'] = 'existing';
+    $edit['ex_partner_id'] = '426751';
+    $edit['ex_email'] = 'kaltrura@example.com';
+    $edit['ex_password'] = 'kalturatests!2';
+    $edit['terms'] = TRUE;
+    $this->drupalPost(NULL, $edit, t('submit'));
+    $this->assertText(t('Your partner details were imported successfully.'), t('Make sure instaltion is complate'));
+  }
+}

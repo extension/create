@@ -1,0 +1,25 @@
+; $Id: kaltura_views.info,v 1.2.2.5.2.1 2010/08/09 04:30:22 univate Exp $: kaltura_views
+name = Kaltura Media Views
+package = Kaltura Media Management
+description = View your top videos, most viewed, users videos, etc'.
+core = 7.x
+dependencies[] = kaltura
+dependencies[] = views
+files[] = kaltura_views_handler_field_kaltura_duration.inc
+files[] = kaltura_views_handler_field_kaltura_votes.inc
+files[] = kaltura_views.views.inc
+files[] = kaltura_views_handler_field_kaltura_thumb.inc
+files[] = kaltura_views_handler_filter_is_comment.inc
+files[] = kaltura_views_handler_filter_media_type.inc
+files[] = kaltura_views.views_default.inc
+files[] = kaltura_views_handler_field_kaltura_media.inc
+files[] = kaltura_views_handler_filter_kaltura_text.inc
+files[] = kaltura_views_handler_field_kaltura_edit_meta.inc
+
+
+; Information added by drupal.org packaging script on 2011-06-24
+version = "7.x-2.x-dev"
+core = "7.x"
+project = "kaltura"
+datestamp = "1308875174"
+

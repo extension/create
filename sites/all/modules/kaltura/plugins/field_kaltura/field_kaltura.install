@@ -1,0 +1,38 @@
+<?php
+// $Id: field_kaltura.install,v 1.2.2.5 2010/07/07 09:34:53 kaltura Exp $
+
+/*
+ * @file
+ * Installation process for kaltura CCK field module
+ *
+ */
+
+/**
+* Implements hook_field_schema().
+*/
+function field_kaltura_field_schema($field) {
+  //dsm($field);
+  $columns = array(
+    'entryid' => array(
+      'description' => 'Kaltura entry id',
+      'type' => 'varchar',
+      'length' => 20,
+      'default' => '',
+      'not null' => TRUE,
+    ),
+    'mediatype' => array(
+      'type' => 'int',
+      'size' => 'tiny',
+    ),
+  );
+  $foreign_keys = array(
+    'entryid' => array(
+      'table' => 'node_kaltura',
+      'columns' => array('entryid' => 'kaltura_entryid'),
+    ),
+  );
+  return array(
+    'columns' => $columns,
+    'foreign keys' => $foreign_keys,
+  );
+}

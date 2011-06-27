@@ -1,0 +1,44 @@
+<?php
+// $Id: kaltura_views.module,v 1.2.2.5.2.1 2010/08/09 04:30:22 univate Exp $
+
+/*
+ * @file
+ * integrates kaltura module with views
+ *
+ */
+
+/*
+ * Implementation of hook_views_api().
+ */
+function kaltura_views_views_api() {
+  return array(
+    'api' => 2.0,
+    'path' => drupal_get_path('module', 'kaltura_views'),
+  );
+}
+
+function kaltura_views_theme($existing) {
+  return array(
+    'views_view__kaltura_list_entries__default' => array (
+      'variables' => array('view' => NULL),
+      'template' => 'views-view--kaltura_list_entries--default',
+      'original hook' => 'views_view',
+      'preprocess functions' => array(
+        'template_preprocess',
+        'template_preprocess_views_view',
+        'kaltura_views_preprocess_views_view__kaltura_list_entries__default',
+      ),
+    ),
+    'views_view__kaltura_existing__default' => array (
+      'variables' => array('view' => NULL),
+      'template' => 'views-view--kaltura_existing--default',
+      'original hook' => 'views_view',
+      'preprocess functions' => array(
+        'template_preprocess',
+        'template_preprocess_views_view',
+        'kaltura_views_preprocess_views_view__kaltura_existing__default',
+      ),
+    ),
+  );
+}
+
