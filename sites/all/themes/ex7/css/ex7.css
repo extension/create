@@ -12,4 +12,4 @@
 /* limit width of overlay window for long FAQ titles */
 #overlay-title-wrapper h1#overlay-title {width:700px;}
 
-#field-original-question-add-more-wrapper textarea.form-textarea {background:#fff; padding:.5em; font-size:18px;}
+#field-original-question-add-more-wrapper textarea.form-textarea {background:#fff; padding:.5em; font-size:18px; -webkit-text-fill-color:#777}
