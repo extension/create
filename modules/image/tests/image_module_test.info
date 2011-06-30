@@ -1,4 +1,3 @@
-; $Id: image_module_test.info,v 1.1 2010/08/23 09:04:57 dries Exp $
 name = Image test
 description = Provides hook implementations for testing Image module functionality.
 package = Core

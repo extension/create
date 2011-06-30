@@ -1,4 +1,3 @@
-; $Id: block_test.info,v 1.2 2010/12/20 19:59:40 webchick Exp $
 name = Block test
 description = Provides test blocks.
 package = Testing

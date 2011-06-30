@@ -1,5 +1,4 @@
 <?php
-// $Id: file.inc,v 1.243 2010/12/15 03:39:41 webchick Exp $
 
 /**
  * @file
@@ -202,9 +201,8 @@ function file_stream_wrapper_get_class($scheme) {
  * @see file_uri_target()
  */
 function file_uri_scheme($uri) {
-  $data = explode('://', $uri, 2);
-
-  return count($data) == 2 ? $data[0] : FALSE;
+  $position = strpos($uri, '://');
+  return $position ? substr($uri, 0, $position) : FALSE;
 }
 
 /**
@@ -424,7 +422,7 @@ function file_create_url($uri) {
  * Directories need to have execute permissions to be considered a directory by
  * FTP servers, etc.
  *
- * @param &$directory
+ * @param $directory
  *   A string reference containing the name of a directory path or URI. A
  *   trailing slash will be trimmed from a path.
  * @param $options
@@ -739,8 +737,7 @@ function file_usage_delete(stdClass $file, $module, $type = NULL, $id = NULL, $c
  *   A file object.
  * @param $destination
  *   A string containing the destination that $source should be copied to.
- *   This must be a stream wrapper URI. If this value is omitted, Drupal's
- *   default files scheme will be used, usually "public://".
+ *   This must be a stream wrapper URI.
  * @param $replace
  *   Replace behavior when the destination file already exists:
  *   - FILE_EXISTS_REPLACE - Replace the existing file. If a managed file with
@@ -969,8 +966,7 @@ function file_destination($destination, $replace) {
  *   A file object.
  * @param $destination
  *   A string containing the destination that $source should be moved to.
- *   This must be a stream wrapper URI. If this value is omitted, Drupal's
- *   default files scheme will be used, usually "public://".
+ *   This must be a stream wrapper URI.
  * @param $replace
  *   Replace behavior when the destination file already exists:
  *   - FILE_EXISTS_REPLACE - Replace the existing file. If a managed file with
@@ -1757,9 +1753,9 @@ function file_validate_image_resolution(stdClass $file, $maximum_dimensions = 0,
  * @param $data
  *   A string containing the contents of the file.
  * @param $destination
- *   A string containing the destination URI.
- *   This must be a stream wrapper URI. If this value is omitted, Drupal's
- *   default files scheme will be used, usually "public://".
+ *   A string containing the destination URI. This must be a stream wrapper URI.
+ *   If no value is provided, a randomized name will be generated and the file
+ *   will be saved using Drupal's default files scheme, usually "public://".
  * @param $replace
  *   Replace behavior when the destination file already exists:
  *   - FILE_EXISTS_REPLACE - Replace the existing file. If a managed file with
@@ -1825,10 +1821,9 @@ function file_save_data($data, $destination = NULL, $replace = FILE_EXISTS_RENAM
  * @param $data
  *   A string containing the contents of the file.
  * @param $destination
- *   A string containing the destination location.
- *   This must be a stream wrapper URI.  If no value is provided, a
- *   randomized name will be generated and the file is saved using Drupal's
- *   default files scheme, usually "public://".
+ *   A string containing the destination location. This must be a stream wrapper
+ *   URI. If no value is provided, a randomized name will be generated and the
+ *   file will be saved using Drupal's default files scheme, usually "public://".
  * @param $replace
  *   Replace behavior when the destination file already exists:
  *   - FILE_EXISTS_REPLACE - Replace the existing file.
@@ -2155,8 +2150,7 @@ function drupal_unlink($uri, $context = NULL) {
  * @see http://drupal.org/node/515192
  *
  * @param $uri
- *   A string containing the URI to verify. If this value is omitted,
- *   Drupal's public files directory will be used [public://].
+ *   A string containing the URI to verify.
  *
  * @return
  *   The absolute pathname, or FALSE on failure.

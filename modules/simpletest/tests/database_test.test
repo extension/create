@@ -1,5 +1,4 @@
 <?php
-// $Id: database_test.test,v 1.110 2010/12/31 20:43:43 webchick Exp $
 
 /**
  * Dummy class for fetching into a class.
@@ -720,6 +719,21 @@ class DatabaseUpdateTestCase extends DatabaseTestCase {
   }
 
   /**
+   * Confirm updating to NULL.
+   */
+  function testSimpleNullUpdate() {
+    $this->ensureSampleDataNull();
+    $num_updated = db_update('test_null')
+      ->fields(array('age' => NULL))
+      ->condition('name', 'Kermit')
+      ->execute();
+    $this->assertIdentical($num_updated, 1, t('Updated 1 record.'));
+
+    $saved_age = db_query('SELECT age FROM {test_null} WHERE name = :name', array(':name' => 'Kermit'))->fetchField();
+    $this->assertNull($saved_age, t('Updated name successfully.'));
+  }
+
+  /**
    * Confirm that we can update a multiple records successfully.
    */
   function testMultiUpdate() {
@@ -1311,6 +1325,27 @@ class DatabaseSelectTestCase extends DatabaseTestCase {
   }
 
   /**
+   * Test query COMMENT system against vulnerabilities.
+   */
+  function testVulnerableComment() {
+    $query = db_select('test')->comment('Testing query comments */ SELECT nid FROM {node}; --');
+    $name_field = $query->addField('test', 'name');
+    $age_field = $query->addField('test', 'age', 'age');
+    $result = $query->execute();
+
+    $num_records = 0;
+    foreach ($result as $record) {
+      $num_records++;
+    }
+
+    $query = (string)$query;
+    $expected = "/* Testing query comments SELECT nid FROM {node}; -- */ SELECT test.name AS name, test.age AS age\nFROM \n{test} test";
+
+    $this->assertEqual($num_records, 4, t('Returned the correct number of rows.'));
+    $this->assertEqual($query, $expected, t('The flattened query contains the sanitised comment string.'));
+  }
+
+  /**
    * Test basic conditionals on SELECT statements.
    */
   function testSimpleSelectConditional() {
@@ -1687,6 +1722,9 @@ class DatabaseSelectSubqueryTestCase extends DatabaseTestCase {
 
   /**
    * Test EXISTS subquery conditionals on SELECT statements.
+   *
+   * We essentially select all rows from the {test} table that have matching
+   * rows in the {test_people} table based on the shared name column.
    */
   function testExistsSubquerySelect() {
     // Put George into {test_people}.
@@ -1703,7 +1741,7 @@ class DatabaseSelectSubqueryTestCase extends DatabaseTestCase {
     // Subquery to {test_people}.
     $subquery = db_select('test_people', 'tp')
       ->fields('tp', array('name'))
-      ->condition('name', 'George');
+      ->where('tp.name = t.name');
     $query->exists($subquery);
     $result = $query->execute();
 
@@ -1714,6 +1752,9 @@ class DatabaseSelectSubqueryTestCase extends DatabaseTestCase {
 
   /**
    * Test NOT EXISTS subquery conditionals on SELECT statements.
+   *
+   * We essentially select all rows from the {test} table that don't have
+   * matching rows in the {test_people} table based on the shared name column.
    */
   function testNotExistsSubquerySelect() {
     // Put George into {test_people}.
@@ -1731,13 +1772,12 @@ class DatabaseSelectSubqueryTestCase extends DatabaseTestCase {
     // Subquery to {test_people}.
     $subquery = db_select('test_people', 'tp')
       ->fields('tp', array('name'))
-      ->condition('name', 'George');
+      ->where('tp.name = t.name');
     $query->notExists($subquery);
-    $result = $query->execute();
 
-    // Ensure that we got the right record.
-    $record = $result->fetch();
-    $this->assertFalse($record, t('NOT EXISTS query returned no results.'));
+    // Ensure that we got the right number of records.
+    $people = $query->execute()->fetchCol();
+    $this->assertEqual(count($people), 3, t('NOT EXISTS query returned the correct results.'));
   }
 }
 
@@ -3211,8 +3251,10 @@ class DatabaseTransactionTestCase extends DatabaseTestCase {
    *   Suffix to add to field values to differentiate tests.
    * @param $rollback
    *   Whether or not to try rolling back the transaction when we're done.
+   * @param $ddl_statement
+   *   Whether to execute a DDL statement during the inner transaction.
    */
-  protected function transactionOuterLayer($suffix, $rollback = FALSE) {
+  protected function transactionOuterLayer($suffix, $rollback = FALSE, $ddl_statement = FALSE) {
     $connection = Database::getConnection();
     $depth = $connection->transactionDepth();
     $txn = db_transaction();
@@ -3229,7 +3271,7 @@ class DatabaseTransactionTestCase extends DatabaseTestCase {
 
     // We're already in a transaction, but we call ->transactionInnerLayer
     // to nest another transaction inside the current one.
-    $this->transactionInnerLayer($suffix, $rollback);
+    $this->transactionInnerLayer($suffix, $rollback, $ddl_statement);
 
     $this->assertTrue($connection->inTransaction(), t('In transaction after calling nested transaction.'));
 
@@ -3249,11 +3291,11 @@ class DatabaseTransactionTestCase extends DatabaseTestCase {
    *   Suffix to add to field values to differentiate tests.
    * @param $rollback
    *   Whether or not to try rolling back the transaction when we're done.
+   * @param $ddl_statement
+   *   Whether to execute a DDL statement during the transaction.
    */
-  protected function transactionInnerLayer($suffix, $rollback = FALSE) {
+  protected function transactionInnerLayer($suffix, $rollback = FALSE, $ddl_statement = FALSE) {
     $connection = Database::getConnection();
-
-    $this->assertTrue($connection->inTransaction(), t('In transaction in nested transaction.'));
 
     $depth = $connection->transactionDepth();
     // Start a transaction. If we're being called from ->transactionOuterLayer,
@@ -3274,6 +3316,22 @@ class DatabaseTransactionTestCase extends DatabaseTestCase {
       ->execute();
 
     $this->assertTrue($connection->inTransaction(), t('In transaction inside nested transaction.'));
+
+    if ($ddl_statement) {
+      $table = array(
+        'fields' => array(
+          'id' => array(
+            'type' => 'serial',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+          ),
+        ),
+        'primary key' => array('id'),
+      );
+      db_create_table('database_test_1', $table);
+
+      $this->assertTrue($connection->inTransaction(), t('In transaction inside nested transaction.'));
+    }
 
     if ($rollback) {
       // Roll back the transaction, if requested.
@@ -3354,6 +3412,43 @@ class DatabaseTransactionTestCase extends DatabaseTestCase {
     }
     catch (Exception $e) {
       $this->fail($e->getMessage());
+    }
+  }
+
+  /**
+   * Test the compatibility of transactions with DDL statements.
+   */
+  function testTransactionWithDdlStatement() {
+    // First, test that a commit works normally, even with DDL statements.
+    try {
+      $this->transactionOuterLayer('D', FALSE, TRUE);
+
+      // Because we committed, the inserted rows should both be present.
+      $saved_age = db_query('SELECT age FROM {test} WHERE name = :name', array(':name' => 'DavidD'))->fetchField();
+      $this->assertIdentical($saved_age, '24', t('Can retrieve DavidD row after commit.'));
+      $saved_age = db_query('SELECT age FROM {test} WHERE name = :name', array(':name' => 'DanielD'))->fetchField();
+      $this->assertIdentical($saved_age, '19', t('Can retrieve DanielD row after commit.'));
+      // The created table should also exist.
+      $count = db_query('SELECT COUNT(id) FROM {database_test_1}')->fetchField();
+      $this->assertIdentical($count, '0', t('Table was successfully created inside a transaction.'));
+    }
+    catch (Exception $e) {
+      $this->fail($e->getMessage());
+    }
+
+    // If we rollback the transaction, an exception might be thrown.
+    try {
+      $this->transactionOuterLayer('E', TRUE, TRUE);
+
+      // Because we rolled back, the inserted rows shouldn't be present.
+      $saved_age = db_query('SELECT age FROM {test} WHERE name = :name', array(':name' => 'DavidE'))->fetchField();
+      $this->assertNotIdentical($saved_age, '24', t('Cannot retrieve DavidE row after rollback.'));
+      $saved_age = db_query('SELECT age FROM {test} WHERE name = :name', array(':name' => 'DanielE'))->fetchField();
+      $this->assertNotIdentical($saved_age, '19', t('Cannot retrieve DanielE row after rollback.'));
+    }
+    catch (Exception $e) {
+      // An exception also lets the test pass.
+      $this->assertTrue(true, t('Exception thrown on rollback after a DDL statement was executed.'));
     }
   }
 }

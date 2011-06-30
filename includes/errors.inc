@@ -1,5 +1,4 @@
 <?php
-// $Id: errors.inc,v 1.9 2010/10/16 00:00:16 webchick Exp $
 
 /**
  * @file
@@ -173,9 +172,9 @@ function error_displayable($error = NULL) {
  * Log a PHP error or exception, display an error page in fatal cases.
  *
  * @param $error
- *   An array with the following keys: %type, !message, %function, %file, %line.
- *   All the parameters are plain-text, exception message, which needs to be
- *   a safe HTML string.
+ *   An array with the following keys: %type, !message, %function, %file, %line
+ *   and severity_level. All the parameters are plain-text, with the exception of
+ *   !message, which needs to be a safe HTML string.
  * @param $fatal
  *   TRUE if the error is fatal.
  */

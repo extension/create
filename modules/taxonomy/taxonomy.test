@@ -1,9 +1,8 @@
 <?php
-// $Id: taxonomy.test,v 1.99 2010/12/07 05:20:08 webchick Exp $
 
 /**
  * @file
- * Tests for Taxonomy module.
+ * Tests for taxonomy.module.
  */
 
 /**
@@ -351,6 +350,40 @@ class TaxonomyVocabularyUnitTest extends TaxonomyWebTestCase {
     // Check that the field instance is still attached to the vocabulary.
     $this->assertTrue(field_info_instance('taxonomy_term', 'field_test', $new_name), t('The bundle name was updated correctly.'));
   }
+
+  /**
+   * Test uninstall and reinstall of the taxonomy module.
+   */
+  function testUninstallReinstall() {
+    // Fields and field instances attached to taxonomy term bundles should be
+    // removed when the module is uninstalled.
+    $this->field_name = drupal_strtolower($this->randomName() . '_field_name');
+    $this->field = array('field_name' => $this->field_name, 'type' => 'text', 'cardinality' => 4);
+    $this->field = field_create_field($this->field);
+    $this->field_id = $this->field['id'];
+    $this->instance = array(
+      'field_name' => $this->field_name,
+      'entity_type' => 'taxonomy_term',
+      'bundle' => $this->vocabulary->machine_name,
+      'label' => $this->randomName() . '_label',
+    );
+    field_create_instance($this->instance);
+
+    module_disable(array('taxonomy'));
+    require_once DRUPAL_ROOT . '/includes/install.inc';
+    drupal_uninstall_modules(array('taxonomy'));
+    module_enable(array('taxonomy'));
+
+    // Now create a vocabulary with the same name. All field instances
+    // connected to this vocabulary name should have been removed when the
+    // module was uninstalled. Creating a new field with the same name and
+    // an instance of this field on the same bundle name should be successful.
+    unset($this->vocabulary->vid);
+    taxonomy_vocabulary_save($this->vocabulary);
+    unset($this->field['id']);
+    field_create_field($this->field);
+    field_create_instance($this->instance);
+  }
 }
 
 /**
@@ -649,12 +682,12 @@ class TaxonomyTermTestCase extends TaxonomyWebTestCase {
     $this->assertText($edit['description[value]'], t('The randomly generated term description is present.'));
 
     // Did this page request display a 'term-listing-heading'?
-    $this->assertPattern('|class="term-listing-heading"|', 'Term page displayed the term description element.');
+    $this->assertPattern('|class="taxonomy-term-description"|', 'Term page displayed the term description element.');
     // Check that it does NOT show a description when description is blank.
     $term->description = '';
     taxonomy_term_save($term);
     $this->drupalGet('taxonomy/term/' . $term->tid);
-    $this->assertNoPattern('|class="term-listing-heading"|', 'Term page did not display the term description when description was blank.');
+    $this->assertNoPattern('|class="taxonomy-term-description"|', 'Term page did not display the term description when description was blank.');
 
     // Check that the term feed page is working.
     $this->drupalGet('taxonomy/term/' . $term->tid . '/feed');
@@ -1108,7 +1141,7 @@ class TaxonomyTokenReplaceTestCase extends TaxonomyWebTestCase {
 
     foreach ($tests as $input => $expected) {
       $output = token_replace($input, array('term' => $term1), array('language' => $language));
-      $this->assertFalse(strcmp($output, $expected), t('Sanitized taxonomy term token %token replaced.', array('%token' => $input)));
+      $this->assertEqual($output, $expected, t('Sanitized taxonomy term token %token replaced.', array('%token' => $input)));
     }
 
     // Generate and test sanitized tokens for term2.
@@ -1128,7 +1161,7 @@ class TaxonomyTokenReplaceTestCase extends TaxonomyWebTestCase {
 
     foreach ($tests as $input => $expected) {
       $output = token_replace($input, array('term' => $term2), array('language' => $language));
-      $this->assertFalse(strcmp($output, $expected), t('Sanitized taxonomy term token %token replaced.', array('%token' => $input)));
+      $this->assertEqual($output, $expected, t('Sanitized taxonomy term token %token replaced.', array('%token' => $input)));
     }
 
     // Generate and test unsanitized tokens.
@@ -1139,7 +1172,7 @@ class TaxonomyTokenReplaceTestCase extends TaxonomyWebTestCase {
 
     foreach ($tests as $input => $expected) {
       $output = token_replace($input, array('term' => $term2), array('language' => $language, 'sanitize' => FALSE));
-      $this->assertFalse(strcmp($output, $expected), t('Unsanitized taxonomy term token %token replaced.', array('%token' => $input)));
+      $this->assertEqual($output, $expected, t('Unsanitized taxonomy term token %token replaced.', array('%token' => $input)));
     }
 
     // Generate and test sanitized tokens.
@@ -1155,7 +1188,7 @@ class TaxonomyTokenReplaceTestCase extends TaxonomyWebTestCase {
 
     foreach ($tests as $input => $expected) {
       $output = token_replace($input, array('vocabulary' => $this->vocabulary), array('language' => $language));
-      $this->assertFalse(strcmp($output, $expected), t('Sanitized taxonomy vocabulary token %token replaced.', array('%token' => $input)));
+      $this->assertEqual($output, $expected, t('Sanitized taxonomy vocabulary token %token replaced.', array('%token' => $input)));
     }
 
     // Generate and test unsanitized tokens.
@@ -1164,7 +1197,7 @@ class TaxonomyTokenReplaceTestCase extends TaxonomyWebTestCase {
 
     foreach ($tests as $input => $expected) {
       $output = token_replace($input, array('vocabulary' => $this->vocabulary), array('language' => $language, 'sanitize' => FALSE));
-      $this->assertFalse(strcmp($output, $expected), t('Unsanitized taxonomy vocabulary token %token replaced.', array('%token' => $input)));
+      $this->assertEqual($output, $expected, t('Unsanitized taxonomy vocabulary token %token replaced.', array('%token' => $input)));
     }
   }
 }

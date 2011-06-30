@@ -1,5 +1,6 @@
-/sites/all/modules/coder
-/sites/all/modules/coder-HEAD
-/sites/default/settings.php
-/sites/default/files
-/import
+# Ignore configuration files that may contain sensitive information.
+sites/*/settings*.php
+
+# Ignore paths that contain user-generated content.
+sites/*/files
+sites/*/private
