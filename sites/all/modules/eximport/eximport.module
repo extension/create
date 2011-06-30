@@ -212,7 +212,7 @@ function eximport_admin_form_submit($form, &$form_state) {
   $cmd = $form_state['values']['op'];
   switch ($cmd) {
       case 'Import':
-	  $filename = $form_state['values']['filename'];	  
+    $filename = $form_state['values']['filename'];    
       list($total, $added, $errors) = eximport_import_from_file($filename);
       $cmd = "$filename Import";
       break;
@@ -324,11 +324,11 @@ function eximport_node_create($entry) {
     $node = new stdClass();
     $node->type = $entry->type;
     node_object_prepare($node);
-	
-	
+  
+  
     $node->language = LANGUAGE_NONE;
     $node->created = $entry->created;
-	
+  
   }
   
   $node->uid = $entry->user->uid;
@@ -455,7 +455,7 @@ function _eximport_process_entry_categories($atom_entry, &$entry){
   $group_tags = _eximport_get_group_tags();
   $article_categories = $groups = $categories = array();
   foreach ($atom_entry->category as $cat) {
-	  
+    
     if ($cat['term'] == 'news') {
       // if it is news, change content-type
       $entry->type = 'news';
@@ -463,41 +463,46 @@ function _eximport_process_entry_categories($atom_entry, &$entry){
       $entry->type = 'news';
     } elseif ($cat['term'] == 'admin') {
       $entry->type = 'cop_document';
-	}
+    }
     
     if ($cat['term'] == 'published') {
        $entry->published = TRUE;
        continue;
-    }elseif(array_key_exists((string)$cat['term'], $group_tags)){
-		// the tag is a group identifier
-		$current_group_tag = array('gid' => $group_tags[(string)$cat['term']]);
-		if (!in_array($current_group_tag,$groups)){
-		  $groups[] = $current_group_tag;
-	  }
-			
-	}else{
-		// if anything else is not taking place, the tag is considered a tag
-		$tid = 'autocreate';
-		$term_name = (string)$cat['term'];
-		$terms = taxonomy_get_term_by_name($term_name);
-		
-		if ($terms) {
-		  $term = array_shift($terms);
-		  if ($term) {
-			$tid = $term->tid;
-		  }
-		}
-		
-		$cat_entry = array('vid' => '1',
-						   'tid' => $tid,
-						   'name' => $term_name);
-		$categories[] = $cat_entry;
-	}
-  }
-   $entry->group_audience = array(LANGUAGE_NONE =>$groups);
-   $entry->field_tags = array(LANGUAGE_NONE => $categories);
-   $entry->field_article_category = array(LANGUAGE_NONE => $article_categories);
-	
+    } elseif(array_key_exists((string)$cat['term'], $group_tags)) {
+      // the tag is a group identifier
+      $current_group_tag = array('gid' => $group_tags[(string)$cat['term']]);
+      if (!in_array($current_group_tag,$groups)){
+        $groups[] = $current_group_tag;
+      }
+    } else {
+      // if anything else is not taking place, the tag is considered a tag
+      $tid = 'autocreate';
+      $term_name = (string)$cat['term'];
+      $terms = taxonomy_get_term_by_name($term_name);
+    
+      if ($terms) {
+        $term = array_shift($terms);
+        if ($term) {
+        $tid = $term->tid;
+        }
+      }
+    
+      $cat_entry = array('vid' => '1',
+                 'tid' => $tid,
+                 'name' => $term_name);
+      $categories[] = $cat_entry;
+    } // category check
+  } // foreach
+  
+  // if empty groups stick the content in the HARDCODED gid for 'Orphaned Content'
+  if(empty($groups)) {
+    $groups[] = array('gid' => 5081);
+  } 
+  $entry->group_audience = array(LANGUAGE_NONE =>$groups);
+  
+  $entry->field_tags = array(LANGUAGE_NONE => $categories);
+  $entry->field_article_category = array(LANGUAGE_NONE => $article_categories);
+  
 }
 
 
@@ -511,31 +516,31 @@ function _eximport_process_entry_categories($atom_entry, &$entry){
  */
 
 function _eximport_create_category($tree, $vid = 5){
-	
-	$parent = false;
-	for($i=0; $i < count($tree); $i++){
-		$term = taxonomy_get_term_by_name($tree[$i]);
-		$found_terms = array();
-		foreach($term AS $tm){
-			if($tm->vid == $vid){
-				$found_terms[] = $tm;
-			}
-		}
-		if(count($found_terms) != 0){
-			$parent = array_shift($found_terms);
-			$parent = $parent->tid;
-		}else{
-			$new_term = new stdClass();
-			$new_term->vid = $vid;
-			$new_term->name = $tree[$i];
-			if($parent) $new_term->parent =  $parent;
-			taxonomy_term_save($new_term);
-			$parent = $new_term->tid;
-		}
-	}
-	$last_term = array_pop($tree);
-	// $parent in this case is the id of the last created term.
-	return array($parent, $last_term);		
+  
+  $parent = false;
+  for($i=0; $i < count($tree); $i++){
+    $term = taxonomy_get_term_by_name($tree[$i]);
+    $found_terms = array();
+    foreach($term AS $tm){
+      if($tm->vid == $vid){
+        $found_terms[] = $tm;
+      }
+    }
+    if(count($found_terms) != 0){
+      $parent = array_shift($found_terms);
+      $parent = $parent->tid;
+    }else{
+      $new_term = new stdClass();
+      $new_term->vid = $vid;
+      $new_term->name = $tree[$i];
+      if($parent) $new_term->parent =  $parent;
+      taxonomy_term_save($new_term);
+      $parent = $new_term->tid;
+    }
+  }
+  $last_term = array_pop($tree);
+  // $parent in this case is the id of the last created term.
+  return array($parent, $last_term);    
 }
 
 
@@ -552,46 +557,46 @@ function _eximport_create_category($tree, $vid = 5){
 
 
 function _eximport_category_exists($tree, $vid = 5){
-	
-	// cycle through terms
-	for($i = 0; $i < count($tree); $i++){
-		$terms = taxonomy_get_term_by_name($tree[$i]);
-		$result_terms = array();
-		// There could be several terms with a given name
-		// Cycle thrugh them
-		foreach($terms AS $term){
-			if($term->vid == $vid){
-				// Create an array with the term id-s with a given name and belonging to given vocabulary
-				$result_terms[] = $term->tid;
-			}
-		}
-		// If there are no terms in this vocabulary with this name, than return FALSE
-		if(count($result_terms) == 0){
-			return FALSE;
-		}
-		// If all pevious conditions are true and there are no children than return TRUE
-		if($i == (count($tree)-1)){
-			return TRUE;
-		}else{
-			// Cycle through result of terms and see if there is some term with a child that is 
-			// the same as the next element of the input array
-			foreach($result_terms AS $result_term){
-				$trm = taxonomy_get_children($result_term);
-				$is_a_child = FALSE;
-				foreach($trm AS $t){
-					if($t->name == $tree[($i+1)]){
-						$is_a_child = TRUE;
-						break;
-					}
-				}
-			}
-			// If there is no child with that name return FALSE
-			if(!$is_a_child) return FALSE;
-		}
-	}
-	// There should be no chance this function to come here
-	// but if this is the case, the reward should be TRUE
-	return TRUE;
+  
+  // cycle through terms
+  for($i = 0; $i < count($tree); $i++){
+    $terms = taxonomy_get_term_by_name($tree[$i]);
+    $result_terms = array();
+    // There could be several terms with a given name
+    // Cycle thrugh them
+    foreach($terms AS $term){
+      if($term->vid == $vid){
+        // Create an array with the term id-s with a given name and belonging to given vocabulary
+        $result_terms[] = $term->tid;
+      }
+    }
+    // If there are no terms in this vocabulary with this name, than return FALSE
+    if(count($result_terms) == 0){
+      return FALSE;
+    }
+    // If all pevious conditions are true and there are no children than return TRUE
+    if($i == (count($tree)-1)){
+      return TRUE;
+    }else{
+      // Cycle through result of terms and see if there is some term with a child that is 
+      // the same as the next element of the input array
+      foreach($result_terms AS $result_term){
+        $trm = taxonomy_get_children($result_term);
+        $is_a_child = FALSE;
+        foreach($trm AS $t){
+          if($t->name == $tree[($i+1)]){
+            $is_a_child = TRUE;
+            break;
+          }
+        }
+      }
+      // If there is no child with that name return FALSE
+      if(!$is_a_child) return FALSE;
+    }
+  }
+  // There should be no chance this function to come here
+  // but if this is the case, the reward should be TRUE
+  return TRUE;
 }
 
 /**
@@ -603,7 +608,7 @@ function _eximport_category_exists($tree, $vid = 5){
  
  function  _eximport_get_group_tags($tagsonly = FALSE){
 
-	$query = db_select('group_resource_tags');
+  $query = db_select('group_resource_tags');
   $query->addField('group_resource_tags', 'resource_tag_name');
   $query->addField('group_resource_tags', 'nid');
   $query->orderBy('resource_tag_name');
