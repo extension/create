@@ -16,7 +16,7 @@ function exauth_help($path, $arg) {
 //check to see if the user is accessing a cop-created "article" or 'faq'. these are the only pages currently classified as "protected"
 function accessing_protected_page($node_type)
 {
-  if (strpos($_SERVER['REQUEST_URI'], "exatom")=== FALSE && $_SERVER['REQUEST_URI'], "cron")=== FALSE && ($node_type == 'article' || $node_type == 'faq' || $node_type == 'news')){
+  if (strpos($_SERVER['REQUEST_URI'], "exatom")=== FALSE && strpos($_SERVER['REQUEST_URI'], "cron")=== FALSE && ($node_type == 'article' || $node_type == 'faq' || $node_type == 'news')){
     return TRUE;
   }
   return FALSE;
