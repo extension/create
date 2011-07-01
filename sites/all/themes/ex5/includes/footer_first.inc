@@ -2,7 +2,7 @@
 		<nav id="block-menu-menu-publish-to-www" class="block block-menu">
 			<h2>Publish to www.extension.org</h2>
 			<div class="description">Create content to be displayed as trusted and
-credible resource to the public.
+credible resource to the public. 
 			</div>
 		  	<div class="links">
 				<ul class="menu">
