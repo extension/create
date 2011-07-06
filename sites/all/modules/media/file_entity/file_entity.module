@@ -305,7 +305,10 @@ function file_entity_file_formatter_file_field_settings($form, &$form_state, $se
     // transfered via the $instance parameter, so we must mock it.
     if (isset($field_formatter_info['module']) && ($function = ($field_formatter_info['module'] . '_field_formatter_settings_form')) && function_exists($function)) {
       $field = NULL;
-      $mock_instance['display'][$view_mode]['settings'] = $settings;
+      $mock_instance['display'][$view_mode] = array(
+        'type' => $field_formatter_type,
+        'settings' => $settings,
+      );
       return $function($field, $mock_instance, $view_mode, $form, $form_state);
     }
   }
@@ -382,4 +385,18 @@ function _file_entity_view_mode_menu_access($file_type, $view_mode, $access_call
   elseif (function_exists($access_callback)) {
     return call_user_func_array($access_callback, $args);
   }
+}
+
+/**
+ * Implements hook_modules_enabled().
+ */
+function file_entity_modules_enabled($modules) {
+  file_info_cache_clear();
+}
+
+/**
+ * Implements hook_modules_disabled().
+ */
+function file_entity_modules_disabled($modules) {
+  file_info_cache_clear();
 }

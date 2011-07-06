@@ -15,18 +15,18 @@ function media_flickr_settings_form() {
     '#title' => t('Flickr API'),
     '#description' => t('You will first need to apply for an API Developer Key from the <a href="@flickr" target="_blank">Flickr Developer Profile page</a>.', array('@flickr' => MEDIA_FLICKR_API_APPLICATION_URL)),
     '#collapsible' => TRUE,
-    '#collapsed' => (variable_get('media_flickr_api_key', '') != ''),
+    '#collapsed' => (media_flickr_variable_name('api_key') != ''),
   );
-  $form['api']['media_flickr_api_key'] = array(
+  $form['api'][media_flickr_variable_name('api_key')] = array(
     '#type' => 'textfield',
     '#title' => t('Flickr API Key'),
-    '#default_value' => variable_get('media_flickr_api_key', ''),
+    '#default_value' => media_flickr_variable_get('api_key'),
     '#description' => t('Please enter your Flickr Developer Key here.'),
   );
-  $form['api']['media_flickr_api_secret'] = array(
+  $form['api'][media_flickr_variable_name('api_secret')] = array(
     '#type' => 'textfield',
     '#title' => t('Flickr API Secret'),
-    '#default_value' => variable_get('media_flickr_api_secret', ''),
+    '#default_value' => media_flickr_variable_get('api_secret'),
     '#description' => t('If you have a secret for the Flickr API, enter it here.'),
   );
   return system_settings_form($form);

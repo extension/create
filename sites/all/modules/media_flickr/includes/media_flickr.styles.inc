@@ -10,135 +10,115 @@
  * Implementation of Styles module hook_styles_default_containers().
  */
 function media_flickr_styles_default_containers() {
-	// We append Flickr to the file containers.
-	return array(
-	  'file' => array(
-	    'containers' => array(
-	      'media_flickr' => array(
-	        'class' => 'MediaFlickrStyles',
-	        'name' => 'media_flickr',
-	        'label' => t('Flickr'),
-	        'preview' => 'media_flickr_preview_style',
-	      ),
-	    ),
-	  ),
-	);
+ // We append Flickr to the file containers.
+ return array(
+   'file' => array(
+     'containers' => array(
+       'media_flickr' => array(
+         'class' => 'MediaFlickrStyles',
+         'name' => 'media_flickr',
+         'label' => t('Flickr'),
+         'preview' => 'media_flickr_preview_style',
+       ),
+     ),
+   ),
+ );
 }
 
 /**
  * Implementation of Styles module hook_styles_default_presets().
  */
 function media_flickr_styles_default_presets() {
-	return array(
+  $presets = array(
     'file' => array(
       'containers' => array(
         'media_flickr' => array(
-          'default preset' => 'linked_thumbnail',
+          'default preset' => 'unlinked_thumbnail',
           'styles' => array(
+            'original' => array(
+              'default preset' => 'flickr_image',
+            ),
             'thumbnail' => array(
-              'default preset' => 'linked_thumbnail',
+              'default preset' => 'thumb_flickr_image',
             ),
             'square_thumbnail' => array(
               'default preset' => 'linked_square_thumbnail',
             ),
             'medium' => array(
-              'default preset' => 'linked_medium',
+              'default preset' => 'medium_flickr_image',
             ),
             'large' => array(
-              'default preset' => 'linked_large',
+              'default preset' => 'large_flickr_image',
             ),
           ),
           'presets' => array(
-            'unlinked_thumbnail' => array(
+            'flickr_image' => array(
               array(
-                'name' => 'thumbnail',
+                'name' => 'flickr_image',
                 'settings' => array(),
               ),
             ),
-            'linked_thumbnail' => array(
+            'thumb_flickr_image' => array(
               array(
-                'name' => 'link_to_media',
-                'settings' => array(),
-              ),
-              array(
-                'name' => 'thumbnail',
-                'settings' => array(),
-              ),
-            ),
-            'linked_square_thumbnail' => array(
-              array(
-                'name' => 'link_to_media',
-                'settings' => array(),
-              ),
-              array(
-                'name' => 'image_style',
+                'name' => 'resize',
                 'settings' => array(
-                  'image_style' => 'square_thumbnail',
+                    'width' => 100,
                 ),
               ),
               array(
-                'name' => 'thumbnail',
+                'name' => 'flickr_image',
                 'settings' => array(),
               ),
             ),
-            'linked_medium' => array(
+            'medium_flickr_image' => array(
               array(
-                'name' => 'link_to_media',
-                'settings' => array(),
-              ),
-              array(
-                'name' => 'image_style',
+                'name' => 'resize',
                 'settings' => array(
-                  'image_style' => 'medium',
+                  'width' => 220,
                 ),
               ),
               array(
-                'name' => 'thumbnail',
+                'name' => 'flickr_image',
                 'settings' => array(),
               ),
             ),
-            'linked_large' => array(
-            	array(
-            	  'name' => 'link_to_media',
-            	  'settings' => array(),
-            	),
-            	array(
-            	  'name' => 'image_style',
-            	  'settings' => array(
-            	    'image_style' => 'large',
-            	  ),
-            	),
-            	array(
-            	  'name' => 'thumbnail',
-            	  'settings' => array(),
-            	),
+            'large_flickr_image' => array(
+              array(
+                'name' => 'resize',
+                'settings' => array(
+                  'width' => 640,
+                ),
+              ),
+              array(
+                'name' => 'flickr_image',
+                'settings' => array(),
+              ),
             ),
           ),
         ),
       ),
     ),
   );
-}
-
-class MediaFlickrStyles extends FileStyles {
-
-	function get_image_uri() {
-		if ($image_uri = $this->get('image_uri')) {
-			return $image_uri;
-		}
-		$object = $this->get_object();
-		if ($object->uri) {
-			$wrapper = file_stream_wrapper_get_instance_by_uri($object->uri);
-			return $wrapper->getLocalThumbnailPath();
-		}
-	}
-	function flickr_image($effect) {
-		$variables = array(
-			'uri' => $this->get_uri(),
-			'width' => $this->get_width(),
-			'height' => $this->get_height(),
-		);
-		$variables = array_merge($variables, $this->variables);
-		$this->set_output(theme('media_flickr_embed', $variables));
-	}
+  // Allow any image style to be applied to the thumbnail.
+  foreach (image_styles() as $style_name => $image_style) {
+    $presets['file']['containers']['media_flickr']['presets']['linked_' . $style_name] = array(
+      array(
+        'name' => 'linkToMedia',
+        'settings' => array(),
+      ),
+      array(
+        'name' => 'imageStyle',
+        'settings' => array(
+          'image_style' => $style_name,
+        ),
+      ),
+      array(
+        'name' => 'thumbnail',
+        'settings' => array(),
+      ),
+    );
+    $presets['file']['containers']['media_flickr']['presets']['unlinked_' . $style_name] = $presets['file']['containers']['media_flickr']['presets']['linked_' . $style_name];
+    array_shift($presets['file']['containers']['media_flickr']['presets']['unlinked_' . $style_name]);
+  }
+  return $presets;
 }

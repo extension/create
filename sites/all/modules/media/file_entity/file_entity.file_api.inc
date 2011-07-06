@@ -73,6 +73,14 @@ function file_info_formatter_types($formatter_type = NULL) {
 }
 
 /**
+ * Clears the file info cache.
+ */
+function file_info_cache_clear() {
+  drupal_static_reset('file_info_file_types');
+  drupal_static_reset('file_info_formatter_types');
+}
+
+/**
  * Construct a drupal_render() style array from an array of loaded files.
  *
  * @param $files
@@ -194,8 +202,8 @@ function file_view_file($file, $displays = 'default', $langcode = NULL) {
       }
       if (isset($formatter_info['view callback']) && ($function = $formatter_info['view callback']) && function_exists($function)) {
         $display['type'] = $formatter_type;
-        if (isset($formatter_info['default settings'])) {
-          if (!isset($display['settings'])) {
+        if (!empty($formatter_info['default settings'])) {
+          if (empty($display['settings'])) {
             $display['settings'] = array();
           }
           $display['settings'] += $formatter_info['default settings'];
@@ -271,18 +279,64 @@ function file_displays($file_type, $view_mode = 'default') {
     $view_mode = 'default';
   }
 
-  $displays_info = variable_get('file_displays');
-  if ($view_mode !== 'default' && isset($displays_info[$file_type][$view_mode])) {
-    $displays = $displays_info[$file_type][$view_mode];
+  // Load the display configurations for the file type and view mode. If none
+  // exist for the view mode, use the default view mode.
+  if ($view_mode != 'default') {
+    $displays = file_displays_load($file_type, $view_mode, TRUE);
   }
-  elseif (isset($displays_info[$file_type]['default'])) {
-    $displays = $displays_info[$file_type]['default'];
+  if (empty($displays)) {
+    $displays = file_displays_load($file_type, 'default', TRUE);
   }
-  else {
-    $displays = array();
+
+  // Convert the display objects to arrays and remove unnecessary keys.
+  foreach ($displays as $formatter_name => $display) {
+    $displays[$formatter_name] = array_intersect_key((array) $display, drupal_map_assoc(array('status', 'weight', 'settings')));
   }
 
   return $displays;
+}
+
+/**
+ * Returns an array of {file_display} objects for the file type and view mode.
+ */
+function file_displays_load($file_type, $view_mode, $key_by_formatter_name = FALSE) {
+  ctools_include('export');
+
+  $display_names = array();
+  $prefix = $file_type . '__' . $view_mode . '__';
+  foreach (array_keys(file_info_formatter_types()) as $formatter_name) {
+    $display_names[] = $prefix . $formatter_name;
+  }
+  $displays = ctools_export_load_object('file_display', 'names', $display_names);
+
+  if ($key_by_formatter_name) {
+    $prefix_length = strlen($prefix);
+    $rekeyed_displays = array();
+    foreach ($displays as $name => $display) {
+      $rekeyed_displays[substr($name, $prefix_length)] = $display;
+    }
+    $displays = $rekeyed_displays;
+  }
+
+  return $displays;
+}
+
+/**
+ * Saves a {file_display} object to the database.
+ */
+function file_display_save($display) {
+  ctools_include('export');
+  ctools_export_crud_save('file_display', $display);
+}
+
+/**
+ * Creates a new {file_display} object.
+ */
+function file_display_new($file_type, $view_mode, $formatter_name) {
+  ctools_include('export');
+  $display = ctools_export_crud_new('file_display');
+  $display->name = implode('__', array($file_type, $view_mode, $formatter_name));
+  return $display;
 }
 
 /**

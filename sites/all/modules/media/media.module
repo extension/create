@@ -181,7 +181,8 @@ function media_menu() {
     'description' => 'Choose a format for a piece of media',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('media_format_form', 1),
-    'access arguments' => array('administer media'),
+    'access callback' => 'media_access',
+    'access arguments' => array('view'),
     'weight' => 0,
     'file' => 'includes/media.filter.inc',
     'theme callback' => 'media_dialog_get_theme_name',
@@ -243,7 +244,7 @@ function media_menu() {
 
   $items['admin/content/media/browser'] = $items['media/browser'];
   $items['admin/content/media/browser']['type'] = MENU_LOCAL_ACTION;
-  
+
   $items['media/js'] = array(
     'page callback' => 'media_preview_ajax',
     'access callback' => 'media_access',
@@ -1092,4 +1093,20 @@ function media_flush_caches() {
   // content. This prevents fids from staying in this table indefinitely,
   // even if the post that references them is edited or deleted.
   db_delete('media_filter_usage')->condition('timestamp', REQUEST_TIME - 86400 * 120, '<')->execute();
+}
+
+/**
+ * Implements hook_ctools_plugin_api().
+ *
+ * Lets CTools know which plugin APIs are implemented by Media module.
+ */
+function media_ctools_plugin_api($owner, $api) {
+  static $api_versions = array(
+    'file_entity' => array(
+      'file_default_displays' => 1,
+    ),
+  );
+  if (isset($api_versions[$owner][$api])) {
+    return array('version' => $api_versions[$owner][$api]);
+  }
 }

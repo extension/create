@@ -65,8 +65,9 @@ function media_install() {
   foreach ($types as $name => $type) {
     media_type_save($type);
 
-    // @todo We hide the file display in the 'small' view mode for legacy
-    //   reasons. Does it still make sense to do so?
+    // @todo By default, we hide the file display in the 'small' view mode for
+    //   legacy reasons. Does it still make sense to do so? See
+    //   http://drupal.org/node/1051090.
     $bundle_settings = field_bundle_settings('file', $name);
     $bundle_settings['extra_fields']['display']['file']['media_small'] = array('weight' => 0, 'visible' => FALSE);
     field_bundle_settings('file', $name, $bundle_settings);
@@ -556,4 +557,50 @@ function media_update_7016() {
   }
 
   field_cache_clear();
+}
+
+/**
+ * Move file display configurations from the 'file_displays' variable to the
+ * {file_display} table.
+ */
+function media_update_7017() {
+  // If the {file_display} table doesn't exist, then the File Entity module's
+  // update functions will automatically take care of migrating the
+  // configurations. However, if file_entity_update_7001() has already run
+  // prior to media_update_7016(), run it again in order to capture those
+  // configurations too.
+  if (db_table_exists('file_display')) {
+    file_entity_update_7001();
+  }
+}
+
+/**
+ * Rebuild the menu to fix access for WYSIWYG.
+ */
+function media_update_7018() {
+  menu_rebuild();
+}
+
+/**
+ * Update old per-view-mode media field formatters to the generic media formatter with a setting.
+ */
+function media_update_7019() {
+  $instances = array();
+  $fields = field_read_fields(array('type' => 'media'), array('include_inactive' => TRUE));
+  foreach ($fields as $field) {
+    $instances = array_merge($instances, field_read_instances(array('field_id' => $field['id']), array('include_inactive' => TRUE)));
+  }
+  foreach ($instances as $instance) {
+    $update_instance = FALSE;
+    foreach ($instance['display'] as $view_mode => $display) {
+      if (in_array($display['type'], array('media_link', 'media_preview', 'media_small', 'media_large', 'media_original'))) {
+        $update_instance = TRUE;
+        $instance['display'][$view_mode]['type'] = 'media';
+        $instance['display'][$view_mode]['settings'] = array('file_view_mode' => $display['type']);
+      }
+    }
+    if ($update_instance) {
+      field_update_instance($instance);
+    }
+  }
 }

@@ -7,9 +7,9 @@ php = 5.2
 files[] = media_internet.module
 dependencies[] = media
 
-; Information added by drupal.org packaging script on 2011-05-11
+; Information added by drupal.org packaging script on 2011-06-29
 version = "7.x-1.x-dev"
 core = "7.x"
 project = "media"
-datestamp = "1305073549"
+datestamp = "1309349600"
 

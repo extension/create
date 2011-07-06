@@ -43,32 +43,6 @@ function media_file_type_media_claim($file, $type) {
  * display.
  */
 function media_file_type_media_default_view($file, $view_mode, $langcode) {
-  // If the file is an image, attempt to display it using the File Entity
-  // module's image formatter.
-  if ($file->type == 'image') {
-    if ($view_mode == 'media_preview') {
-      $image_style = 'square_thumbnail';
-    }
-    elseif ($view_mode == 'media_large') {
-      $image_style = 'large';
-    }
-    elseif ($view_mode == 'media_original') {
-      $image_style = '';
-    }
-    if (isset($image_style)) {
-      $display = array(
-        'type' => 'file_image',
-        'settings' => array(
-          'image_style' => $image_style,
-        ),
-      );
-      $element = file_entity_file_formatter_file_image_view($file, $display, $langcode);
-      if (isset($element)) {
-        return $element;
-      }
-    }
-  }
-
   // During preview, or when custom attribute values are needed on the displayed
   // element, use a media icon.
   if ($view_mode == 'media_preview' || isset($file->override)) {
@@ -314,4 +288,34 @@ function media_type_batch_update($update_existing = FALSE, $no_to_update = NULL,
   }
 
   return $results;
+}
+
+/**
+ * Implements hook_file_default_displays().
+ *
+ * Provides default display configurations for media types.
+ *
+ * @see file_entity_schema()
+ */
+function media_file_default_displays() {
+  $default_displays = array();
+
+  $default_image_styles = array(
+    'media_preview' => 'square_thumbnail',
+    'media_large' => 'large',
+    'media_original' => ''
+  );
+
+  foreach ($default_image_styles as $view_mode => $image_style) {
+    $display_name = 'image__' . $view_mode . '__file_image';
+    $default_displays[$display_name] = (object) array(
+      'api_version' => 1,
+      'name' => $display_name,
+      'status' => 1,
+      'weight' => 5,
+      'settings' => array('image_style' => $image_style),
+    );
+  }
+
+  return $default_displays;
 }
