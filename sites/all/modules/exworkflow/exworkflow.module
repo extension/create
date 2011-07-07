@@ -71,13 +71,15 @@ function exworkflow_node_view($node, $view_mode) {
           // if the current revision of the node is published, notify 
           // the user of that
           if($node_workflow->published_revision_id == $node->vid) {
-            $node_status .= "<p class='published'>The current version is published. You can either start a new draft revision by editing or unpublish.
-            </p>";
+            $publish_status_text = "The current version is published. You can either start a new draft revision by editing or unpublish.";
             $wrapper_class="wide";
           }
           else {
-            $node_status .= "<p class='published'>A previous version of this content is published.</p>";
-          }  
+            $publish_status_text = "A previous version of this content is published";
+          }
+          # this should not be hardcoded
+          $pageinfo_url = 'http://www.extension.org/pageinfo/source/create/'.$node->nid;
+          $node_status .= "<p class='published'><a href='".$pageinfo_url."' title='More information about this published page.'>".$publish_status_text."</a></p>"  ;
         }
       }
     
