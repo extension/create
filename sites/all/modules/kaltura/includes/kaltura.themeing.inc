@@ -431,7 +431,6 @@ function theme_kaltura_contribution_wizard_field($vars) {
     var entry_list = '. (($vars['no_collect_entries'] === TRUE)? '"'. $vars['kshow_id'] .'"': '-1') .';
     var goto_url = "'. $goto_url .'";
     function onContributionWizardAfterAddEntry(obj) {
-      console.dir(obj);
       var str = obj[0]["entryId"];
       var type = obj[0]["mediaType"];
       var mediaTypes = [];

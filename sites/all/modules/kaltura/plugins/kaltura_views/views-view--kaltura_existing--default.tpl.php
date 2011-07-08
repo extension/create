@@ -29,7 +29,7 @@
  */
 ?>
 <div class="<?php print $classes; ?>">
-  <?php if ($admin_links): ?>
+  <?php if (!empty($admin_links)): ?>
     <?php print $admin_links; ?>
   <?php endif; ?>
   <?php print render($title_prefix); ?>

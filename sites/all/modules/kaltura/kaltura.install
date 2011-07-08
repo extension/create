@@ -171,8 +171,20 @@ function kaltura_schema() {
         'default' => NULL,
         'not null' => FALSE
       ),
+      'kaltura_puser_id' => array(
+        'description' => 'Uploader user id',
+        'type' => 'int',
+        'default' => 1,
+        'not null' => TRUE
+      ),
     ),
     'primary key' => array('kaltura_entryid'),
+    'foreign keys' => array(
+      'owner' => array(
+        'table' => 'users',
+        'columns' => array('kaltura_puser_id' => 'uid'),
+      ),
+    ),
     );
   $schema['kaltura_notifications'] = array(
     'description' => 'table to "log" kaltura notifications, to ignore double notifications',

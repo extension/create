@@ -391,8 +391,13 @@ class KalturaHelpers
   function hasMobileFlavores() {
     $kaltura_client = KalturaHelpers::getKalturaClient(TRUE);
     $session_user = KalturaHelpers::getSessionUser();
-    $res = $kaltura_client->permission->get('FEATURE_MOBILE_FLAVORS');
-    return $res->status;
+    $filter = new KalturaPermissionFilter();
+    $filter->nameEqual= KalturaPermissionName::FEATURE_MOBILE_FLAVORS;
+    $res = $kaltura_client->permission->listAction($filter);
+    if ($res->totalCount != 0) {
+      return TRUE;
+    }
+    return FALSE;
   }
 }
 

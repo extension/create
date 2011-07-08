@@ -55,7 +55,7 @@ kalturaCode { font-size: 20px; padding: 5px; }
 
 .view-kaltura-recenlty-added-videos .item-list ul li,
 
-.view-id-kaltura_my_media .item-list ul li { min-height:100px; height:auto !important; height:100px; width:460px; float:left; list-style-type:none; list-style-image:none; background-image:none; }
+{ min-height:100px; height:auto !important; height:100px; width:460px; float:left; list-style-type:none; list-style-image:none; background-image:none; }
 
 
 

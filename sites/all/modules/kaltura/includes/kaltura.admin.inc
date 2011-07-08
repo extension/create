@@ -1064,6 +1064,7 @@ function kaltura_kmc_obj_to_drupal_array($obj) {
   $ent['kaltura_total_rank'] = $obj->totalRank;
   $ent['kaltura_title'] = $obj->name;
   $ent['kaltura_description'] = $obj->description;
+  $ent['kaltura_puser_id'] = is_numeric($obj->userId) ? $obj->userId : 1;
   return $ent;
 }
 

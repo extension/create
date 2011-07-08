@@ -17,9 +17,9 @@ files[] = kaltura_views_handler_filter_kaltura_text.inc
 files[] = kaltura_views_handler_field_kaltura_edit_meta.inc
 
 
-; Information added by drupal.org packaging script on 2011-06-24
-version = "7.x-2.x-dev"
+; Information added by drupal.org packaging script on 2011-07-05
+version = "7.x-2.0-beta1"
 core = "7.x"
 project = "kaltura"
-datestamp = "1308875174"
+datestamp = "1309860118"
 

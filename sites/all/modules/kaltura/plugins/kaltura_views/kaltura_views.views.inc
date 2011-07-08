@@ -238,7 +238,19 @@ function kaltura_views_data() {
       'filter' => array(
         'handler' => 'views_handler_filter_string'
       ),
-    )
+    ),
+
+  // Expose the owner uid.
+  'kaltura_puser_id' => array(
+    'title' => t('Owner'),
+    'help' => t('Relate a item to the user it belongs to.'),
+    'relationship' => array(
+      'handler' => 'views_handler_relationship',
+      'base' => 'users',
+      'field' => 'uid',
+      'label' => t('Entry owner'),
+    ),
+  ),
   );
   return $data;
 }

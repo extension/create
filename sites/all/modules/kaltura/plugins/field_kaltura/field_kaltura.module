@@ -913,7 +913,7 @@ function field_kaltura_field_views_data($field) {
     $name = $field['field_name'];
     foreach ($table_data as $field_name => $field_data) {
       if (!in_array($field_name, array('table', 'entity_id', 'revision_id', $name . '_mediatype'))) { //we don't want to add relationship to the media type entry
-        $data[$table_name][$field_name]['relationship'] = array(
+        $data[$table_name][$field_name . '_entryid']['relationship'] = array(
           'title' => t('Referenced kaltura media'),
           'help' => t('Appears in: @bundles', array('@bundles' => implode(', ', $bundles))),
           'base' => 'node_kaltura',

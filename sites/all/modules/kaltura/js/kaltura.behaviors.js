@@ -18,7 +18,7 @@
           var field_name = $(this).attr('name');
           var entry_id = $(this).attr('id');
           var media_type = $(this).attr('rel');
-          var src = $('.views-field-kaltura-thumbnail-url').find('img').attr('src');
+          var src = $(this).parent().prevAll('.views-field-kaltura-thumbnail-url').find('img').attr('src');
           var t = '<div class="title">Added ' +  mediaTypes[media_type] + ' </div><div class="kaltura_field_thumb"><img src="' + src + '"/><br/> <input type="button" title="remove item" class="remove_media" /></div>';
           var mtselect = "#" + field_name + "-media-type input";
           var etselect = "#" + field_name + "-entryid input";
@@ -36,7 +36,7 @@
            *);
            */
         }
-      }
+      };
       Drupal.behaviors.kaltura_roate = {
       attach: function (context, settings) {
       $('img.k-rotate').hover(function () {

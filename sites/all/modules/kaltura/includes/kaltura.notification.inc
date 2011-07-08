@@ -44,7 +44,7 @@ function kaltura_notification_handler() {
   echo 'OK';
   foreach ($noti->data as $notification_data) {
     $times = kaltura_notification_received($notification_data['notification_id']);
-    if (!$times || $notification_data['notification_type'] == 'test') {
+    if (empty($times) || $notification_data['notification_type'] == 'test') {
       kaltura_notification_save($notification_data['notification_id'], $notification_data);
       kaltura_forward_notification($notification_data);
       kaltura_invoke('notification_handler', $notification_data);
@@ -89,14 +89,7 @@ function kaltura_forward_notification($noti) {
   watchdog('kaltura notification handler', print_r($noti, TRUE));
   switch ($noti['notification_type']) {
     case 'entry_add':
-	  if ($noti['media_type'] == 6)
-	  {
-		kaltura_notify_node_entry_add('mix', $noti);
-	  }
-	  else
-	  {
 		kaltura_notify_entry_add('entry', $noti);
-	  }
       break;
     case 'kshow_add': kaltura_notify_entry_add('mix', $noti);
       break;
@@ -185,6 +178,7 @@ function kaltura_mk_karray($array) {
   $ent['kaltura_height'] =!empty($array['height']) ? $array['height'] : 0;
   $ent['kaltura_download_url'] = $array['download_url'];
   $ent['kaltura_title'] = $array['name'];
+  $ent['kaltura_puser_id'] = $array['puser_id'];
   return $ent;
 }
 
