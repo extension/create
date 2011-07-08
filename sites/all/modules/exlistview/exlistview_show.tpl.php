@@ -10,16 +10,21 @@
   <tr>
       <th>
           <?php print l('Id', $_GET['q'], 
-                      array('query' => array('field' => 'nid') + $sort_direction + $page_number)); 
-          ?>
+                      array('query' => array('field' => 'nid') + $sort_direction + $page_number)); ?>
       </th>
       
-      <th>Title</th>
+      <th>
+        <?php print l('Title', $_GET['q'],
+                     array('query' => array('field' => 'title') + $sort_direction + $page_number)); ?>
+      </th>
+      <th>
+          <?php print l('Reviews', $_GET['q'], 
+                       array('query' => array('field' => 'review_count') + $sort_direction + $page_number)); ?>
+      </th>
       
       <th>
           <?php print l('Created', $_GET['q'], 
-                      array('query' => array('field' => 'created') + $sort_direction + $page_number)); 
-          ?>
+                      array('query' => array('field' => 'created') + $sort_direction + $page_number)); ?>
       </th>
   </tr>
   
@@ -27,6 +32,7 @@
   <tr>
     <td><?php print $listview_node->nid; ?></td>
     <td><?php print l($listview_node->title, "node/{$listview_node->nid}"); ?></td>
+    <td><?php print ($listview_node->review_count == null) ? 'n/a' : $listview_node->review_count; ?></td>
     <td><?php print format_date($listview_node->created); ?></td>
   </tr>
 <?php endforeach; ?>  

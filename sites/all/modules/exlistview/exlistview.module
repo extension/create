@@ -191,6 +191,12 @@ function exlistview_show() {
       if($order_field == 'nid') {
         $order_by = 'n.nid';
       }
+      else if($order_field == 'title') {
+        $order_by = 'n.title';
+      }
+      else if($order_field == 'review_count') {
+        $order_by = 'review_count';
+      }
       else {
         $order_by = 'n.created';
       }
@@ -211,6 +217,7 @@ function exlistview_show() {
   
     $listview_query = db_select('node', 'n')->extend('PagerDefault');
     $listview_query->fields('n');
+    $listview_query->addExpression('nw.review_count', 'review_count');
     // if we have filtering going on and we had returned nodes from it
     if(isset($combined_node_id_array)) {
       $listview_query->condition('n.nid', $combined_node_id_array, 'IN');
