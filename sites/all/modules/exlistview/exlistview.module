@@ -111,7 +111,6 @@ function exlistview_show() {
   
   }
   
-  
   $listview_preference = db_query('SELECT * FROM {listview_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
   
   // find user preference for tag filtering if it exists
@@ -133,79 +132,54 @@ function exlistview_show() {
     }
     
     // if no tags in filter, don't care about tags, just give me the nodes based on node type
-    if(trim($tag_string) == '') {
-      $listview_query = db_select('node', 'n');
-      $listview_query->addExpression('DISTINCT(n.nid)', 'node_id');
-      // if there were type conditions to be applied (ie, faq, article, etc.)
-      if($node_type_or != db_or()) {
-        $listview_query->condition($node_type_or);
-      }
-      $node_records = $listview_query->execute();
+    if(trim($tag_string) != '') {
+      $tagged_node_id_array = array();
+      $tagged_node_records = _exlistview_get_tag_query($tag_string, $tag_array);
+      
+      foreach ($tagged_node_records as $node_record) {
+        array_push($tagged_node_id_array, $node_record->node_id);
+      }  
     }
     
-    // else tags were in filter
+  // if nodes exist that have specified tags or no tags were set at all, then look to see if we have nodes in the specified groups
+  if(count($tagged_node_id_array) > 0 || !isset($tagged_node_id_array)) {  
+    $group_node_records = _exlistview_get_groups_query($listview_preference);
+     
+    if($group_node_records != null) { 
+      //create a new node_id_array based on the groups audience filter
+      $group_node_id_array = array();
+      foreach ($group_node_records as $node_record) {
+        array_push($group_node_id_array, $node_record->node_id);
+      }
+    }
+    
+    // now, let's combine the tagged node array and the node array that matches groups and get the common nodes out 
+    // and that will tell us what we have matching both the tags and the groups.
+    if(isset($group_node_id_array)) {  
+      if(isset($tagged_node_id_array)) {
+        $combined_node_id_array = array_intersect($tagged_node_id_array, $group_node_id_array);
+      }
+      else {
+        $combined_node_id_array = $group_node_id_array;
+      }
+    }
+    // else we didn't have any groups selected to search on, so just give us the nodes by tags if there were tags
+    else if(isset($tagged_node_id_array)) {
+      $combined_node_id_array = $tagged_node_id_array;
+    }
+    
+    // else, no tags, no groups to apply
     else {
-      $tag_array = explode(',', $tag_string);
-      $tag_count = count($tag_array);
-    
-      $listview_query = db_select('taxonomy_index', 'ti');
-      $listview_query->join('taxonomy_term_data', 'ttd', 'ttd.tid = ti.tid');
-      $listview_query->join('node', 'n', 'n.nid = ti.nid');
-      $listview_query->addExpression('DISTINCT(ti.nid)', 'node_id');
-      $listview_query->addExpression('COUNT(DISTINCT(ti.tid), ti.nid)', 'node_count');
-      // if there were type conditions to be applied (ie, faq, article, etc.)
-      if($node_type_or != db_or()) {
-        $listview_query->condition($node_type_or);
-      }
-      $listview_query->condition('ttd.name', $tag_array, 'IN')
-                ->groupBy('node_id')
-                ->having("node_count = {$tag_count}");
-                                
-      $node_records = $listview_query->execute();
+      $notags_no_groups = true;
     }
-    
-    
-    $node_id_array = array();
-    foreach ($node_records as $node_record) {
-      array_push($node_id_array, $node_record->node_id);
-    }
-  
-  if(count($node_id_array) > 0) {
-    // find user preference for group audience if it exists and filter by it
-    $group_string = $listview_preference->group_audience_filter;
-    if(trim($group_string) != '') {
-      $group_array = explode(',', $group_string);
-      $group_count = count($group_array);
       
-      $listview_query = db_select('field_data_group_audience', 'ga');
-      $listview_query->join('group_resource_tags', 'grt', 'ga.group_audience_gid = grt.nid');
-      $listview_query->addExpression('DISTINCT(ga.entity_id)', 'node_id');
-      $listview_query->addExpression('COUNT(ga.entity_id)', 'node_count');
-    
-      // want to make sure we have the group resource tag names for the nodes in the saved pref for group list, 
-      // we also want to make sure the node id's fall in the list of the nodes already filtered by tag
-      $listview_query->condition(db_and()
-                                 ->condition('grt.resource_tag_name', $group_array, 'IN')
-                                 ->condition('ga.entity_id', $node_id_array, 'IN'))
-                ->groupBy('node_id')
-                ->having("node_count = {$group_count}");
-                
-      $node_records = $listview_query->execute();
-      
-      //create a new node_id_array based on the tag and type filters plus the groups audience filter
-      $node_id_array = array();
-      foreach ($node_records as $node_record) {
-        array_push($node_id_array, $node_record->node_id);
-      }
-      
-    } // end of did we have groups in the pref for this user
-  } // end of did we have nodes that matched the tag filter and type filter
-  
+  } // end of did we have nodes that matched the tag filter   
   } // end of did we have a listview preference
   
-  // if there were no listview prefs set or listview prefs set and records were found, continue w/ query,
+  // if there were no listview prefs set or no tags or groups set or listview prefs set and records were found, continue w/ query,
   // otherwise, return no nodes
-  if(($listview_preference == false) || ($listview_preference != false && count($node_id_array) > 0)) {
+  if(($listview_preference == false) || (isset($notags_no_groups) && ($notags_no_groups == true)) || 
+     ($listview_preference != false && isset($combined_node_id_array) && count($combined_node_id_array) > 0)) {
     
     $order_by = 'n.created';
     $order_direction = 'desc';
@@ -216,6 +190,12 @@ function exlistview_show() {
       
       if($order_field == 'nid') {
         $order_by = 'n.nid';
+      }
+      else if($order_field == 'title') {
+        $order_by = 'n.title';
+      }
+      else if($order_field == 'review_count') {
+        $order_by = 'review_count';
       }
       else {
         $order_by = 'n.created';
@@ -237,9 +217,10 @@ function exlistview_show() {
   
     $listview_query = db_select('node', 'n')->extend('PagerDefault');
     $listview_query->fields('n');
+    $listview_query->addExpression('nw.review_count', 'review_count');
     // if we have filtering going on and we had returned nodes from it
-    if(isset($node_id_array)) {
-      $listview_query->condition('n.nid', $node_id_array, 'IN');
+    if(isset($combined_node_id_array)) {
+      $listview_query->condition('n.nid', $combined_node_id_array, 'IN');
     }
     
     // if the selected listview is draft content, return content that's in draft workflow status 
@@ -284,11 +265,10 @@ function exlistview_show() {
       }
     }
     
-    $listview_query->condition(db_or()
-                   ->condition('n.type', 'article')
-                   ->condition('n.type', 'faq')
-                   ->condition('n.type', 'news'))
-                   ->limit(15) 
+    if($node_type_or != db_or()) {
+      $listview_query->condition($node_type_or);
+    }
+    $listview_query->limit(15) 
                    ->orderBy($order_by, $order_direction);   
     
     $listview_records = $listview_query->execute();
@@ -311,7 +291,7 @@ function exlistview_show() {
   foreach ($listview_records as $listview_record) {
     array_push($record_array, $listview_record);
   }
-  
+
   return theme('exlistview_show', array('listview_nodes' => $record_array,  'sort_direction' => $next_sort_direction, 'page_number' => $page_number, 'pager' => theme('pager'), 'tag_form' => drupal_get_form('exlistview_tag_form')));
 }
 
@@ -493,6 +473,52 @@ function prepare_tags($tag_string) {
   }
   
   return $return_string;
+}
+
+// query all nodes based on tag
+function _exlistview_get_tag_query($tag_string, $tag_array) {
+  $tag_array = explode(',', $tag_string);
+  $tag_count = count($tag_array);
+
+  $listview_query = db_select('taxonomy_index', 'ti');
+  $listview_query->join('taxonomy_term_data', 'ttd', 'ttd.tid = ti.tid');
+  $listview_query->join('node', 'n', 'n.nid = ti.nid');
+  $listview_query->addExpression('DISTINCT(ti.nid)', 'node_id');
+  $listview_query->addExpression('COUNT(DISTINCT(ti.tid), ti.nid)', 'node_count');
+  
+  $listview_query->condition('ttd.name', $tag_array, 'IN')
+            ->groupBy('node_id')
+            ->having("node_count = {$tag_count}");
+                            
+  $node_records = $listview_query->execute();
+  return $node_records;
+}
+
+// query all nodes based on group
+function _exlistview_get_groups_query($listview_preference) {
+  // find user preference for group audience if it exists and filter by it
+  $group_string = $listview_preference->group_audience_filter;
+  if(trim($group_string) != '') {
+    $group_array = explode(',', $group_string);
+    $group_count = count($group_array);
+    
+    $listview_query = db_select('field_data_group_audience', 'ga');
+    $listview_query->join('group_resource_tags', 'grt', 'ga.group_audience_gid = grt.nid');
+    $listview_query->addExpression('DISTINCT(ga.entity_id)', 'node_id');
+    $listview_query->addExpression('COUNT(ga.entity_id)', 'node_count');
+  
+    // want to make sure we have the group resource tag names for the nodes in the saved pref for group list
+    $listview_query->condition('grt.resource_tag_name', $group_array, 'IN')            
+                   ->groupBy('node_id')
+                   ->having("node_count = {$group_count}");
+              
+    $node_records = $listview_query->execute();  
+    return $node_records;
+  }
+  else {
+    return null;
+  }
+  
 }
 
 // get a list of available group tags (CoP tags)
