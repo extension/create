@@ -244,8 +244,7 @@ function exworkflow_unpublish_form_submit($form, &$form_state) {
   if($node_workflow != false) {  
     // if the unpublish value was selected
     if(isset($form_state['values']['unpublish']) && ($form_state['values']['unpublish'] == 'true')) {
-    
-      // first, see of the current revision is the published revision, because, if not,
+      // first, see if the current revision is the published revision, because, if not,
       // then the current draft status needs to be kept intact, ie. if you have published 
       // revision 3 and are working on revision 5 that has 2 reviews in draft, we need to 
       // keep this if it (revision 3 and the piece of content) gets unpublished.
@@ -496,31 +495,45 @@ function exworkflow_node_update($node) {
   if($node->type == 'article' || $node->type == 'faq' || $node->type == 'news') {
     // get the node's workflow
     $node_workflow = db_query('SELECT * FROM {node_workflow} WHERE node_id = :nid', array(':nid' => $node->nid))->fetchObject();
-      
-    // if the revision has changed, set status back to draft and update current revision id
-    if($node_workflow != false && $node_workflow->current_revision_id != $node->vid) {
+    
+    // if the revision has changed, set status back to draft if it's
+    // published (with current revision the same as published revision) or inactive, othewise, leave it alone
+    // workflow node revision id will be updated regardless though
+    if($node_workflow != false && ($node_workflow->current_revision_id != $node->vid)) {
       global $user;
       
-      if($node_workflow->active == true) {
-        $event_text = 'moved back to draft';
-      }
-      else {
+      if($node_workflow->active != true) {
         $event_text = 'activated';
       }
+      else {
+        $event_text = 'moved back to draft';
+      }
       
-      $workflow_obj = exworkflow_change_state($node, 'draft', null, $event_text, $user->uid, null, array('active' => 1));
-      
-      if($workflow_obj == null) { return; }
-      
-      // if the node was activated as part of the edit, it was also moved back to draft, 
-      // also record this event
-      if($event_text == 'activated') {
-        exworkflow_record_event($node, 'moved back to draft', $node_workflow->nwid, $user->uid);
+      // if the node was inactive (and now active b/c of the edit) or if the 
+      // node was published and the publish revision is the same as the current revision, 
+      // we are resetting the node status back to draft and clearing the review count
+      if($event_text == 'activated' || ($node_workflow->published_at != null && $node_workflow->published_revision_id == $node_workflow->current_revision_id)) {
+        $workflow_obj = exworkflow_change_state($node, 'draft', null, $event_text, $user->uid, null, array('active' => 1));
+        if($workflow_obj == null) { return; }
+        // if the node was activated as part of the edit, it was also moved back to draft, 
+        // also record this event
+        if($event_text == 'activated') {
+          exworkflow_record_event($node, 'moved back to draft', $node_workflow->nwid, $user->uid);
+        }
+      }
+      // if the node was not published (with publshed and current rev the same) or inactive, don't set back to draft, 
+      // just update the node revision record for it's workflow
+      else {
+        db_update('node_workflow')
+        ->fields(array(
+                 'current_revision_id' => $node->vid,
+                 'changed' => REQUEST_TIME))
+        ->condition('nwid', $node_workflow->nwid)
+        ->execute();
       }
       
     } // end of has the revision changed
-  } // end of do we have a qualifying article type
-  
+  } // end of do we have a qualifying article type 
 }
 
 function exworkflow_menu() {
@@ -676,8 +689,8 @@ function exworkflow_change_state($node_obj, $node_status_text, $draft_status_tex
   // update current workflow record
   else {
     // node workflow was found, check to make sure selected state is not the 
-    // same as the current state unless it's being reviewed (state = 3)
-    if($draft_status_number != null && $draft_status_number == $node_workflow->draft_status && $draft_status_number != 3) {
+    // same as the current state unless it's being reviewed (state = 3) or unpublished
+    if($draft_status_number != null && $draft_status_number == $node_workflow->draft_status && $draft_status_number != 3 && $event_text != 'unpublished') {
       return null;
     }
     
