@@ -153,7 +153,7 @@ function exworkflow_form($form, &$form_state) {
   
   $form['submit'] = array(
   '#type' => 'submit',
-  '#value' => t('Set State'),
+  '#value' => t('Update Workflow'),
   );
   return $form;
 }
