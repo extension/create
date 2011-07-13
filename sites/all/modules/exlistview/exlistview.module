@@ -114,6 +114,7 @@ function exlistview_show() {
   $listview_preference = db_query('SELECT * FROM {listview_preferences} WHERE user_id = :uid', array(':uid' => $user->uid))->fetchObject();
   
   $node_type_or = db_or();
+  $node_type_array = array();
   
   // find user preference for tag filtering if it exists
   if($listview_preference != false) {
@@ -121,14 +122,17 @@ function exlistview_show() {
     
     if($listview_preference->show_faqs == true) {
       $node_type_or->condition('n.type', 'faq');
+      $node_type_array[] = 'faq';
     }
     
     if($listview_preference->show_articles == true) {
       $node_type_or->condition('n.type', 'article');
+      $node_type_array[] = 'article';
     }
     
     if($listview_preference->show_news == true) {
       $node_type_or->condition('n.type', 'news');
+      $node_type_array[] = 'news';
     }
     
     // if no tags in filter, don't care about tags, just give me the nodes based on node type
@@ -143,7 +147,7 @@ function exlistview_show() {
     
   // if nodes exist that have specified tags or no tags were set at all, then look to see if we have nodes in the specified groups
   if(count($tagged_node_id_array) > 0 || !isset($tagged_node_id_array)) {  
-    $group_node_records = _exlistview_get_groups_query($listview_preference);
+    $group_node_records = _exlistview_get_groups_query($listview_preference, $node_type_array);
      
     if($group_node_records != null) { 
       //create a new node_id_array based on the groups audience filter
@@ -268,6 +272,10 @@ function exlistview_show() {
     if($node_type_or != db_or()) {
       $listview_query->condition($node_type_or);
     }
+    else {
+      $listview_query->condition('n.type', array('faq', 'article', 'news'), 'IN');
+    }
+    
     $listview_query->limit(15) 
                    ->orderBy($order_by, $order_direction);   
     
@@ -496,7 +504,7 @@ function _exlistview_get_tag_query($tag_string, $tag_array) {
 }
 
 // query all nodes based on group
-function _exlistview_get_groups_query($listview_preference) {
+function _exlistview_get_groups_query($listview_preference, $nodetype_array) {
   // find user preference for group audience if it exists and filter by it
   $group_string = $listview_preference->group_audience_filter;
   $group_array = array();
@@ -517,9 +525,15 @@ function _exlistview_get_groups_query($listview_preference) {
     $listview_query->addExpression('COUNT(ga.entity_id)', 'node_count');
   
     // want to make sure we have the group ids for the nodes in the saved pref for group list
-    $listview_query->condition('ga.group_audience_gid', $group_array, 'IN')            
-                   ->groupBy('node_id')
-                   ->having("node_count = {$group_count}");
+    $listview_query->condition('ga.group_audience_gid', $group_array, 'IN');  
+    if(count($nodetype_array) == 0) {
+      $listview_query->condition('ga.bundle', array('faq', 'article', 'news'), 'IN');
+    }
+    else {
+      $listview_query->condition('ga.bundle', $nodetype_array, 'IN');
+    }               
+      $listview_query->groupBy('node_id')
+                     ->having("node_count = {$group_count}");
               
     $node_records = $listview_query->execute();  
     return $node_records;
