@@ -48,7 +48,7 @@ function exauth_node_view($node, $view_mode, $langcode){
     $default_openidreturn = $base_url . '/openid/authenticate?destination=' . ltrim(request_uri(), "/");
     $myopenid_return = variable_get('extension_openid_return',$default_openidreturn);
     //syslog(LOG_WARNING, "openid login start");
-    openid_begin("https://people.extension.org/", $myopenid_return);
+    openid_begin("https://people.extension.org", $myopenid_return);
   }
 }
 
