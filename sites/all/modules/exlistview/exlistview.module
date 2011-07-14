@@ -146,7 +146,7 @@ function exlistview_show() {
     }
     
   // if nodes exist that have specified tags or no tags were set at all, then look to see if we have nodes in the specified groups
-  if(count($tagged_node_id_array) > 0 || !isset($tagged_node_id_array)) {  
+  if(!isset($tagged_node_id_array) || count($tagged_node_id_array) > 0) {  
     $group_node_records = _exlistview_get_groups_query($listview_preference, $node_type_array);
      
     if($group_node_records != null) { 
