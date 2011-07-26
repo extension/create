@@ -31,7 +31,13 @@ function exfields_help($path, $arg) {
  */
 function exfields_field_info() {
   return array(
-    'contribution' => array(
+	'appraisal' => array(
+	  'label' => t('eX Appraisal'),
+	  'description' => t('Stores appraisal data.'),
+	  'default_widget' => 'appraisalfield',
+	  'default_formatter' => 'appraisalformat',
+	),
+	'contribution' => array(
 	  'label' => t('eX Contribution'),
 	  'description' => t('Stores contribution data.'),
 	  'default_widget' => 'contributionfield',
@@ -84,6 +90,52 @@ function exfields_field_schema($field) {
         ),
       );
       break;
+	case 'appraisal':
+      $columns = array(
+        'appraisal_user' => array(
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => FALSE,
+        ),
+		'appraisal_level' => array(
+          'type' => 'int',
+          'default'  => 0,
+          'not null' => FALSE,
+        ),
+		'appraisal_usability' => array(
+          'type' => 'int',
+          'default'  => 0,
+          'not null' => FALSE,
+        ),
+		'appraisal_actionability' => array(
+          'type' => 'int',
+          'default'  => 0,
+          'not null' => FALSE,
+        ),
+		'appraisal_interrelatedness' => array(
+          'type' => 'int',
+          'default'  => 0,
+          'not null' => FALSE,
+        ),
+		'appraisal_differentiation' => array(
+          'type' => 'int',
+          'default'  => 0,
+          'not null' => FALSE,
+        ),
+		'appraisal_relevance' => array(
+          'type' => 'int',
+          'default'  => 0,
+          'not null' => FALSE,
+        ),
+		'appraisal_date' => array(
+          'type' => 'int',
+          'default'  => 0,
+          'not null' => FALSE,
+        ),
+		
+		
+      );
+      break;
   }
 
   return array('columns' => $columns);
@@ -101,6 +153,9 @@ function exfields_field_is_empty($item, $field) {
       break;
     case 'relation':
       return empty($item['relation_kind']);
+      break;
+	case 'appraisal':
+      return empty($item['appraisal_user']);
       break;
   }
 }
@@ -121,6 +176,10 @@ function exfields_field_formatter_info() {
     'relationformat' => array(
       'label' => t('Default'),
       'field types' => array('relation'),
+    ),
+	'appraisalformat' => array(
+      'label' => t('Default'),
+      'field types' => array('appraisal'),
     ),
   );
 }
@@ -145,6 +204,13 @@ function exfields_field_formatter_view($object_type, $object, $field, $instance,
         	$element[$delta]['#markup'] = '<p>' . $output . '</p>';
       }
   }
+  if($display['type']=='appraisalformat') {
+      foreach ($items as $delta => $item) {
+		 	$output = t('<em>Author:</em> @user<br /><em>Knowledge Level:</em> @level<br /><em>Usability:</em> @usability<br /><em>Actionability:</em> @actionability<br /><em>Interrelatedness:</em> @interrelatedness<br /><em>Differentiation:</em> @differentiation<br /><em>Relevance:</em> @relevance<br /><em>Date:</em> @date', 
+						array('@user' =>$item['appraisal_user'], '@level' =>$item['appraisal_level'], '@usability' =>$item['appraisal_usability'], '@actionability' =>$item['appraisal_actionability'], '@interrelatedness' =>$item['appraisal_interrelatedness'], '@differentiation' =>$item['appraisal_differentiation'], '@relevance' =>$item['appraisal_relevance'], '@date' =>_dateToString($item['appraisal_date']), ) );
+        	$element[$delta]['#markup'] = '<p>' . $output . '</p>';
+      }
+  }
   return $element;
 }
 
@@ -164,6 +230,10 @@ function exfields_field_widget_info() {
     'relationfield' => array(
 	  'label' => t('Multiple Fields'),
 	  'field types' => array('relation'),
+	),
+	'appraisalfield' => array(
+	  'label' => t('Multiple Fields'),
+	  'field types' => array('appraisal'),
 	),
   );
 }
@@ -210,6 +280,60 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
         '#type' => 'textfield',
         '#default_value' => isset($items[$delta]['relation_source']) ? $items[$delta]['relation_source'] : NULL,
       );
+      break;
+	case 'appraisalfield':
+	   $element['appraisal_user'] = array(
+	   	'#title'=>'Author',
+        '#type' => 'textfield',
+        '#default_value' => isset($items[$delta]['appraisal_user']) ? $items[$delta]['appraisal_user'] : NULL,
+      );
+	  $element['appraisal_level'] = array( 
+		'#type' => 'radios', 
+		'#title' => t('Knowledge Level'), 
+		'#default_value' => isset($items[$delta]['appraisal_level']) ? $items[$delta]['appraisal_level'] : '1', 
+		'#options' => array( '1' => '1', '2' => '2', '3' => '3'),
+		);
+	   $element['appraisal_usability'] = array( 
+		'#type' => 'radios', 
+		'#title' => t('Usability'), 
+		'#default_value' => isset($items[$delta]['appraisal_usability']) ? $items[$delta]['appraisal_usability'] : '1',  
+		'#options' => array( '1' => '1', '2' => '2', '3' => '3'), 
+		);
+	   $element['appraisal_actionability'] = array( 
+		'#type' => 'radios', 
+		'#title' => t('Actionability'), 
+		'#default_value' =>isset($items[$delta]['appraisal_actionability']) ? $items[$delta]['appraisal_actionability'] : '1',  
+		'#options' => array( '1' => '1', '2' => '2', '3' => '3'), 
+		);
+		$element['appraisal_interrelatedness'] = array( 
+		'#type' => 'radios', 
+		'#title' => t('Interrelatedness'), 
+		'#default_value' => isset($items[$delta]['appraisal_interrelatedness']) ? $items[$delta]['appraisal_interrelatedness'] : '1',  
+		'#options' => array( '1' => '1', '2' => '2', '3' => '3'), 
+		);
+		$element['appraisal_differentiation'] = array( 
+		'#type' => 'radios', 
+		'#title' => t('Differentiation'), 
+		'#default_value' => isset($items[$delta]['appraisal_differentiation']) ? $items[$delta]['appraisal_differentiation'] : '1',  
+		'#options' => array( '1' => '1', '2' => '2', '3' => '3'),  
+		);
+		$element['appraisal_relevance'] = array( 
+		'#type' => 'radios', 
+		'#title' => t('Relevance'), 
+		'#default_value' => isset($items[$delta]['appraisal_relevance']) ? $items[$delta]['appraisal_relevance'] : '1',  
+		'#options' => array( '1' => '1', '2' => '2', '3' => '3'), 
+		);
+		// Separate the timestamp of the date storage to an array of alements needed for the date widget
+		$appraisal_date_value = isset($items[$delta]['appraisal_date']) ? _intToDateArray($items[$delta]['appraisal_date']) : _intToDateArray(time());
+		$element['appraisal_date'] = array(
+		'#title'=>'Date',
+        '#type' => 'date',
+        '#default_value' => $appraisal_date_value,
+		'#element_validate' => array('strToDateValidate'),
+      	);
+	  
+	  
+	  
       break;
   }
   return $element;
