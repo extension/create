@@ -17,7 +17,13 @@
 
 /* allign radio buttons horizontally */
 .form-radios{
-	height: 40px;
+	height: 27px;
+}
+
+.form-type-radios div.description{
+	margin-bottom: 10px;
+	width: 380px;
+	white-space: normal;
 }
 
 .form-radios > div{
@@ -27,4 +33,12 @@
 }
 .form-item-field-appraisal-und-0-appraisal-user{
 	height: 75px;
+}
+
+#field-appraisal-values label{
+	margin-top: 20px;
+}
+
+#field-appraisal-values .field-label label{
+	margin: 0 0 0 5px;
 }

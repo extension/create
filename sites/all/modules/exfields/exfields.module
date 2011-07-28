@@ -58,6 +58,9 @@ function exfields_field_info() {
 function exfields_field_schema($field) {
   switch ($field['type']) {
     case 'contribution':
+	//***********************************************//
+	// schema definitions for the contributions field
+	//***********************************************//
       $columns = array(
         'contribution_role' => array(
           'type' => 'varchar',
@@ -77,6 +80,9 @@ function exfields_field_schema($field) {
       );
       break;
     case 'relation':
+	//***********************************************//
+	// schema definitions for the relation field
+	//***********************************************//
       $columns = array(
         'relation_kind' => array(
           'type' => 'varchar',
@@ -91,40 +97,47 @@ function exfields_field_schema($field) {
       );
       break;
 	case 'appraisal':
+	//***********************************************//
+	// schema definitions for the appraisal field
+	//***********************************************//
       $columns = array(
         'appraisal_user' => array(
           'type' => 'varchar',
           'length' => 255,
           'not null' => FALSE,
         ),
-		'appraisal_level' => array(
+		'appraisal_unique' => array(
           'type' => 'int',
           'default'  => 0,
           'not null' => FALSE,
         ),
-		'appraisal_usability' => array(
+		'appraisal_keywords' => array(
           'type' => 'int',
           'default'  => 0,
           'not null' => FALSE,
         ),
-		'appraisal_actionability' => array(
+		'appraisal_organization' => array(
           'type' => 'int',
           'default'  => 0,
           'not null' => FALSE,
         ),
-		'appraisal_interrelatedness' => array(
+		'appraisal_links' => array(
           'type' => 'int',
           'default'  => 0,
           'not null' => FALSE,
         ),
-		'appraisal_differentiation' => array(
+		'appraisal_action' => array(
           'type' => 'int',
           'default'  => 0,
           'not null' => FALSE,
         ),
-		'appraisal_relevance' => array(
+		'appraisal_overall' => array(
           'type' => 'int',
           'default'  => 0,
+          'not null' => FALSE,
+        ),
+		'appraisal_note' => array(
+          'type' => 'text',
           'not null' => FALSE,
         ),
 		'appraisal_date' => array(
@@ -206,8 +219,8 @@ function exfields_field_formatter_view($object_type, $object, $field, $instance,
   }
   if($display['type']=='appraisalformat') {
       foreach ($items as $delta => $item) {
-		 	$output = t('<em>Author:</em> @user<br /><em>Knowledge Level:</em> @level<br /><em>Usability:</em> @usability<br /><em>Actionability:</em> @actionability<br /><em>Interrelatedness:</em> @interrelatedness<br /><em>Differentiation:</em> @differentiation<br /><em>Relevance:</em> @relevance<br /><em>Date:</em> @date', 
-						array('@user' =>$item['appraisal_user'], '@level' =>$item['appraisal_level'], '@usability' =>$item['appraisal_usability'], '@actionability' =>$item['appraisal_actionability'], '@interrelatedness' =>$item['appraisal_interrelatedness'], '@differentiation' =>$item['appraisal_differentiation'], '@relevance' =>$item['appraisal_relevance'], '@date' =>_dateToString($item['appraisal_date']), ) );
+		 	$output = t('<em>Author:</em> @user<br /><em>Unique Content:</em> @unique<br /><em>Keyword Usage:</em> @keywords<br /><em>Content Organization:</em> @organization<br /><em>Links to Complimentary Content:</em> @links<br /><em>Call to Action:</em> @action<br /><em>Overall Article Appraisal Score:</em> @overall<br /><em>Note:</em> @note<br /><em>Date:</em> @date', 
+						array('@user' =>$item['appraisal_user'], '@organization' =>$item['appraisal_organization'], '@keywords' =>$item['appraisal_keywords'], '@action' =>$item['appraisal_action'], '@links' =>$item['appraisal_links'], '@overall' =>$item['appraisal_overall'], '@unique' =>$item['appraisal_unique'], '@note' =>$item['appraisal_note'],'@date' =>_dateToString($item['appraisal_date']), ) );
         	$element[$delta]['#markup'] = '<p>' . $output . '</p>';
       }
   }
@@ -246,11 +259,15 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
   $element = $base;
   switch ($instance['widget']['type']) {
     case 'contributionfield':
+	//***********************************************//
+	// widget definitions for the contributions field
+	//***********************************************//
+	
+	
+	
 		// Separate the timestamp of the date storage to an array of alements needed for the date widget
 		$contribution_date_value = isset($items[$delta]['contribution_date']) ? _intToDateArray($items[$delta]['contribution_date']) : _intToDateArray(time());
 	
-	
-		
        $element['contribution_role'] = array(
 	  		'#title'=>'Role',
 	  		 '#type' => 'select',
@@ -270,6 +287,9 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
       	);
       break;
     case 'relationfield':
+	//***********************************************//
+	// widget definitions for the relation field
+	//***********************************************//
       $element['relation_kind'] = array(
         '#type' => 'select',
 		'#options' => array('' => '','is part of' => 'is part of', 'has part' => 'has part', 'is version of' => 'is version of', 'has version' => 'has version', 'is format of' => 'is format of', 'has format' => 'has format', 'references' => 'references', 'is referenced by' => 'is referenced by', 'is based on' => 'is based on', 'is basis for' => 'is basis for', 'requires' => 'requires', 'is required by' => 'is required by',
@@ -282,51 +302,79 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
       );
       break;
 	case 'appraisalfield':
+	//***********************************************//
+	// widget definitions for the apprisal field
+	//***********************************************//
 	   $element['appraisal_user'] = array(
-	   	'#title'=>'Author',
+	   	'#title'=>'Appraiser',
         '#type' => 'textfield',
         '#default_value' => isset($items[$delta]['appraisal_user']) ? $items[$delta]['appraisal_user'] : NULL,
       );
-	  $element['appraisal_level'] = array( 
+	  $element['appraisal_unique'] = array( 
 		'#type' => 'radios', 
-		'#title' => t('Knowledge Level'), 
-		'#default_value' => isset($items[$delta]['appraisal_level']) ? $items[$delta]['appraisal_level'] : '1', 
+		'#description' => t('Does the page fill a unique need, providing information or perspective that is not readily available elsewhere and is the content up-to-date and of current interest to a national audience?<br />
+		1 - Low. Topic is better covered elsewhere, and page doesn\'t contribute to a strong body of content for the CoP and/or may be outdated,or  no longer relevant.<br />
+		2 - Medium. Information is generally known or topic is covered eleswhere, but page provides some modest benefit over other sources, or contributes to providing comprehensive information in the CoP. And/Or appears dated/stale or is of interest only to a small geographic area.<br />
+		3 - High. Page offers a unique perspective, information not widely known, or better explanations than other sources. Timely or "evergreen" content.'), 
+		'#title' => t('Unique Content'), 
+		'#default_value' => isset($items[$delta]['appraisal_unique']) ? $items[$delta]['appraisal_unique'] : '1',  
+		'#options' => array( '1' => '1', '2' => '2', '3' => '3'), 
+		);
+	   $element['appraisal_keywords'] = array( 
+		'#type' => 'radios', 
+		'#description' => t('Are Keywords presented effectively? Does the content make use of keywords in Page Titles, Intro Summary Sentences and the Body of Articles and Sub-Headings?<br />
+		1 - Low. Keywords not in Page Titles, Intro summary sentences and body of article and subheadings.<br />
+		2 - Medium. Some Keywords but none in certain areas where they could be present.<br />
+		3 - High. No significant problems.'), 
+		'#title' => t('Keyword Usage'), 
+		'#default_value' => isset($items[$delta]['appraisal_keywords']) ? $items[$delta]['appraisal_keywords'] : '1',  
+		'#options' => array( '1' => '1', '2' => '2', '3' => '3'), 
+		);
+		$element['appraisal_organization'] = array( 
+		'#type' => 'radios',
+		'#description' => t('Is the content presented effectively?  is it readable, scannable and of appropriate scope and length? Does it make use of bulleted or numbered lists where appropriate?  Is there appropriate use of bold face type?  Are images used to enhance understanding?<br />
+		1 - Low. Numerous minor problems, a few moderate problems, or one major problem that seriously interferes with the content.<br />
+		2 - Medium. Minor to moderate problems(s).<br />
+		3 - High. No significant problems'), 
+		'#title' => t('Content Organization.'), 
+		'#default_value' => isset($items[$delta]['appraisal_organization']) ? $items[$delta]['appraisal_organization'] : '1', 
 		'#options' => array( '1' => '1', '2' => '2', '3' => '3'),
 		);
-	   $element['appraisal_usability'] = array( 
+		$element['appraisal_links'] = array( 
 		'#type' => 'radios', 
-		'#title' => t('Usability'), 
-		'#default_value' => isset($items[$delta]['appraisal_usability']) ? $items[$delta]['appraisal_usability'] : '1',  
+		'#description' => t('Does this content fit well with, and link to, other CoP content?<br />
+		1 - Low. Poor fit in topic or tone, or lack of links to other CoP content.<br />
+		2 - Medium. Some broken links to other CoP content; lack of tagging; tone or topic needs minor adjustments.<br />
+		3 - High. Fits well in CoP;  good tags;  links to other CoP content.'), 
+		'#title' => t('Links to Complimentary Content'), 
+		'#default_value' => isset($items[$delta]['appraisal_links']) ? $items[$delta]['appraisal_links'] : '1',  
 		'#options' => array( '1' => '1', '2' => '2', '3' => '3'), 
 		);
-	   $element['appraisal_actionability'] = array( 
+	   $element['appraisal_action'] = array( 
 		'#type' => 'radios', 
-		'#title' => t('Actionability'), 
-		'#default_value' =>isset($items[$delta]['appraisal_actionability']) ? $items[$delta]['appraisal_actionability'] : '1',  
+		'#description' => t('Does the page provide a clear next step for its current audience, and does it facilitate that step?<br />
+			1- Low. No next steps given.<br />
+			2 - Medium. Next step is implied or vague;  next step depends on a link that is broken; indirect or absent call to action.<br />
+			3 - High. Next step is clear, specific, and stated explicitly;  effective call to action.  If instructional content, instructions are broken out into clear, logical steps.'), 
+		'#title' => t('Call to Action'), 
+		'#default_value' =>isset($items[$delta]['appraisal_action']) ? $items[$delta]['appraisal_action'] : '1',  
 		'#options' => array( '1' => '1', '2' => '2', '3' => '3'), 
 		);
-		$element['appraisal_interrelatedness'] = array( 
+		$element['appraisal_overall'] = array( 
 		'#type' => 'radios', 
-		'#title' => t('Interrelatedness'), 
-		'#default_value' => isset($items[$delta]['appraisal_interrelatedness']) ? $items[$delta]['appraisal_interrelatedness'] : '1',  
-		'#options' => array( '1' => '1', '2' => '2', '3' => '3'), 
-		);
-		$element['appraisal_differentiation'] = array( 
-		'#type' => 'radios', 
-		'#title' => t('Differentiation'), 
-		'#default_value' => isset($items[$delta]['appraisal_differentiation']) ? $items[$delta]['appraisal_differentiation'] : '1',  
+		'#title' => t('Overall Article Appraisal Score'), 
+		'#default_value' => isset($items[$delta]['appraisal_overall']) ? $items[$delta]['appraisal_overall'] : '1',  
 		'#options' => array( '1' => '1', '2' => '2', '3' => '3'),  
 		);
-		$element['appraisal_relevance'] = array( 
-		'#type' => 'radios', 
-		'#title' => t('Relevance'), 
-		'#default_value' => isset($items[$delta]['appraisal_relevance']) ? $items[$delta]['appraisal_relevance'] : '1',  
-		'#options' => array( '1' => '1', '2' => '2', '3' => '3'), 
+		$element['appraisal_note'] = array( 
+		'#type' => 'textarea', 
+		'#title' => t('Notes'), 
+		'#default_value' => isset($items[$delta]['note']) ? $items[$delta]['note'] : '', 
 		);
 		// Separate the timestamp of the date storage to an array of alements needed for the date widget
 		$appraisal_date_value = isset($items[$delta]['appraisal_date']) ? _intToDateArray($items[$delta]['appraisal_date']) : _intToDateArray(time());
 		$element['appraisal_date'] = array(
-		'#title'=>'Date',
+		'#title'=>'Appraisal Date',
         '#type' => 'date',
         '#default_value' => $appraisal_date_value,
 		'#element_validate' => array('strToDateValidate'),
