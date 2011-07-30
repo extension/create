@@ -79,15 +79,6 @@ function media_menu() {
     'access arguments' => array('administer media'),
     'file' => 'includes/media.admin.inc',
   );
-  // For managing different types of media and the fields associated with them.
-  $items['admin/config/media/rebuild_types'] = array(
-    'title' => 'Rebuild type information for media',
-    'description' => 'In case there are files in file_managed w/o a type, this function rebuilds them',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('media_admin_rebuild_types_form'),
-    'access arguments' => array('administer media'),
-    'file' => 'includes/media.admin.inc',
-  );
 
   // Settings used for determining the type of media a file is.
   // @todo Find a new home for this that integrates with the file_entity module.
@@ -114,7 +105,7 @@ function media_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('media_admin'),
     'access arguments' => array('administer media'),
-    'type' => MENU_LOCAL_TASK,
+    'type' => MENU_LOCAL_TASK | MENU_NORMAL_ITEM,
     'file' => 'includes/media.admin.inc',
   );
 
@@ -212,8 +203,6 @@ function media_menu() {
     'type' => MENU_LOCAL_TASK,
     'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
     'file' => 'includes/media.pages.inc',
-     // Use the same setting as node module
-    'theme callback' => '_node_custom_theme',
   );
 
   $items['media/%media_multi/multiedit'] = array(
@@ -224,8 +213,6 @@ function media_menu() {
     'access arguments' => array('edit'),
     'weight' => 0,
     'file' => 'includes/media.pages.inc',
-     // Use the same setting as node module
-    'theme callback' => '_node_custom_theme',
   );
 
   $items['media/%file/delete'] = array(
@@ -238,8 +225,6 @@ function media_menu() {
     'type' => MENU_LOCAL_TASK,
     'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
     'file' => 'includes/media.pages.inc',
-     // Use the same setting as node module
-    'theme callback' => '_node_custom_theme',
   );
 
   $items['admin/content/media/browser'] = $items['media/browser'];
@@ -429,15 +414,6 @@ function media_styles_style_flush($style) {
  * in the URL.
  */
 function media_page_alter(&$page) {
-  // Show a nagging message when the media installation needs to be completed.
-  if (user_access('administer media') && media_variable_get('show_file_type_rebuild_nag')
-    // Prevent form submissions from creating duplicate messages.
-    && ($_SERVER['REQUEST_METHOD'] == 'GET')
-    // Show on all the admin pages, except the batch and the rebuild form.
-    && path_is_admin(current_path()) && (arg(0) != 'batch') && (current_path() != 'admin/config/media/rebuild_types')) {
-    drupal_set_message(t('Media module install is not complete. <a href="@type_rebuild_link">Finish the install</a>.', array('@type_rebuild_link' => url('admin/config/media/rebuild_types'))), 'warning', FALSE);
-  }
-
   if (isset($_GET['render']) && $_GET['render'] == 'media-popup') {
     $page['#theme'] = 'media_dialog_page';
     // temporary fix while awaiting fix for 914786
@@ -605,51 +581,6 @@ function media_file_list_element_process($element, $edit, $form_state, $form) {
   );
 
   return $element;
-}
-
-if (!function_exists('file_uri_to_object')) {
-  // @todo: get this committed http://drupal.org/node/685818
-
-  /**
-   * Returns a file object which can be passed to file_save().
-   *
-   * @param $uri
-   *   A string containing the URI, path, or filename.
-   * @param $use_existing
-   *   (Optional) If TRUE and there's an existing file in the {file_managed}
-   *   table with the passed in URI, then that file object is returned.
-   *   Otherwise, a new file object is returned.
-   * @return
-   *   A file object, or FALSE on error.
-   */
-  function file_uri_to_object($uri, $use_existing = FALSE) {
-    if ($use_existing) {
-      $query = db_select('file_managed', 'f')
-        ->fields('f', array('fid'))
-        ->condition('uri', $uri)
-        ->execute()
-        ->fetchCol();
-      if (!empty($query)) {
-        $file = file_load(array_shift($query));
-      }
-    }
-    if (!isset($file)) {
-      global $user;
-      $uri = file_stream_wrapper_uri_normalize($uri);
-      $wrapper = file_stream_wrapper_get_instance_by_uri($uri);
-      $file = new StdClass;
-      $file->uid = $user->uid;
-      $file->filename = basename($uri);
-      $file->uri = $uri;
-      $file->filemime = file_get_mimetype($uri);
-      // This is gagged because some uris will not support it.
-      $file->filesize = @filesize($uri);
-      $file->timestamp = REQUEST_TIME;
-      $file->status = FILE_STATUS_PERMANENT;
-      $file->is_new = TRUE;
-    }
-    return $file;
-  }
 }
 
 /**
@@ -1052,6 +983,16 @@ function _media_save_file_permenently(&$file) {
  *   Renderable array.
  */
 function media_get_thumbnail_preview($file, $link = NULL) {
+  // Adjust files that do not use a media type to use 'default'.
+  static $media_types;
+  if (!isset($media_types)) {
+    $media_types = media_type_get_types();
+  }
+  if (!isset($media_types[$file->type])) {
+    $file = clone $file;
+    $file->type = 'default';
+  }
+
   $preview = file_view_file($file, 'media_preview');
   $preview['#show_names'] = TRUE;
   $preview['#add_link'] = $link;

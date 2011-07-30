@@ -5,8 +5,6 @@
  * Install, update and uninstall functions for the Media module.
  */
 
-define('MEDIA_UPDATE_RECORDS_ON_INSTALL', 200);
-
 /**
  * Implements hook_install().
  */
@@ -78,25 +76,15 @@ function media_install() {
   foreach ($roles as $rid => $role) {
     user_role_grant_permissions($rid, array('view media'));
   }
-
-  // Updates the type field for the first MEDIA_UPDATE_RECORDS_ON_INSTALL files.
-  $invalid_files = media_type_invalid_files_count();
-  if ($invalid_files <= MEDIA_UPDATE_RECORDS_ON_INSTALL) {
-    media_type_batch_update(FALSE, MEDIA_UPDATE_RECORDS_ON_INSTALL);
-  }
-
-  $invalid_files = media_type_invalid_files_count();
-  if ($invalid_files > 0) {
-    // Not all files could be converted. Display a persistant nag message on
-    // every page for the administrator, urging them to finish the process.
-    media_variable_set('show_file_type_rebuild_nag', TRUE);
-  }
 }
 
 /**
  * Implement hook_uninstall().
  */
 function media_uninstall() {
+  // #1169472: Manually load media.module for media_variable_default().
+  drupal_load('module', 'media');
+
   drupal_uninstall_schema('media_list_type');
   drupal_uninstall_schema('media_type');
   drupal_uninstall_schema('cache_media_xml');
@@ -569,7 +557,7 @@ function media_update_7017() {
   // configurations. However, if file_entity_update_7001() has already run
   // prior to media_update_7016(), run it again in order to capture those
   // configurations too.
-  if (db_table_exists('file_display')) {
+  if (db_table_exists('file_display') && function_exists('file_entity_update_7001')) {
     file_entity_update_7001();
   }
 }

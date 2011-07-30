@@ -17,22 +17,10 @@ function media_file_type_info() {
     $types[$type] = array(
       'label' => $type_object->label,
       'weight' => $type_object->weight,
-      'claim callback' => 'media_file_type_media_claim',
       'default view callback' => 'media_file_type_media_default_view',
     );
   }
   return $types;
-}
-
-/**
- * Implements hook_file_type_TYPE_claim().
- *
- * Returns TRUE if the passed in file should be assigned the passed in type.
- */
-function media_file_type_media_claim($file, $type) {
-  if (($type_object = media_type_load($type)) && ($function = $type_object->type_callback) && function_exists($function) && $function($file, $type_object->type_callback_args)) {
-    return TRUE;
-  }
 }
 
 /**
@@ -235,59 +223,6 @@ function media_media_format_form_prepare_alter(&$form, &$form_state, $file) {
       );
       break;
   }
-}
-
-/**
- * Returns the number of files that need to be converted to media.
- */
-function media_type_invalid_files_count() {
-  return db_select('file_managed', 'fm')
-    ->condition('type', '')
-    ->countQuery()
-    ->execute()
-    ->fetchField();
-}
-
-/**
- * Adds a value for the type column in files_managed.
- *
- * If $update_existing is TRUE, will update the type of files with an existing type value.
- *
- * @param boolean $update_existing
- * @param integer $no_to_update
- * @param integer $offset
- *
- * @return array
- *  A list of updated file ids
- */
-function media_type_batch_update($update_existing = FALSE, $no_to_update = NULL, $offset = 0) {
-  $results = array();
-  
-  $query = db_select('file_managed', 'fm')
-    ->fields('fm', array('fid'));
-
-  if (!$update_existing) {
-    $query->condition('type', '');
-  }
-
-  if ($no_to_update) {
-    $query->range($offset, $no_to_update);
-  }
-  elseif ($offset) {
-    $query->range($offset);
-  }
-
-  $fids = $query->execute()->fetchCol();
-  foreach ($fids as $fid) {
-    $file = file_load($fid);
-    if (!$file->fid) {
-      throw new Exception('Unable to continue, file was not loaded.');
-    }
-    file_save($file);
-    $results[] = $fid;
-  }
-
-  return $results;
 }
 
 /**

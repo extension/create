@@ -16,7 +16,7 @@ require_once dirname(__FILE__) . '/media.pages.inc';
  */
 function media_admin($form, $form_state) {
   global $user;
-  
+
   $path = drupal_get_path('module', 'media');
 
   $form['#attached'] = array(
@@ -31,7 +31,7 @@ function media_admin($form, $form_state) {
 
   require_once dirname(__FILE__) . '/media.browser.inc';
   media_attach_browser_js($form);
-  
+
   $types = media_display_types();
 
   if (arg(3)) {
@@ -286,7 +286,7 @@ function media_admin_type_manage_form($form, &$form_state, $media_type) {
     '#type' => 'value',
     '#value' => $media_type->name,
   );
-  
+
   // If this Media type is handled by us, then we can put in some default
   // options. Otherwise, we leave it to the implementing module to form_alter.
   if ($media_type->type_callback == 'media_is_type') {
@@ -449,7 +449,7 @@ function media_import_validate($form, &$form_state) {
     }
     $pattern = !empty($pattern) ? $pattern :  '*';
     $files = glob("$directory/$pattern");
-    if (count($files) == 1) {
+    if (empty($files)) {
       form_set_error('pattern', t('No files were found in %directory matching %pattern', array('%directory' => $directory, '%pattern' => $pattern)));
     }
     $form_state['storage']['files'] = $files;
@@ -460,7 +460,7 @@ function media_import_validate($form, &$form_state) {
  * Submit handler for media_import().
  */
 function media_import_submit($form, &$form_state) {
-  if ($form_state['values']['op'] == 'Confirm') {
+  if ($form_state['values']['op'] == t('Confirm')) {
     $files = $form_state['storage']['files'];
     $batch = array(
       'title' => t('Importing'),
@@ -566,57 +566,4 @@ function media_admin_config_browser_pre_submit(&$form, &$form_state) {
     media_variable_del('dialog_theme');
     unset($form_state['values'][media_variable_name('dialog_theme')]);
   }
-}
-
-/**
- * Confirmation form for rebuliding the file_managed table to include type
- * in rows where there is no type.
- */
-function media_admin_rebuild_types_form($form, &$form_state) {
-  $total = media_type_invalid_files_count();
-  if ($total == 0) {
-    media_variable_del('show_file_type_rebuild_nag');
-    // @TODO: Make this not sound stupid.
-    drupal_set_message('All files in the system have been assigned types. Media installation complete.');
-    drupal_goto('admin');
-  }
-  $form['total'] = array('#type' => 'value', '#value' => $total);
-  return confirm_form($form, 'Update types for existing files', 'admin/config/media', 'This process is required when installing media on an existing site.  Media needs to scan through existing files and identify the file type. <br/><strong>Update types for ' . $total . ' files?</strogn>');
-}
-
-/**
- * @see media_admin_rebuild_types_form().
- */
-function media_admin_rebuild_types_form_submit(&$form, &$form_state) {
-  $total = $form_state['values']['total'];
-
-  $batch = array(
-    'title' => t('Rebuilding type information for ' . $total . ' files'),
-    'operations' => array(
-      array('media_admin_rebuild_types_batch_op', array($total)),
-    ),
-    'finished' => 'media_admin_rebuild_types_batch_complete',
-    'file' => drupal_get_path('module', 'media') . '/includes/media.admin.inc',
-  );
-  batch_set($batch);
-}
-
-/**
- * Batch operation for fixing the file_managed table for media, adding type values
- * where no value exists.
- */
-function media_admin_rebuild_types_batch_op($total, &$context) {
-  $per_run = media_variable_get('media_type_batch_update_per_run', 100);
-  $context['results'] = array_merge($context['results'], media_type_batch_update(FALSE, $per_run));
-  $context['finished'] = count($context['results']) / $total;
-}
-/**
- * Sets a message informing the user how many file records were updated.
- */
-function media_admin_rebuild_types_batch_complete($success, $results, $operations) {
-  if ($success) {
-    $message = format_plural(count($results), 'One file identified and given a type.', '@count files identified and given a type.');
-    media_variable_del('show_file_type_rebuild_nag');
-  }
-  drupal_set_message($message);
 }
