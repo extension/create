@@ -13,7 +13,7 @@ class MediaTestHelper extends DrupalWebTestCase {
   }
 
   protected function createType($overrides) {
-    $type = new StdClass();
+    $type = new stdClass();
     $type->name = 'test';
     $type->label = "Test";
     $type->base = TRUE;

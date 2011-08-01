@@ -57,7 +57,7 @@ function media_page_edit($file) {
  */
 function media_page_multiedit($files) {
   if (!module_exists('multiform')) {
-    drupal_set_message('To edit multiple media items, you must install the multiform module.');
+    drupal_set_message(t('To edit multiple media items, you must install the multiform module.'));
   }
   $i = 0;
   foreach ($files as $file) {
@@ -66,15 +66,15 @@ function media_page_multiedit($files) {
     $i++;
     $forms[] = array("media_edit_$i", $file);
   }
-  
+
   $form = call_user_func_array('multiform_get_form', $forms);
   $form['#attributes']['class'][] = 'media-multiedit-form';
-  
+
   unset($form['buttons']['Delete']);
   // Would be nice to add this to show a message, but not working.
   // Can debug.
   //$form['buttons']['Save']['#submit'][] = 'media_page_multiedit_submit';
-  
+
   drupal_set_title(t('Editing multiple media files'));
   return $form;
 }
@@ -179,7 +179,7 @@ function media_add_upload($form, &$form_state, $types = NULL) {
   if ($types) {
     $validators['media_file_validate_types'] = array($types);
   }
-  
+
   // A blank set of allowed file extensions means no need to validate.
   if (!$validators['file_validate_extensions'][0]) {
     unset($validators['file_validate_extensions']);
@@ -194,7 +194,7 @@ function media_add_upload($form, &$form_state, $types = NULL) {
   }
 
   $form['#validators'] = $validators;
-  
+
   $form['upload'] = array(
     '#type' => 'file',
     '#title' => t('Upload a new file'),
@@ -216,7 +216,7 @@ function media_add_upload($form, &$form_state, $types = NULL) {
 function media_add_upload_validate($form, &$form_state) {
   // Save the file as a temporary file.
   $file = file_save_upload('upload', $form['#validators']);
-  
+
   if ($file === NULL) {
     form_set_error('upload', t("No file appears to have been selected."));
   }
@@ -238,7 +238,7 @@ function media_add_upload_submit($form, &$form_state) {
 
   $destination = file_stream_wrapper_uri_normalize($scheme . $file->filename);
 
-  $defaults = array (
+  $defaults = array(
     'display' => TRUE,
   );
 
@@ -262,7 +262,7 @@ function media_add_upload_multiple($form, &$form_state, $types) {
   // The validators will be set from plupload anyway.  This isn't pretty, but don't
   // it to show up twice.
   unset($form['upload']['#description']);
-  
+
   $form['upload']['#type'] = 'plupload';
   $form['submit']['#value'] = t('Start upload');
   return $form;
@@ -279,13 +279,13 @@ function media_add_upload_multiple_submit($form, &$form_state) {
       // Rename it to its original name, and put it in its final home.
       // Note - not using file_move here because if we call file_get_mime
       // (in file_uri_to_object) while it has a .tmp extension, it horks.
-      
+
       $destination = file_unmanaged_move($source, $destination, FILE_EXISTS_RENAME);
-      
+
       $file = file_uri_to_object($destination);
       file_save($file);
       _media_save_file_permenently($file);
-      
+
       $saved_files[] = $file;
     }
     else {
@@ -315,7 +315,7 @@ function media_edit($form, $form_state, $file) {
   // Not sure about this class name, seems to indicate the style.
   $form['#attributes']['class'][] = 'media-image-left';
   $form['#attributes']['class'][] = 'media-edit-form';
-  
+
   $form['preview'] = file_view_file($file, 'media_preview');
   $form['preview']['#weight'] = -10;
   $form['preview']['#suffix'] = '<div class="no-overflow">';
@@ -329,7 +329,7 @@ function media_edit($form, $form_state, $file) {
     '#weight' => 15,
     '#submit' => array('media_edit_delete_submit'),
   );
-  
+
   $form['actions']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save'),
@@ -427,4 +427,3 @@ function media_add_remote($form, &$form_state) {
 
   return $form;
 }
-

@@ -15,7 +15,7 @@ function media_install() {
 
   // Define the default type to be used if no other type is found. Give it a
   // high weight to ensure it runs last.
-  $types['default'] = new StdClass();
+  $types['default'] = new stdClass();
   $types['default']->name = 'default';
   $types['default']->label = "Other";
   $types['default']->base = TRUE;
@@ -26,7 +26,7 @@ function media_install() {
   );
 
   // Define the common media types: image, audio, and video.
-  $types['image'] = new StdClass();
+  $types['image'] = new stdClass();
   $types['image']->name = 'image';
   $types['image']->label = "Image";
   $types['image']->base = TRUE;
@@ -37,7 +37,7 @@ function media_install() {
     'streams' => array('public', 'private'),
   );
 
-  $types['audio'] = new StdClass();
+  $types['audio'] = new stdClass();
   $types['audio']->name = 'audio';
   $types['audio']->label = "Audio";
   $types['audio']->base = TRUE;
@@ -48,7 +48,7 @@ function media_install() {
     'streams' => array('public', 'private'),
   );
 
-  $types['video'] = new StdClass();
+  $types['video'] = new stdClass();
   $types['video']->name = 'video';
   $types['video']->label = "Video";
   $types['video']->base = TRUE;
@@ -350,7 +350,7 @@ function media_update_7010() {
  * Allows video as a type of media in the WYSIWYG
  */
 function media_update_7011() {
-  media_variable_set('wysiwyg_allowed_types', array('image','video'));
+  media_variable_set('wysiwyg_allowed_types', array('image', 'video'));
 }
 
 /**

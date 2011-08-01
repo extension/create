@@ -80,7 +80,7 @@ function theme_media_browser_content_frame($variables) {
   $html = array();
 
   // On the first invocation, load javascript and build the browser frame
-   if ($invoke) {
+  if ($invoke) {
 
 
   }
@@ -284,7 +284,7 @@ function theme_media_thumbnail($variables) {
   // Arguments for the thumbnail link
   $thumb = $element['#children'];
   $target = 'media/' . $element['#file']->fid . '/edit';
-  $options = array('query' => $destination, 'html' => true, 'attributes' => array('title' => t('Click to edit details')));
+  $options = array('query' => $destination, 'html' => TRUE, 'attributes' => array('title' => t('Click to edit details')));
 
   // Element should be a field renderable array... This is a little wonky - admitted.
   if (!empty($element['#show_names']) && $element['#name']) {

@@ -1,5 +1,4 @@
 <?php
-// $Id: hs_taxonomy_views_handler_filter_term_node_tid.inc,v 1.6.4.2 2011/02/06 18:37:18 wimleers Exp $
 
 /**
  * @file

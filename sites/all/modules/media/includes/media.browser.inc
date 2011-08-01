@@ -7,11 +7,11 @@
 function media_browser($selected = NULL) {
   $output = array();
   $output['#attached']['library'][] = array('media', 'media_browser_page');
-  
+
   $params = drupal_get_query_parameters();
   array_walk_recursive($params, '_media_recursive_check_plain');
   media_set_browser_params($params);
-  
+
   // If one or more files have been selected, the browser interaction is now
   // complete. Return empty page content to the dialog which now needs to close,
   // but populate Drupal.settings with information about the selected files.
@@ -31,7 +31,7 @@ function media_browser($selected = NULL) {
 
   // Normal browser operation.
   foreach (module_implements('media_browser_plugin_info') as $module) {
-    foreach(module_invoke($module, 'media_browser_plugin_info') as $key => $plugin_data) {
+    foreach (module_invoke($module, 'media_browser_plugin_info') as $key => $plugin_data) {
       $plugins[$key] = $plugin_data + array(
         '#module' => $module,
         '#weight' => 0,
@@ -39,7 +39,7 @@ function media_browser($selected = NULL) {
       $plugins[$key]['#weight'] += count($plugins)/1000;
     }
   }
-  
+
   // Only the plugins in this array are loaded.
   if (!empty($params['enabledPlugins'])) {
     $plugins = array_intersect_key($plugins, array_fill_keys($params['enabledPlugins'], 1));
@@ -51,12 +51,12 @@ function media_browser($selected = NULL) {
   foreach ($plugins as $key => &$plugin) {
     $plugin += module_invoke($plugin['#module'], 'media_browser_plugin_view', $key, $params);
   }
-  
+
   // Allow modules to change the tab names or whatever else they want to change
   // before we render.  Perhaps this should be an alter on the theming function
   // that we should write to be making the tabs.
   drupal_alter('media_browser_plugins', $plugins);
-  
+
   $tabs = array(); // List of tabs to render.
 
   $settings = array('media' => array('browser' => array()));
@@ -113,7 +113,7 @@ EOS;
  */
 function media_set_browser_params(&$params = NULL) {
   static $stored_params;
-  
+
   if (!$params) {
     return $stored_params;
   }
@@ -123,7 +123,8 @@ function media_set_browser_params(&$params = NULL) {
 
 /**
  * For sanity in grammar.
- * @see media_set_browser_params().
+ *
+ * @see media_set_browser_params()
  */
 function media_get_browser_params() {
   return media_set_browser_params();
@@ -137,16 +138,16 @@ function media_browser_list() {
   // How do we validate these?  I don't know.
   // I think PDO should protect them, but I'm not 100% certain.
   array_walk_recursive($params, '_media_recursive_check_plain');
-  
+
   $types = isset($params['types']) ? $params['types'] : NULL;
   $url_include_patterns = isset($params['url_include_patterns']) ? $params['url_include_patterns'] : NULL;
   $url_exclude_patterns = isset($params['url_exclude_patterns']) ? $params['url_exclude_patterns'] : NULL;
 
   $start = isset($params['start']) ? $params['start'] : 0;
   $limit = isset($params['limit']) ? $params['limit'] : media_variable_get('browser_pager_limit');
-  
+
   $query = new EntityFieldQuery();
-  
+
   $query->range($start, $limit);
   $query->entityCondition('entity_type', 'file');
   $query->entityOrderBy('entity_id', 'DESC');
@@ -177,7 +178,7 @@ function media_browser_list() {
   foreach ($files as $file) {
     media_browser_build_media_item($file);
   }
-  
+
   drupal_json_output(array('media' => array_values($files)));
   exit();
 
@@ -197,7 +198,7 @@ function media_media_browser_plugin_info() {
   if (user_access('administer media') || user_access('edit media')) {
     $plugins['upload'] = array(
       '#weight' => -10,
-     );
+    );
   }
   return $plugins;
 }
@@ -265,7 +266,7 @@ function media_media_browser_plugin_view($plugin_name, $params) {
   }
 
   return array();
- }
+}
 
 /**
  * Silly function to recursively run check_plain on an array.
@@ -333,7 +334,7 @@ function media_browser_testbed($form) {
       ),
     )
   );
-  
+
   $launcher = '<a href="#" id="launcher"> Launch Media Browser</a>';
 
   $form['options'] = array(

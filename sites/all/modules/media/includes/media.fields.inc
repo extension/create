@@ -185,7 +185,7 @@ function media_field_widget_settings_form($field, $instance) {
     $options[$key] = $definition->label;
   }
 
-  $form['allowed_types'] = array (
+  $form['allowed_types'] = array(
     '#type' => 'checkboxes',
     '#title' => t('Allowed media types'),
     '#options' => $options,

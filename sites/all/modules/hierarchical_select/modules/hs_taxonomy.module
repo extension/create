@@ -1,5 +1,4 @@
 <?php
-// $Id: hs_taxonomy.module,v 1.58.4.6 2011/02/19 10:53:55 wimleers Exp $
 
 /**
  * @file
@@ -138,14 +137,16 @@ function hs_taxonomy_field_settings_submit(&$form, &$form_state) {
  * or "save lineage" is enabled.
  */
 function hs_taxonomy_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
-  require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'hierarchical_select') . '/includes/common.inc';
+  if (isset($form['#field']['settings']['allowed_values'][0]['vocabulary'])) {
+    require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'hierarchical_select') . '/includes/common.inc';
 
-  $vocabulary = taxonomy_vocabulary_machine_name_load($form['#field']['settings']['allowed_values'][0]['vocabulary']);
-  $config = hierarchical_select_common_config_get("taxonomy-$vocabulary->vid");
+    $vocabulary = taxonomy_vocabulary_machine_name_load($form['#field']['settings']['allowed_values'][0]['vocabulary']);
+    $config = hierarchical_select_common_config_get("taxonomy-$vocabulary->vid");
 
-  if ($config['dropbox']['status'] || $config['save_lineage']) {
-    $form['field']['cardinality']['#disabled'] = TRUE;
-    $form['field']['cardinality']['#description'] .= ' <strong>' . t('This setting is now managed by the Hierarchical Select configuration.') . '</strong>';
+    if ($config['dropbox']['status'] || $config['save_lineage']) {
+      $form['field']['cardinality']['#disabled'] = TRUE;
+      $form['field']['cardinality']['#description'] .= ' <strong>' . t('This setting is now managed by the Hierarchical Select configuration.') . '</strong>';
+    }
   }
 }
 
@@ -430,13 +431,15 @@ function hs_taxonomy_hierarchical_select_item_get_label($item, $params) {
 /**
  * Implementation of hook_hierarchical_select_create_item().
  */
+/*
+// TODO: port this to D7.
 function hs_taxonomy_hierarchical_select_create_item($label, $parent, $params) {
   $form_state['values'] = array(
     'name'   => html_entity_decode($label, ENT_QUOTES),
     'parent' => $parent,
     'vid'    => $params['vid'],
   );
-  $status = taxonomy_term_save($term /* TODO Term object replaces array $form_state['values'] */);
+  $status = taxonomy_term_save($term); // TODO Term object replaces array $form_state['values']
 
   if ($status == SAVED_NEW) {
     // Reset the cached tree.
@@ -454,10 +457,13 @@ function hs_taxonomy_hierarchical_select_create_item($label, $parent, $params) {
     return FALSE;
   }
 }
+*/
 
 /**
  * Implementation of hook_hierarchical_select_entity_count().
  */
+/*
+// TODO: port this to D7.
 function hs_taxonomy_hierarchical_select_entity_count($item, $params) {
   // Allow restricting entity count by node type.
   if ($params['entity_count_for_node_type']) {
@@ -467,6 +473,7 @@ function hs_taxonomy_hierarchical_select_entity_count($item, $params) {
     return hs_taxonomy_term_count_nodes($item);
   }
 }
+*/
 
 /**
  * Implementation of hook_hierarchical_select_implementation_info().
@@ -523,6 +530,8 @@ function hs_taxonomy_hierarchical_select_config_info() {
 /**
  * Implementation of hook_token_values().
  */
+/*
+// TODO: port this to D7.
 function hs_taxonomy_token_values($type, $object = NULL, $options = array()) {
   static $hs_vids;
   static $all_vids;
@@ -590,10 +599,13 @@ function hs_taxonomy_token_values($type, $object = NULL, $options = array()) {
 
   return $values;
 }
+*/
 
 /**
  * Implementation of hook_token_list().
  */
+/*
+// TODO: port this to D7.
 function hs_taxonomy_token_list($type = 'all') {
   if ($type == 'node' || $type == 'all') {
     $tokens['node']['save-lineage-termpath'] = t('Only use when you have enabled the "save lineage" setting of Hierarchical Select. Will show the term\'s parent terms separated by /.');
@@ -605,6 +617,7 @@ function hs_taxonomy_token_list($type = 'all') {
     return $tokens;
   }
 }
+*/
 
 /**
  * Helper function for hs_taxonomy_token_values().

@@ -1,6 +1,5 @@
 <?php
 
-// $Id: taxonomy_menu.database.inc,v 1.3.2.2 2010/12/23 15:40:54 dstol Exp $
 
 /**
  * @file

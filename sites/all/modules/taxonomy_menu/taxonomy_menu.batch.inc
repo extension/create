@@ -1,5 +1,4 @@
 <?php
-// $Id: taxonomy_menu.batch.inc,v 1.3.2.1 2010/12/23 15:40:54 dstol Exp $
 
 /**
  * @file

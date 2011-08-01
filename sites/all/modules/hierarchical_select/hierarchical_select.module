@@ -1,5 +1,4 @@
 <?php
-// $Id: hierarchical_select.module,v 1.201.4.6 2011/02/19 10:53:55 wimleers Exp $
 
 /**
  * @file
@@ -343,7 +342,15 @@ function hierarchical_select_ajax($form, $form_state) {
       'command' => 'hierarchicalSelectUpdate', 
       'output'  => $output, 
       // 'cache'   => $cache,
+  );
+  $new_settings = _hs_new_setting_ajax();
+  foreach ($new_settings as $new_setting) {
+    $commands[] = array(
+      'command'  => 'hierarchicalSelectSettingsUpdate',
+      'hsid'     => $new_setting['hsid'],
+      'settings' => $new_setting['settings'],
     );
+  }
   return array('#type' => 'ajax', '#commands' => $commands);
 }
 
@@ -376,9 +383,11 @@ function _hs_process_shortcut_special_items($config) {
   return $special_items;
 }
 
-function _hs_process_attach_css_js($element, $hsid, $complete_form) {
+function _hs_process_attach_css_js($element, $hsid, &$form_state, $complete_form) {
   // Set up Javascript and add settings specifically for the current
   // hierarchical select.
+  $element['#attached']['library'][] = array('system', 'drupal.ajax');
+  $element['#attached']['library'][] = array('system', 'jquery.form');
   $element['#attached']['library'][] = array('system', 'effects.core');    
   $element['#attached']['library'][] = array('system', 'effects.drop');    
   $element['#attached']['css'][] = drupal_get_path('module', 'hierarchical_select') . '/hierarchical_select.css';
@@ -387,28 +396,52 @@ function _hs_process_attach_css_js($element, $hsid, $complete_form) {
     $element['#attached']['js'][] = drupal_get_path('module', 'hierarchical_select') . '/hierarchical_select_cache.js';
   }
 
-  $config = _hierarchical_select_inherit_default_config($element['#config']);
-  $settings =  array(
-     'HierarchicalSelect' => array(
-       'settings' => array(
-         $hsid => array(
-           'animationDelay'   => ($config['animation_delay'] == 0) ? (int) variable_get('hierarchical_select_animation_delay', 400) : $config['animation_delay'],
-           'cacheId'          => $config['module'] . '_' . implode('_', (is_array($config['params'])) ? $config['params'] : array()),
-           'renderFlatSelect' => (isset($config['render_flat_select'])) ? (int) $config['render_flat_select'] : 0,
-           'createNewItems'   => (isset($config['editability']['status'])) ? (int) $config['editability']['status'] : 0,
-           'createNewLevels'  => (isset($config['editability']['allow_new_levels'])) ? (int) $config['editability']['allow_new_levels'] : 0,
-           'resizable'        => (isset($config['resizable'])) ? (int) $config['resizable'] : 0,
-           'ajax_path'        => 'hierarchical_select_ajax/' . implode('/', $element['#array_parents']) . '/' . $complete_form['form_build_id']['#value'],
-        ),
-       ),
-     )
-  );
-  $element['#attached']['js'][] = array(
-    'type' => 'setting',
-    'data' => $settings,
-  );
+  if (!isset($form_state['storage']['hs']['js_settings_sent'])) {
+    $form_state['storage']['hs']['js_settings_sent'] = array();
+  }  
+
+  if (!isset($form_state['storage']['hs']['js_settings_sent'][$hsid])) {
+    $config = _hierarchical_select_inherit_default_config($element['#config']);
+    $settings =  array(
+       'HierarchicalSelect' => array(
+         'settings' => array(
+           $hsid => array(
+             'animationDelay'   => ($config['animation_delay'] == 0) ? (int) variable_get('hierarchical_select_animation_delay', 400) : $config['animation_delay'],
+             'cacheId'          => $config['module'] . '_' . implode('_', (is_array($config['params'])) ? $config['params'] : array()),
+             'renderFlatSelect' => (isset($config['render_flat_select'])) ? (int) $config['render_flat_select'] : 0,
+             'createNewItems'   => (isset($config['editability']['status'])) ? (int) $config['editability']['status'] : 0,
+             'createNewLevels'  => (isset($config['editability']['allow_new_levels'])) ? (int) $config['editability']['allow_new_levels'] : 0,
+             'resizable'        => (isset($config['resizable'])) ? (int) $config['resizable'] : 0,
+             'ajax_path'        => 'hierarchical_select_ajax/' . implode('/', $element['#array_parents']) . '/' . $complete_form['form_build_id']['#value'],
+          ),
+         ),
+       )
+    );
+
+    if (!isset($_POST['hsid'])) {
+      $element['#attached']['js'][] = array(
+        'type' => 'setting',
+        'data' => $settings,
+      );
+    }
+    else {
+      $element['#attached']['_hs_new_setting_ajax'][] = array($hsid, $settings['HierarchicalSelect']['settings'][$hsid]);
+    }
+
+    $form_state['storage']['hs']['js_settings_sent'][$hsid] = TRUE;
+  }
 
   return $element;
+}
+
+function _hs_new_setting_ajax($hsid = FALSE, $settings) {
+  static $hs_settings = array();
+
+  if ($hsid !== FALSE) {
+    $hs_settings[] = array('hsid' => $hsid, 'settings' => $settings);
+  }
+
+  return $hs_settings;
 }
 
 // Basic config validation and diagnostics.
@@ -663,7 +696,7 @@ function form_hierarchical_select_process($element, &$form_state, $complete_form
   $config = $element['#config'];
 
   // Attach CSS/JS files and JS settings.
-  $element = _hs_process_attach_css_js($element, $hsid, $complete_form);
+  $element = _hs_process_attach_css_js($element, $hsid, $form_state, $complete_form);
 
   // Developer mode diagnostics, return immediately in case of a config error.
   if (!_hs_process_developer_mode_log_diagnostics($element)) {
@@ -706,6 +739,9 @@ function form_hierarchical_select_process($element, &$form_state, $complete_form
   // Also make sure it is the *first* validate callback.
   $element['#element_validate'] = (isset($element['#element_validate'])) ? $element['#element_validate'] : array();
   $element['#element_validate'] = array_merge(array('_hierarchical_select_validate'), $element['#element_validate']);
+
+  // Ensure the form is cached, for AJAX to work.
+  $form_state['cache'] = TRUE;
 
   //
   // Rendering.
@@ -1569,7 +1605,7 @@ function _hierarchical_select_hierarchy_generate($config, $selection, $required,
     // - the special_items setting has been configured, and
     // - one special item has the 'none' property
     // then we'll use the special item instead of the normal "<none>" option.
-    $none_option = (count($special_items['none'])) ? $special_items['none'][0] : 'none';
+    $none_option = (isset($special_items) && count($special_items['none'])) ? $special_items['none'][0] : 'none';
 
     // Set "<none>" option (or its equivalent special item), or "label_0".
     $hierarchy->lineage[0] = ($first_case || $second_case) ? $none_option : 'label_0';
@@ -1641,7 +1677,7 @@ function _hierarchical_select_hierarchy_generate($config, $selection, $required,
   $first_case  = !$required;
   $second_case = $config['enforce_deepest'];
   $third_case  = $dropbox && count($dropbox->lineages) > 0;
-  if (($first_case || $second_case || $third_case) && !count($special_items['none'])) {
+  if (($first_case || $second_case || $third_case) && (isset($special_items) && !count($special_items['none']))) {
     $option = theme('hierarchical_select_special_option', array('option' => t('none')));
     $hierarchy->levels[0] = array('none' => $option) + $hierarchy->levels[0];
   }

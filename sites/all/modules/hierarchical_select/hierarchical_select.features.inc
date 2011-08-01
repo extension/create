@@ -1,5 +1,4 @@
 <?php
-// $Id: hierarchical_select.features.inc,v 1.1.4.1 2011/02/06 18:37:17 wimleers Exp $
 
 /**
  * @file

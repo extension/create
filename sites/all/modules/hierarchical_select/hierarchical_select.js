@@ -1,4 +1,3 @@
-// $Id: hierarchical_select.js,v 1.105.4.2 2011/02/19 10:53:55 wimleers Exp $
 
 (function($) {
 
@@ -621,6 +620,10 @@ Drupal.ajax.prototype.commands.hierarchicalSelectUpdate = function(ajax, respons
   $('#hierarchical-select-'+ hsid +'-wrapper', Drupal.HierarchicalSelect.context)
   .parent('.form-item')
   .replaceWith($(response.output));
+};
+
+Drupal.ajax.prototype.commands.hierarchicalSelectSettingsUpdate = function(ajax, response, status, hsid) {
+  Drupal.settings.HierarchicalSelect.settings[response.hsid] = response.settings;
 };
 
 })(jQuery);
