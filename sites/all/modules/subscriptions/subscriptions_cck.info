@@ -6,9 +6,9 @@ dependencies[] = subscriptions_content
 dependencies[] = content
 core = 7.x
 
-; Information added by drupal.org packaging script on 2011-06-17
-version = "7.x-1.x-dev"
+; Information added by drupal.org packaging script on 2011-07-22
+version = "7.x-1.0-alpha3"
 core = "7.x"
 project = "subscriptions"
-datestamp = "1308271219"
+datestamp = "1311377521"
 

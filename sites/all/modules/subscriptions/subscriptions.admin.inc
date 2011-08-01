@@ -367,11 +367,18 @@ function subscriptions_page_user_overview($account) {
  * @ingroup form
  */
 function subscriptions_user_suspend_form($form, &$form_state, $account) {
+  global $user;
+
   if (!isset($account)) {
     return NULL;
   }
   $uid = $account->uid;
   $suspended = subscriptions_suspended($uid, TRUE);
+
+  if (!user_access('administer user subscriptions') && !($user->uid == $uid && (user_access('suspend own subscriptions') || $suspended))) {
+    return NULL;
+  }
+
   $tr = 't';
   $form['suspend'] = array(
     '#type'          => 'fieldset',
@@ -398,7 +405,9 @@ function subscriptions_user_suspend_form($form, &$form_state, $account) {
   $form['suspend']['state'] = array(
     '#type'          => 'radios',
     '#title'         => t('Receive notifications'),
-    '#description'   => t('You can temporarily suspend notifications from being sent, e.g. during a vacation. They will be retained and sent after you reenable notifications.'),
+    '#description'   => ( user_access('suspend own subscriptions', $account)
+                          ? t('You can temporarily suspend notifications from being sent, e.g. during a vacation. They will be retained and sent after you reenable notifications.')
+                          : t('Select %Yes to send all queued notifications and resume normal delivery.', array('%Yes' => $tr('Yes'))) ),
     '#default_value' => ( user_access('administer user subscriptions') ? $suspended : min($suspended, 1) ),
     '#options'       => $options,
   );
@@ -485,7 +494,7 @@ function subscriptions_user_settings_form($form, &$form_state, $account) {
   $form['settings'] = array(
     '#type'          => 'fieldset',
     '#title'         => $tr('Settings'),
-    '#weight'        => 5,
+    '#weight'        => 10,
     '#collapsible'   => isset($account),
     '#collapsed'     => isset($account),
   );

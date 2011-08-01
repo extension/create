@@ -74,7 +74,7 @@ function subscriptions_mail_form_subscriptions_settings_form_alter(&$form, &$for
 /**
  * Form builder for the purge Subscriptions queue confirmation form.
  */
-function _subscriptions_mail_purge_queue_form(&$form_state) {
+function _subscriptions_mail_purge_queue_form($form_state) {
   $form['#submit'][] = 'subscriptions_purge_queue';
   return confirm_form($form, t('Are you sure you want to purge the !Module queue?', array('!Module' => 'Subscriptions')), array('path' => drupal_get_destination(), 'fragment' => 'edit-purge-queue'), NULL, t('Purge the queue'));
 }

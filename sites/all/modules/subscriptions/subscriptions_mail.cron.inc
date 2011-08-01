@@ -14,6 +14,10 @@ function _subscriptions_mail_cron() {
 
   // set_time_limit(3600);  drupal_set_message('DON\'T FORGET TO REMOVE THE TIME LIMIT EXTENSION!!!');
 
+  $save_mail_system = variable_get('mail_system', array('default-system' => 'DefaultMailSystem'));
+  include_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'subscriptions') . '/subscriptions.mail.inc';
+  variable_set('mail_system', array('default-system' => 'SubscriptionsMailSystem') + $save_mail_system);
+
   global $user, $language;
   drupal_language_initialize();
   include_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'subscriptions_mail') . '/subscriptions_mail.templates.inc';
@@ -239,6 +243,8 @@ function _subscriptions_mail_cron() {
     $watchdog = 'watchdog'; // keep potx from translating 'cron'
     $watchdog('cron', $message);
   }
+
+  variable_set('mail_system', $save_mail_system);
 }
 
 /**
@@ -248,7 +254,7 @@ function subscriptions_mail_mail($key, &$message, $params) {
   global $base_url;
 
   $url = parse_url($base_url);
-  $list_id = variable_get('site_name', '') . ' ' . t('Subscriptions') . ' <subscriptions. ' . $url['host'] . '>';
+  $list_id = variable_get('site_name', '') . ' ' . t('Subscriptions') . ' <subscriptions.' . $url['host'] . '>';
 
   $message['subject'] = $params['context']['subject'];
   $message['body'] = $params['context']['message'];
@@ -267,7 +273,7 @@ function _subscriptions_mail_send($mailkey, $name, $to, $subject, $body, $from, 
     return;
   }
 
-  $mail_success = subscriptions_mail('subscriptions_mail', $mailkey, $to, user_preferred_language($user), array(
+  $mail_success = drupal_mail('subscriptions_mail', $mailkey, $to, user_preferred_language($user), array(
     'account' => $user,
     'object' => NULL,
     'context' => array(

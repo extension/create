@@ -47,7 +47,7 @@ function subscriptions_menu() {
 
   $items['admin/config/subscriptions'] = array(
     'title' => 'Subscriptions',
-    'description' => 'Enables site settings for user subscriptions.',
+    'description' => 'Site and user default settings for Subscriptions.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('subscriptions_settings_form'),
     'access arguments' => array('administer site configuration'),
@@ -210,7 +210,13 @@ function subscriptions_permission() {
       ),
       $placeholder_key => array(),
     ),
-    subscriptions_types('permission')
+    subscriptions_types('permission'),
+    array(
+      'suspend own subscriptions' => array(
+        'title' => t('Suspend own subscriptions'),
+        'description' => t('Allow suspending &mdash; resuming is always allowed.'),
+      ),
+    )
   );
   if (!$return[$placeholder_key]) {
     unset($return[$placeholder_key]);
