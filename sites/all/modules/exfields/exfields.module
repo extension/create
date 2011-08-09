@@ -378,7 +378,7 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
 		'#default_value' => isset($items[$delta]['note']) ? $items[$delta]['note'] : '', 
 		);
 		// Separate the timestamp of the date storage to an array of alements needed for the date widget
-		$appraisal_date_value = isset($items[$delta]['appraisal_date']) ? $items[$delta]['appraisal_date'] : '';
+		$appraisal_date_value = isset($items[$delta]['appraisal_date']) ? $items[$delta]['appraisal_date'] : format_date(time(), 'custom', 'Y-m-d');
 		$element['appraisal_date'] = array(
 		'#title'=>'Appraisal Date',
         '#type' => 'date_popup',
