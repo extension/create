@@ -7,3 +7,4 @@ package = eXtension
 files[] = exfields.module
 dependencies[] = field
 dependencies[] = date_api
+dependencies[] = date_popup

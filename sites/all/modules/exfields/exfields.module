@@ -141,8 +141,13 @@ function exfields_field_schema($field) {
           'not null' => FALSE,
         ),
 		'appraisal_date' => array(
-          'type' => 'int',
-          'default'  => 0,
+          'type' => 'varchar',
+		  'length' => 25,
+          'not null' => FALSE,
+        ),
+		'improvements_date' => array(
+          'type' => 'varchar',
+		  'length' => 25,
           'not null' => FALSE,
         ),
 		
@@ -219,8 +224,9 @@ function exfields_field_formatter_view($object_type, $object, $field, $instance,
   }
   if($display['type']=='appraisalformat') {
       foreach ($items as $delta => $item) {
-		 	$output = t('<em>Author:</em> @user<br /><em>Unique Content:</em> @unique<br /><em>Keyword Usage:</em> @keywords<br /><em>Content Organization:</em> @organization<br /><em>Links to Complimentary Content:</em> @links<br /><em>Call to Action:</em> @action<br /><em>Overall Article Appraisal Score:</em> @overall<br /><em>Note:</em> @note<br /><em>Date:</em> @date', 
-						array('@user' =>$item['appraisal_user'], '@organization' =>$item['appraisal_organization'], '@keywords' =>$item['appraisal_keywords'], '@action' =>$item['appraisal_action'], '@links' =>$item['appraisal_links'], '@overall' =>$item['appraisal_overall'], '@unique' =>$item['appraisal_unique'], '@note' =>$item['appraisal_note'],'@date' =>_dateToString($item['appraisal_date']), ) );
+		  	
+		 	$output = t('<em>Apraiser:</em> @user<br /><em>Unique Content:</em> @unique<br /><em>Keyword Usage:</em> @keywords<br /><em>Content Organization:</em> @organization<br /><em>Links to Complimentary Content:</em> @links<br /><em>Call to Action:</em> @action<br /><em>Overall Article Appraisal Score:</em> @overall<br /><em>Note:</em> @note<br /><em>Appraisal Date:</em> @date<br /><em>Content Improvements Date Completed:</em> @improvements_date', 
+						array('@user' =>$item['appraisal_user'], '@organization' =>$item['appraisal_organization'], '@keywords' =>$item['appraisal_keywords'], '@action' =>$item['appraisal_action'], '@links' =>$item['appraisal_links'], '@overall' =>$item['appraisal_overall'], '@unique' =>$item['appraisal_unique'], '@note' =>$item['appraisal_note'],'@date' => _dateToStringAppraisal($item['appraisal_date']), '@improvements_date' => _dateToStringAppraisal($item['improvements_date']), ) );
         	$element[$delta]['#markup'] = '<p>' . $output . '</p>';
       }
   }
@@ -372,12 +378,22 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
 		'#default_value' => isset($items[$delta]['note']) ? $items[$delta]['note'] : '', 
 		);
 		// Separate the timestamp of the date storage to an array of alements needed for the date widget
-		$appraisal_date_value = isset($items[$delta]['appraisal_date']) ? _intToDateArray($items[$delta]['appraisal_date']) : _intToDateArray(time());
+		$appraisal_date_value = isset($items[$delta]['appraisal_date']) ? $items[$delta]['appraisal_date'] : '';
 		$element['appraisal_date'] = array(
 		'#title'=>'Appraisal Date',
-        '#type' => 'date',
+        '#type' => 'date_popup',
+		'#date_type' => DATE_DATETIME,
+		'#date_format' => variable_get('date_format_short', 'm/d/Y'),
         '#default_value' => $appraisal_date_value,
-		'#element_validate' => array('strToDateValidate'),
+      	);
+		// Separate the timestamp of the date storage to an array of alements needed for the date widget
+		$improvements_date_value = isset($items[$delta]['appraisal_date']) ? $items[$delta]['appraisal_date'] : '';
+		$element['improvements_date'] = array(
+		'#title'=>'Content Improvements Date Complited',
+        '#type' => 'date_popup',
+		'#date_type' => DATE_DATETIME,
+		'#date_format' => variable_get('date_format_short', 'm/d/Y'),
+        '#default_value' => $improvements_date_value,
       	);
 	  
 	  
@@ -402,6 +418,24 @@ function strToDateValidate($element, &$form_state) {
      form_set_value($element, array('contribution_date' => $value), $form_state);
   }
 }
+
+
+/**
+ * Utility function which converts the 3 elements, month, day and year
+ * in to a unix timestamp (number of seconds) for the appraisal date
+ */
+function strToDateValidateAppraisal($element, &$form_state) {
+  if (isset($element['#value'])) {
+	 
+	 $dt = explode('/', $element['#value']['date']);
+     $value = mktime(0, 0, 0, $dt[0], $dt[1], $dt[2]);
+     form_set_value($element, array('appraisal_date' => $value), $form_state);
+	 //drupal_set_message(print_r($form_state, true));
+  }
+}
+
+
+
 /**
  * Utility function which converts a string representation of a unix timestamp
  * and converts to a human readable format.
@@ -416,7 +450,23 @@ function _dateToString($dateValue) {
   }
   return $str;
 }
- 
+
+function _dateToStringAppraisal($dateValue) {
+  $str = "Unable to Format Date";
+  try {
+	 	if($dateValue != ''){
+			$dt = explode('-', $dateValue);
+			$str = $dt[1].'/'.$dt[2].'/'.$dt[0];
+		}else{
+			$str = '';
+		}
+  } catch (Exception $e) {
+     $str = "Unable to Format Date" . $e->getMessage();
+  }
+  return $str;
+}
+
+
  
 /**
  * Utility function which converts a string representation of a unix timestamp
