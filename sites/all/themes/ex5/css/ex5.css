@@ -1051,6 +1051,7 @@ article .comment > footer{
 /* Classes and IDs originating from CoP Wiki templates
 -----------------------------------------------------------------------------*/
 
+em {font-style:italic;}
 .imageleft {margin-right:1em;}
 .imageright {margin-left:1em;}
 
