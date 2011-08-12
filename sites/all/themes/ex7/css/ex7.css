@@ -16,22 +16,22 @@
 
 
 /* allign radio buttons horizontally */
-.form-radios{
+#field-appraisal-values .form-radios{
 	height: 27px;
 }
 
-.form-type-radios div.description{
+#field-appraisal-values .form-type-radios div.description{
 	margin-bottom: 10px;
 	width: 380px;
 	white-space: normal;
 }
 
-.form-radios > div{
+#field-appraisal-values .form-radios > div{
 	width: 50px;
 	float: left;
 
 }
-.form-item-field-appraisal-und-0-appraisal-user{
+#field-appraisal-values .form-item-field-appraisal-und-0-appraisal-user{
 	height: 75px;
 }
 
