@@ -389,7 +389,7 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
 		// Separate the timestamp of the date storage to an array of alements needed for the date widget
 		$improvements_date_value = isset($items[$delta]['appraisal_date']) ? $items[$delta]['appraisal_date'] : '';
 		$element['improvements_date'] = array(
-		'#title'=>'Content Improvements Date Complited',
+		'#title'=>'Content Improvements Date Completed',
         '#type' => 'date_popup',
 		'#date_type' => DATE_DATETIME,
 		'#date_format' => variable_get('date_format_short', 'm/d/Y'),
