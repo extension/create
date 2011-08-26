@@ -314,6 +314,8 @@ header.menu-bar #block-system-main-menu ul.menu li a.active{
 	margin-top: 20px;
 }
 
+
+
 /* Updated date and user name under the title
 -----------------------------------------------------------------------------*/
 footer.submitted{
@@ -624,6 +626,29 @@ article .comment > footer{
 .views-exposed-form .views-widget-filter-title label{
 	width: 160px;
 }
+
+
+
+/* Exposed filter for appraisal improvements filter
+-----------------------------------------------------------------------------*/
+
+.views-widget-filter-field_appraisal_improvements_date{
+	width: 400px;
+}
+
+.views-widget-filter-field_appraisal_improvements_date .views-widget{
+	margin-top: 15px;
+	margin-bottom: 25px;
+	height: 60px;
+}
+
+.views-widget-filter-field_appraisal_improvements_date .views-widget > div{
+	width: 200px;
+	float: left;
+}
+
+
+
 
 
 /* Dashboard panels
@@ -955,7 +980,7 @@ article .comment > footer{
 /* Display of the taxonomy terms
 -----------------------------------------------------------------------------*/
 
-.view-taxonomy-term{
+#block-system-main div .view-taxonomy-term, .view-taxonomy-term{
 	margin: 40px 5px 20px 5px;
 }
 
