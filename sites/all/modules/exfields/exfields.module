@@ -480,3 +480,13 @@ function _intToDateArray($timestr) {
   $day = date('j',$timestamp);
   return array('year' => $year, 'month' => $month, 'day' => $day);
 }
+
+/**
+ * Implementation of hook_views_api().
+ */
+function exfields_views_api() {
+    return array(
+        'api' => 3,
+        'path' => drupal_get_path('module', 'exfields'),
+    );
+}
