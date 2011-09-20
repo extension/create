@@ -5,9 +5,9 @@ core = 7.x
 dependencies[] = media
 files[] = media_internet.module
 
-; Information added by drupal.org packaging script on 2011-07-31
+; Information added by drupal.org packaging script on 2011-08-26
 version = "7.x-2.x-dev"
 core = "7.x"
 project = "media"
-datestamp = "1312071919"
+datestamp = "1314318902"
 

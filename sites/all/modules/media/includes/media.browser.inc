@@ -10,7 +10,7 @@ function media_browser($selected = NULL) {
 
   $params = drupal_get_query_parameters();
   array_walk_recursive($params, '_media_recursive_check_plain');
-  media_set_browser_params($params);
+  $params = media_set_browser_params($params);
 
   // If one or more files have been selected, the browser interaction is now
   // complete. Return empty page content to the dialog which now needs to close,
@@ -108,17 +108,20 @@ EOS;
  * It also offers a chance for some meddler to meddle with them.
  *
  * @param array $params
- *  An array of parameters provided when a media_browser is launched.
- *  See media_browser().
+ *   An array of parameters provided when a media_browser is launched.
+ *
+ * @see media_browser()
  */
-function media_set_browser_params(&$params = NULL) {
-  static $stored_params;
+function media_set_browser_params(array $params = NULL) {
+  $stored_params = &drupal_static(__FUNCTION__, array());
 
-  if (!$params) {
-    return $stored_params;
+  if (isset($params)) {
+    $stored_params = $params;
+    // Allow modules to alter the parameters.
+    drupal_alter('media_browser_params', $stored_params);
   }
-  $stored_params = $params;
-  drupal_alter('media_browser_params', $stored_params);
+
+  return $stored_params;
 }
 
 /**

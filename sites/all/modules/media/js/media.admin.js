@@ -26,7 +26,7 @@ Drupal.behaviors.mediaAdmin = {
     if ($('form.media-list-operation', context).length != 0) {
       return;
     }
-    var $launcherLink = $('<a class="media-launcher" href="#"></a>').html('Add file');
+    var $launcherLink = $('<a class="media-launcher" href="#"></a>').html(Drupal.t('Add file'));
     $launcherLink.bind('click', function () {
       // This option format needs *serious* work.
       // Not even bothering documenting it because it needs to be thrown.

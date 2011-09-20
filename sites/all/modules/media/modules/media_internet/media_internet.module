@@ -63,8 +63,8 @@ function media_internet_media_browser_plugin_view($plugin_name, $params) {
 function media_internet_add($form, &$form_state = array(), $types = NULL) {
   $form['embed_code'] = array(
     '#type' => 'textfield',
-    '#title' => 'URL or Embed code',
-    '#description' => 'Input a url or embed code from one of the listed providers.',
+    '#title' => t('URL or Embed code'),
+    '#description' => t('Input a url or embed code from one of the listed providers.'),
     '#attributes' => array('class' => array('media-add-from-url')),
     // There is no standard specifying a maximum length for a URL. Internet
     // Explorer supports upto 2083 (http://support.microsoft.com/kb/208427), so
@@ -88,7 +88,7 @@ function media_internet_add($form, &$form_state = array(), $types = NULL) {
   }
 
   $form['providers'] = array();
-  $form['providers']['header'] = array('#markup' => '<h2> Supported Providers </h2>');
+  $form['providers']['header'] = array('#markup' => '<h2>' . t('Supported Providers') . '</h2>');
   foreach (media_internet_get_providers() as $key => $provider) {
     if (empty($provider['hidden']) || $provider['hidden'] != TRUE) {
       if (isset($provider['image'])) {
