@@ -14,7 +14,13 @@ function exlistview_theme() {
   return array(
     'exlistview_show' => array(
       'template' => 'exlistview_show'
-     )
+     ),
+	 'exlistview_block_groups' => array(
+	 	'template' => 'exlistview_block_groups'
+	 ),
+	 'exlistview_block_events' => array(
+	 	'template' => 'exlistview_block_events'
+	 )
   );
 }
 
@@ -594,3 +600,118 @@ function _get_display_names_for_group_ids($group_tag_options, $selected_tags) {
   return implode(',', $display_array);
 }
 
+/**
+* Implementation of hook_block_info().
+*/
+
+function exlistview_block_info() {
+  $blocks['my_groups_content'] = array(
+    'info' => t('My groups content'),
+    'cache' => DRUPAL_NO_CACHE,
+      );
+  $blocks['my_groups_events'] = array(
+  	'info'=> t('My groups events'),
+	'cache' => DRUPAL_NO_CACHE,
+  );
+  return $blocks;
+}
+
+
+
+function exlistview_block_view($delta) {
+
+  $block = array();
+  //delta is your block name. then just set it equal to your return functions.
+  switch ($delta) {
+    case 'my_groups_content':
+      //use helper functions to set the blocks. Cleaner.
+      $block = _exlistview_my_groups_content();
+      break;
+	case 'my_groups_events':
+	  $block = _exlistview_my_groups_events();
+	  break;
+  }
+  return $block;
+}
+
+
+//creates string for use in sql statement including id-s of the user's groups
+function _exlistview_my_groups_condition(){
+	global $user;
+	$condition = '0';
+	$query = db_select('field_data_group_audience');
+	$query->fields('field_data_group_audience',array('group_audience_gid'));
+	$query->condition('bundle', 'user', '=');
+	$query->condition('entity_id', $user->uid, '=');
+	$result = $query->execute();
+	foreach ($result AS $record){
+		$condition .= ' OR a.group_audience_gid = '.(int) $record->group_audience_gid;
+	}
+	return $condition;
+}
+
+//creates html output of content of current user's groups
+function _exlistview_my_groups_content(){
+	$condition = _exlistview_my_groups_condition();
+	$rows = '';
+	$sql = "SELECT 
+				n.nid AS nodeid, n.type AS type, g.label AS group_name, g.gid AS group_id,
+				f.field_first_name_value AS first_name, field_last_name_value AS last_name
+  			FROM 
+					{field_data_group_audience} a
+				LEFT JOIN 	
+					{node} n ON n.nid = a.entity_id
+				LEFT JOIN 
+					{node_revision} r ON n.vid = r.vid
+				INNER JOIN 
+					{users} u ON r.uid = u.uid
+				LEFT JOIN
+					{og} g ON g.gid = a.group_audience_gid
+				LEFT JOIN 
+					{field_data_field_first_name} f ON f.entity_id = u.uid
+				LEFT JOIN 
+					{field_data_field_last_name} l ON l.entity_id = u.uid				
+		 	WHERE 
+				 	a.entity_type LIKE 'node'
+				AND
+					a.deleted = 0
+				AND
+					(".$condition.")
+			GROUP BY
+					n.nid
+			ORDER BY
+					n.changed DESC";
+	$result = db_query_range($sql, 0, 12);
+	foreach ($result as $record) {
+		$node = node_load($record->nodeid);
+		$rows .= theme('exlistview_block_groups', array('node'=>$node, 'record'=>$record));
+	}	
+	$content = array('content' => $rows);
+	return $content;
+}
+
+function _exlistview_my_groups_events(){
+	$content = '';
+	$data = array();
+	$query = db_select('field_data_group_audience', 'a');
+	$query	->join('node', 'n', 'n.nid = a.entity_id');
+	$query	->join('og', 'g', 'g.gid = a.group_audience_gid');
+	$query	->join('field_data_field_event_time', 't', 't.entity_id = n.nid');
+	$query	->fields('n', array('nid'))
+			->fields('t', array('field_event_time_value'))
+			->fields('g', array('gid', 'label'))
+			->orderBy('t.field_event_time_value')
+			->where(_exlistview_my_groups_condition())
+			->where('t.field_event_time_value > NOW()')
+			->groupBy('n.nid')
+			->range(0,3);
+	$records = $query->execute();
+	foreach($records AS $row){
+		$dt = new DateTime($row->field_event_time_value);
+		$dt = $dt->format('F Y|d');
+		$date = explode('|', $dt);
+		$node = node_load($row->nid);
+		$data[$date[0]][] = array('day'=>$date[1], 'title'=>$node->title, 'nid'=>$node->nid, 'gid'=>$row->gid, 'group'=>$row->label);
+	}
+	return array('content' => theme('exlistview_block_events', array('data'=>$data)));
+}

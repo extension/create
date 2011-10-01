@@ -8,3 +8,4 @@ dependencies[] = exworkflow
 files[] = exlistview.module
 files[] = exlistview.install
 files[] = exlistview_show.tpl.php
+files[] = exlistview_block_groups.tpl.php

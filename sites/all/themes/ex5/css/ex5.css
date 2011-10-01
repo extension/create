@@ -1007,6 +1007,187 @@ article .comment > footer{
 }
 
 
+/* Front page
+-----------------------------------------------------------------------------*/
+
+#important-info-block{
+	background-image: none;
+	width: 264px;
+	height: 210px;
+	background-color: #FDDFB1;
+	margin: 5px 0 19px 5px;
+}
+
+#important-info-block h4, #important-info-block h5{
+	display: none;
+}
+#important-info-block h2, #important-info-block div{
+	background-image: none;
+}
+#important-info-block h2{
+	background-color: #FEEED6;
+	border: none;
+	text-shadow: none;
+	color: #F87600;
+	font-weight: bold;
+	margin: 0;
+	padding-left: 14px;
+	line-height: 100%;
+}
+#important-info-block .pane-content{
+	margin: 5px 10px;
+}
+#important-info-block div div h3{
+	color: #C1272D;
+	font-size: 12px;
+	margin: 0;
+	padding: 0;
+	font-weight: bold;
+	height: 24px;
+}
+#important-info-block div ul{
+	margin: 0;
+	padding: 0;
+	width: 230px;
+}
+#important-info-block div ul li{
+	margin: 0 0 4px 14px;
+	padding: 0;
+}
+#important-info-block div ul li a{
+	font-size: 12px;
+}
+
+#front-page .panel-col-first{
+	width: 280px;
+}
+#front-page .panel-col-last{
+	width: 350px;
+}
+
+#front-page div div .pane-exlistview-my-groups-events,
+#front-page .not-logged-quick-links{
+	width: 275px;
+	background-image:url(../images/ex5-2-column-265-bg.png);
+}
+#front-page div div .pane-exlistview-my-groups-events .pane-content{
+	height: 170px;
+}
+#front-page div div .pane-exlistview-my-groups-events h4,
+#front-page .not-logged-quick-links h4{
+	background-image:url(../images/ex5-2-column-header-265-bg.png);
+}
+#front-page div div .pane-exlistview-my-groups-events h5,
+#front-page .not-logged-quick-links h5{
+	background-image:url(../images/ex5-2-column-footer-265-bg.png);
+}
+#front-page div div .pane-exlistview-my-groups-events .view-content h3{
+	color: #FBB03B;
+	font-size: 10px;
+	margin: 6px 0 0;
+}
+#front-page div div .pane-exlistview-my-groups-events .view-content .views-row{
+	margin: 0 0 4px 0;
+}
+.pane-exlistview-my-groups-content .pane-content .views-row{
+	border-bottom: 1px solid #ccc;
+	background-repeat: no-repeat;
+	padding-left: 55px;
+	padding-bottom: 6px;
+	background-position: 0 3px;
+}
+
+#front-page div div .pane-exlistview-my-groups-events .view-content .views-row .views-field-field-group a{
+	text-decoration: none;
+}
+
+.pane-exlistview-my-groups-content .pane-content :last-child{
+	border-bottom: none;
+}
+.pane-exlistview-my-groups-content .pane-content .exlistview-group-label{
+	display: block;
+}
+.pane-exlistview-my-groups-content .pane-content .exlistview-group-label a{
+	text-decoration: none;
+	font-weight: bold;
+}
+#front-page .panel-col-last .panel-pane{
+	width: 350px;
+	background-image:url(../images/ex5-2-column-340-bg.png);
+}
+#front-page .panel-col-last .panel-pane h4{
+	background-image:url(../images/ex5-2-column-header-340-bg.png);
+}
+#front-page .panel-col-last .panel-pane h5{
+	background-image:url(../images/ex5-2-column-footer-340-bg.png);
+}
+
+#front-page .panel-col-last .pane-about .pane-content,
+#front-page .not-logged-quick-links .pane-content{
+	margin: 5px 25px;
+	height: 167px;
+}
+#front-page .not-logged-quick-links .pane-content p{
+	margin: 5px 0;
+	font-size: 12px;
+}
+#front-page .panel-col-last .pane-about .pane-content .view-content .views-row{
+	background-image:url(../images/ex5-red-dot.png);
+	background-repeat: no-repeat;
+	background-position: 0 5px;
+	padding-left: 10px;
+	margin: 2px 0;
+}
+#front-page .panel-col-last .pane-about .pane-content .view-content .views-row a{
+	color: #4F6786;
+	font-weight: normal;
+}
+
+#front-page .panel-col-last .pane-about .pane-content .view-content .views-row a:hover{
+	color: #2F4766;
+}
+
+
+#front-page .panel-col-last .pane-about .pane-content .view-header p{
+	margin: 0 0 6px 0;
+	color: #4D4D4D;
+	font-size: 12px;
+}
+
+#front-page .panel-col-last .pane-node .pane-content{
+	height: 160px;
+	margin-top: 10px;
+}
+#front-page .panel-col-last .pane-node .pane-content ul{
+	width: 160px;
+	margin: 0;
+	padding: 0;
+	float: left;
+	list-style: none;
+}
+#front-page .panel-col-last .pane-node .pane-content ul li{
+	list-style: none;
+	font-size: 12px;
+	margin-bottom: 3px;
+}
+#front-page .panel-col-top .panel-pane .pane-title{
+	border-bottom: 1px solid #ccc;
+	margin: 0 5px 5px;
+	font-size: 21px;
+	font-weight: normal;
+	color: #6B82A5;
+}
+#front-page .panel-col-top .panel-pane .pane-content{
+	margin: 0 5px;
+	color: #808080;
+	font-size: 16px;
+}
+#front-page .center-wrapper{
+	padding-top: 0;
+}
+
+
+
 /* Footers
 -----------------------------------------------------------------------------*/
 #footers{
