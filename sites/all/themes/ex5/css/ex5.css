@@ -1185,7 +1185,9 @@ article .comment > footer{
 #front-page .center-wrapper{
 	padding-top: 0;
 }
-
+#front-page .view-tracker .views-row{
+	clear: both;
+}
 
 
 /* Footers
