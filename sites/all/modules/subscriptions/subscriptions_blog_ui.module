@@ -21,7 +21,7 @@ function subscriptions_blog_ui_subscriptions($op, $arg0 = NULL, $arg1 = NULL, $a
 }
 
 /**
- * Implementation of hook_types(), subhook of hook_subscriptions().
+ * Implements hook_types(), subhook of hook_subscriptions().
  *
  * This is called by subscriptions_types() in subscriptions.module.
  *
@@ -161,3 +161,4 @@ function subscriptions_blog_ui_count_user_subscriptions($counts, $uid) {
   $counts['blog']['author_uid'] = db_query("SELECT count(*) FROM {subscriptions} WHERE module = 'node' AND field = 'type' AND value = 'blog' AND recipient_uid = :recipient_uid", array(':recipient_uid' => $uid))->fetchField();
   return $counts;
 }
+

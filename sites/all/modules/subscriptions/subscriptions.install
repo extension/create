@@ -86,6 +86,24 @@ function subscriptions_schema() {
  * Implements hook_install().
  */
 function subscriptions_install() {
+  // Remove old cruft if it's still around.
+  if (db_table_exists('subscriptions_mail_edit')) {
+    db_drop_table('subscriptions_mail_edit');      // old table from 5.x-2.x
+  }
+  if (db_table_exists('subscriptions_old')) {
+    db_drop_table('subscriptions_old');            // old backup from 5.x-1.x
+  }
+  if (db_table_exists('subscriptions_holding')) {
+    db_drop_table('subscriptions_holding');        // old left-over from 5.x-1.x
+  }
+  if (db_table_exists('subscriptions_holding_old')) {
+    db_drop_table('subscriptions_holding_old');    // old backup from 5.x-1.x
+  }
+  if (db_table_exists('subscriptions_sent')) {     // old left-over from first
+    db_drop_table('subscriptions_sent');           // incarnation of 5.x-2.0
+  }
+
+  // Create initial data.
   db_insert('subscriptions_user')
     ->fields(array(
       'uid' => -DRUPAL_AUTHENTICATED_RID,
@@ -104,37 +122,16 @@ function subscriptions_install() {
     ->execute();
   $select = db_select('users', 'u')
     ->fields('u', array('uid'))
-    ->condition('uid', 0, '>');
+    ->condition('u.uid', 0, '>');
   db_insert('subscriptions_user')
     ->from($select)
     ->execute();
-  subscriptions_update_9();  // remove 5.x-1.x-dev template variables if found
-
-  include_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'subscriptions') . '/subscriptions.install.inc';
-  _subscriptions_install_information();
-  return $ret;
 }
 
 /**
  * Implements hook_uninstall().
  */
 function subscriptions_uninstall() {
-  if (db_table_exists('subscriptions_mail_edit')) {
-    db_drop_table('subscriptions_mail_edit');      // old table from 5.x-2.x
-  }
-  if (db_table_exists('subscriptions_old')) {
-    db_drop_table('subscriptions_old');            // old backup from 5.x-1.x
-  }
-  if (db_table_exists('subscriptions_holding')) {
-    db_drop_table('subscriptions_holding');        // old left-over from 5.x-1.x
-  }
-  if (db_table_exists('subscriptions_holding_old')) {
-    db_drop_table('subscriptions_holding_old');    // old backup from 5.x-1.x
-  }
-  if (db_table_exists('subscriptions_sent')) {     // old left-over from first
-    db_drop_table('subscriptions_sent');           // incarnation of 5.x-2.0
-  }
-
   if (db_table_exists('mail_edit')) {
     db_delete('mail_edit')
       ->condition('id', 'subscriptions_%', 'LIKE')
@@ -199,13 +196,13 @@ function subscriptions_update_6101() {
   db_create_table('subscriptions_last_sent', $schema['subscriptions_last_sent']);
   db_add_index('subscriptions_queue', 'uid', array('uid'));
 
-  include_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'subscriptions') . '/subscriptions.admin.inc';
+  _subscriptions_module_load_include('subscriptions', 'admin.inc');
   foreach (_subscriptions_send_intervals() as $send_interval => $text) {
     $select = db_select('subscriptions_user', 'su');
-    $select->addField('uid');
+    $select->addField('su', 'uid');
     $select->addExpression($send_interval);
-    $select->addField('last_sent');
-    $select->condition('uid', 0, '>');
+    $select->addField('su', 'last_sent');
+    $select->condition('su.uid', 0, '>');
     db_insert('subscriptions_last_sent')
       ->from($select)
       ->execute();
@@ -249,8 +246,78 @@ function subscriptions_update_7000() {
     ->fields(array('load_function' => 'subscriptions_content_load_node'))
     ->condition('load_function', 'subscriptions_content_node_load')
     ->execute();
-    db_update('subscriptions_queue')
+  db_update('subscriptions_queue')
     ->fields(array('load_function' => 'subscriptions_content_load_comment'))
     ->condition('load_function', 'subscriptions_content_comment_load')
     ->execute();
 }
+
+/**
+ * Remove the bug-fix SubscriptionsMailSystem, we need Drupal 7.5+ from now.
+ */
+function subscriptions_update_7001() {
+  $mailsystem = variable_get('mail_system', array());
+  if (isset($mailsystem['default-system']) && $mailsystem['default-system'] == 'SubscriptionsMailSystem') {
+    unset($mailsystem['default-system']);
+    if (empty($mailsystem)) {
+      variable_del('mail_system');
+    }
+    else {
+      variable_set('mail_system', $mailsystem);
+    }
+  }
+}
+
+/**
+ * Update the '!variables' in the stored templates to their corresponding
+ * new Drupal 7 '[tokens]'.
+ */
+function subscriptions_update_7002() {
+  $tokens = array(
+    '!site'                    => '[site:name]',
+
+    '!recipient_uid'           => '[current-user:uid]',
+    '!recipient_name'          => '[current-user:name]',
+    '!recipient_page'          => '[current-user:url]',
+    '!name'                    => '[current-user:name]',
+
+    '!sender_uid'              => '[user:uid]',
+    '!sender_name'             => '[user:name]',
+    '!sender_page'             => '[user:url]',
+    '!sender_contact_page'     => '[### !sender_contact_page ###]',
+    '!sender_has_contact_page' => '[### !sender_has_contact_page ###]',
+
+    '!is_new'                  => '[subs:is-new]',
+    '!is_updated'              => '[subs:is-updated]',
+    '!is_old'                  => '[subs:is-old]',
+    '!comments'                => '[subs:comments]',
+    '!has_new_comments'        => '[subs:comments:count]',
+
+    '!subs_type'               => '[subs:type]',
+    '!manage_url'              => '[subs:manage-url]',
+    '!unsubscribe_url'         => '[subs:unsubscribe-url]',
+
+    '!has_files'               => '[### !has_files ###]',
+    '!files'                   => '[### !files ###]',
+  );
+  $query = db_select('mail_edit', 'me', array('fetch' => PDO::FETCH_ASSOC));
+  $query->join('mail_edit_registry', 'mer', 'mer.id = me.id');
+  $result = $query
+    ->fields('me')
+    ->condition('mer.module', 'subscriptions_content')
+    ->execute();
+  foreach ($result as $row) {
+    $id = $row['id'];
+    $langcode = $row['language'];
+    unset($row['id']);
+    unset($row['language']);
+    $row['subject'] = strtr($row['subject'], $tokens);
+    $row['body'] = strtr($row['body'], $tokens);
+    db_update('mail_edit')
+      ->fields($row)
+      ->condition('id', $id)
+      ->condition('language', $langcode)
+      ->execute();
+  }
+}
+

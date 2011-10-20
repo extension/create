@@ -5,78 +5,84 @@
  * Subscriptions module mail templates constants.
  */
 
-define('SUBSCRIPTIONS_COMMENT_MAILKEY', 'subscriptions_content_node-nid+comment');
 define('SUBSCRIPTIONS_DIGEST_MAILKEY', 'subscriptions_mail_digest');
 
 function subscriptions_mail_template_raw($key, $langcode) {
   switch ($key) {
 
     case 'SEP':      return // SUBSCRIPTIONS_DEFAULT_SEPARATOR
-t('| --------------------------------------------------------------------
-', array(), array('langcode' => $langcode));
+t('| ------------------------------------------------------------------------', array(), array('langcode' => $langcode));
 
     case 'SUBJ':     return // SUBSCRIPTIONS_DEFAULT_SUBJECT
-t('[!site] !subs_type subscription for !name: !title', array(), array('langcode' => $langcode));
+t('[[site:name]] [subs:type] subscription for [current-user:name]: [node:title]', array(), array('langcode' => $langcode));
 
     case 'FOOT':     return // SUBSCRIPTIONS_DEFAULT_FOOTER
 t('| This is an automated message. Please do NOT reply to the sender address!
 | To manage your subscriptions go to
-| !manage_url
+| [subs:manage-url]
 ', array(), array('langcode' => $langcode));
 
     case 'BODY':     return // SUBSCRIPTIONS_DEFAULT_BODY
-t('| Greetings, !name.
+t('| Greetings, [current-user:name].
 |
-| Your subscription on !site
-| notifies you of {{!is_new==0?:a new post:
-}}{{!is_updated==0?:an updated post:
-}}{{!is_old==0?:new comments:
+| Your subscription on [site:name]
+| notifies you of {{[subs:is-new]==0?:a new post:
+}}{{[subs:is-updated]#an updated post:
+}}{{[subs:is-old]#new comments:
 }}|
-{{!is_published==1?:| ***** This post is unpublished! *****
-}}{{!term_name==!term_name?:| Category: !term_name
-}}{{!sender_name==!sender_name?:| Author: !sender_name
-}}{{!sender_has_contact_page==0?:| Contact: !sender_contact_page
-}}| Title: !title
-{{!is_old==1?:
-!teaser
-
-}}| Link: !url
-| Direct unsubscribe link (!subs_type):
-| !unsubscribe_url
-{{!has_new_comments==1?!SEPARATOR!comments:}}!SEPARATOR!FOOTER', array('!SEPARATOR' => subscriptions_mail_template_raw('SEP', $langcode), '!FOOTER' => subscriptions_mail_template_raw('FOOT', $langcode)), array('langcode' => $langcode));
+{{![subs:is-published]#| ***** This post is unpublished! *****
+}}{{![term:name]?:| Category: [term:name]
+}}{{![user:name]?:| Author: [user:name]
+}}| Title: [node:title]
+&nbsp;
+{{[subs:is-old]?{{[node:summary]?[node:summary]:[node:body]}}:[node:body]}}
+| LINK: [node:url]
+{{!![subs:files:field_files:count]#| Attached files:
+{{[subs:files:field_files:count]#| [subs:files:field_files:value:#0:url]
+}}}}{{![subs:comments:count]?!SEPARATOR
+:|
+| Comments: [subs:comments:count]
+!SEPARATOR
+[subs:comments:join:
+]
+}}| Direct unsubscribe link ([subs:type]):
+| [subs:unsubscribe-url]
+!FOOTER', array('!SEPARATOR' => subscriptions_mail_template_raw('SEP', $langcode), '!FOOTER' => subscriptions_mail_template_raw('FOOT', $langcode)), array('langcode' => $langcode));
 
     case 'CITEM':    return // SUBSCRIPTIONS_DEFAULT_COMMENT_ITEM
-t('| {{!comment_is_new==1?New:Updated}} {{!comment_is_published==1?:UNPUBLISHED }}comment:
-| Author: !comment_name
-| Title: !comment_title
-
-!comment_text
-
-| Link: !comment_url
-', array(), array('langcode' => $langcode));
+t('| {{[subs:is-new]?New:Updated}} {{[subs:is-published]?:UNPUBLISHED }}comment:
+| Author: [comment:author:name]
+| Title: [comment:title]
+&nbsp;
+[comment:body]
+| LINK: [comment:url]
+{{!![subs:files:field_files:count]#| Attached files:
+{{[subs:files:field_files:count]#| [subs:files:field_files:value:#0:url]
+}}}}!SEPARATOR', array('!SEPARATOR' => subscriptions_mail_template_raw('SEP', $langcode)), array('langcode' => $langcode));
 
     case 'DSUBJ':    return // SUBSCRIPTIONS_DEFAULT_DIGEST_SUBJECT
-t('[!site] Subscription Digest for !name', array(), array('langcode' => $langcode));
+t('[[site:name]] Subscription Digest for [current-user:name]', array(), array('langcode' => $langcode));
 
     case 'DBODY':    return // SUBSCRIPTIONS_DEFAULT_DIGEST_BODY
-t('| Greetings, !name.
+t('| Greetings, [current-user:name].
 |
-| Your subscriptions on !site
+| Your subscriptions on [site:name]
 | notify you of the following changes since the previous digest:
 |
-!bodies!SEPARATOR!FOOTER', array('!SEPARATOR' => subscriptions_mail_template_raw('SEP', $langcode), '!FOOTER' => subscriptions_mail_template_raw('FOOT', $langcode)), array('langcode' => $langcode));
+[subs:nodes]!SEPARATOR
+!FOOTER', array('!SEPARATOR' => subscriptions_mail_template_raw('SEP', $langcode), '!FOOTER' => subscriptions_mail_template_raw('FOOT', $langcode)), array('langcode' => $langcode));
 
     case 'DITEM':    return // SUBSCRIPTIONS_DEFAULT_DIGEST_ITEM_BODY
-t('{{!sender_name==!sender_name?:| Author: !sender_name
-}}| Title: !title
-{{!is_new==0?:!teaser
-}}| Link: !url
-| Direct unsubscribe link (!subs_type):
-| !unsubscribe_url
-{{!has_new_comments!=1?:!comments}}', array(), array('langcode' => $langcode));
+t('{{[user:name]!=?:| Author: [user:name]
+}}| Title: [node:title]
+{{[subs:is-new]==0?:[node:summary]
+}}| Link: [node:url]
+| Direct unsubscribe link ([subs:type]):
+| [subs:unsubscribe-url]
+{{[subs:comments:count]>0?:[subs:comments]}}', array(), array('langcode' => $langcode));
 
     case 'DITEMCMT': return // SUBSCRIPTIONS_DEFAULT_DIGEST_ITEM_BODY_COMMENT
-t('| Comment: !comment_title
+t('| Comment: [comment:title]
 ', array(), array('langcode' => $langcode));
 
   }
@@ -106,14 +112,19 @@ function subscriptions_mail_template($key, $langcode) {
  *  the key for calling subscriptions_mail_template() to retrieve the
  *  default template, if there's no match in the mail_edit table
  */
-function subscriptions_mail_template_load($mailkey, $langcode, $part, $key) {
+function subscriptions_mail_template_load($mailmod, $mailkey, $langcode, $part, $key) {
   if (module_exists('mail_edit')) {
+    $id = $mailmod . '_' . $mailkey;
     static $cache = array();
-    if (!isset($cache[$langcode][$mailkey])) {
-      $cache[$langcode][$mailkey] = db_fetch_object(db_query("SELECT * FROM {mail_edit} WHERE id = :id and language = :language", array(':id' => $mailkey, ':language' => $langcode)));
+    if (!isset($cache[$langcode][$id])) {
+      $query = db_select('mail_edit', 'me')
+        ->fields('me')
+        ->condition('me.id', $id)
+        ->condition('me.language', $langcode);
+      $cache[$langcode][$id] = $query->execute()->fetchObject();
     }
-    if (isset($cache[$langcode][$mailkey]->$part)) {
-      return $cache[$langcode][$mailkey]->$part;
+    if (isset($cache[$langcode][$id]->$part)) {
+      return $cache[$langcode][$id]->$part;
     }
   }
   return subscriptions_mail_template($key, $langcode);

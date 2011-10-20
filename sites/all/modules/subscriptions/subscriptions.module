@@ -25,10 +25,8 @@
  */
 function subscriptions_init() {
   define('SUBSCRIPTIONS_UNAVAILABLE', '<span class="error" title="' . t('(unavailable to regular users)') . '">&curren;</span>');
-  if (arg(0) == 'subscriptions' || arg(2) == 'subscriptions') {
-    include_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'subscriptions') . '/subscriptions.admin.inc'; // TODO: do we need this?
-  }
-  if (arg(0) == 's' && arg(1) == 'del') {
+  $router_item = menu_get_item();
+  if (isset($router_item['map']) && $router_item['map'][0] == 's' && $router_item['map'][1] == 'del') {
     $router_item = menu_get_item('subscriptions/rem/' . substr($_GET['q'], 6));
     if (isset($router_item) && $router_item['access']) {
       menu_set_item($_GET['q'], $router_item);
@@ -49,6 +47,7 @@ function subscriptions_menu() {
     'title' => 'Subscriptions',
     'description' => 'Site and user default settings for Subscriptions.',
     'page callback' => 'drupal_get_form',
+    'file' => 'subscriptions.admin.inc',
     'page arguments' => array('subscriptions_settings_form'),
     'access arguments' => array('administer site configuration'),
   );
@@ -60,8 +59,9 @@ function subscriptions_menu() {
   $items['admin/config/subscriptions/userdefaults'] = array(
     'title' => 'User defaults',
     'weight' => -5,
-    'page callback' => 'subscriptions_page_user_overview',
-    'page arguments' => array(NULL),
+    'file' => 'subscriptions.admin.inc',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('subscriptions_page_user_overview'),
     'type' => MENU_LOCAL_TASK,
     'access arguments' => array('administer site configuration'),
   );
@@ -73,14 +73,16 @@ function subscriptions_menu() {
   $items['admin/config/subscriptions/intervals'] = array(
     'title' => 'Interval',
     'page callback' => 'drupal_get_form',
+    'file' => 'subscriptions.admin.inc',
     'page arguments' => array('subscriptions_intervals'),
     'type' => MENU_LOCAL_TASK,
     'access arguments' => array('administer site configuration'),
   );
   $items['user/%user/subscriptions'] = array(
     'title' => 'Subscriptions',
-    'page callback' => 'subscriptions_page_user_overview',
-    'page arguments' => array(1),
+    'file' => 'subscriptions.admin.inc',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('subscriptions_page_user_overview', 1),
     'type' => MENU_LOCAL_TASK,
     'access callback' => '_subscriptions_access',
     'access arguments' => array(1),
@@ -241,33 +243,19 @@ function subscriptions_user_insert($edit, &$account, $category) {
   // $account->roles isn't set yet, subscriptions_user_load() below will
   // insert the role-specific initial subscriptions.
   $new_uid = $account->uid;
-}
 
-/**
- * Implements hook_user_load().
- *
- * Set the role-specific initial subscriptions for new users (continued
- * from subscriptions_user_insert() above).
- *
- * @ingroup hooks
- */
-function subscriptions_user_load($users) {
-  $new_uid = &drupal_static('subscriptions_user_insert', 0);
-  if ($new_uid && isset($users[$new_uid])) {
-    foreach (array_keys($users[$new_uid]->roles) as $rid) {
-      $rids[] = -$rid;
-    }
-    $query = db_select('subscriptions', 's')
-      ->fields('s', array('module', 'field', 'value'));
-    $query->addExpression($new_uid, 'recipient_uid');
-    $query
-      ->fields('s', array('send_interval', 'author_uid', 'send_updates', 'send_comments'))
-      ->condition('recipient_uid', $rids, 'IN');
-    db_insert('subscriptions')
-      ->from($query)
-      ->execute();
-    $new_uid = 0;
+  foreach (array_keys($account->roles) as $rid) {
+    $rids[] = -$rid;
   }
+  $query = db_select('subscriptions', 's')
+    ->fields('s', array('module', 'field', 'value'));
+  $query->addExpression($new_uid, 'recipient_uid');
+  $query
+    ->fields('s', array('send_interval', 'author_uid', 'send_updates', 'send_comments'))
+    ->condition('s.recipient_uid', $rids, 'IN');
+  db_insert('subscriptions')
+    ->from($query)
+    ->execute();
 }
 
 /**
@@ -679,8 +667,8 @@ function _subscriptions_get_setting($name, $account) {
   if (!isset($defaults[$uid][$name])) {
     $result = db_select('subscriptions_user', 'su', array('fetch' => PDO::FETCH_ASSOC))
       ->fields('su', array('uid', 'digest', 'send_interval', 'send_updates', 'send_comments', 'send_interval_visible', 'send_updates_visible', 'send_comments_visible', 'autosub_on_post', 'autosub_on_update', 'autosub_on_comment', 'send_self'))
-      ->condition('uid', array(-DRUPAL_AUTHENTICATED_RID, $uid), 'IN')
-      ->orderBy('uid')
+      ->condition('su.uid', array(-DRUPAL_AUTHENTICATED_RID, $uid), 'IN')
+      ->orderBy('su.uid')
       ->execute();
     foreach ($result as $s) {
       $defaults[$s['uid']] = $s;
@@ -717,12 +705,12 @@ function _subscriptions_get_setting($name, $account) {
 
 /**
  * Returns whether notifications are suspended for the given user,
- * and optionally alert the user if delivery is suspended.
+ * and optionally alerts the user if delivery is suspended.
  */
 function subscriptions_suspended($uid, $alert = FALSE) {
   $result = db_query("SELECT suspended FROM {subscriptions_user} WHERE uid = :uid", array(':uid' => $uid))->fetchField();
   if ($result && $alert && empty($_POST)) {
-    include_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'subscriptions') . '/subscriptions.admin.inc';
+    _subscriptions_module_load_include('subscriptions', 'admin.inc');
     _subscriptions_suspended_alert($uid, $result);
   }
   return $result;
@@ -738,5 +726,113 @@ function subscriptions_suspended($uid, $alert = FALSE) {
  */
 function subscriptions_form_user_profile_form_alter(&$form, &$form_state) {
   subscriptions_suspended(arg(1), TRUE);
+}
+
+/**
+ * Implements hook_token_info().
+ *
+ * @return array
+ */
+function subscriptions_token_info() {
+  $info = array(
+    'types' => array(
+      'subs' => array(
+        'name' => t('Subscriptions information'),
+        'description' => t('Tokens related to the %Subscriptions module.', array('%Subscriptions' => 'Subscriptions')),
+        'needs-data' => 'subs',
+      ),
+    ),
+    'tokens' => array(
+      'subs' => array(
+        'type' => array(
+          'name' => t('Type'),
+          'description' => t('The type of the subscription.'),
+        ),
+        'manage-url' => array(
+          'name' => t('Manage URL'),
+          'description' => t("The URL of the user's @Subscriptions page (requires log-in).", array('@Subscriptions' => t('Subscriptions'))),
+          'type' => 'url',
+        ),
+        'unsubscribe-url' => array(
+          'name' => t('Unsubscribe URL'),
+          'description' => t('The URL for immediate canceling of the subscription that caused this notification.'),
+          'type' => 'url',
+        ),
+        'is-new' => array(
+          'name' => t('Is new'),
+          'description' => t('Whether the item is new.'),
+        ),
+        'is-updated' => array(
+          'name' => t('Is updated'),
+          'description' => t('Whether the item is updated (or new and subsequently updated).'),
+        ),
+        'is-old' => array(
+          'name' => t('Is old'),
+          'description' => t('Whether the item is not new nor updated.'),
+        ),
+        'is-published' => array(
+          'name' => t('Is published'),
+          'description' => t('Whether the item is published.'),
+        ),
+        'forum' => array(
+          'name' => t('Forum'),
+          'description' => t('The forum, if the item is in a forum.'),
+          'type' => 'term',
+        ),
+        'comments' => array(
+          'name' => t('Comments'),
+          'description' => t('The array of formatted comments that have not been sent yet (for inclusion in a node).'),
+          'type' => 'array',
+        ),
+        'items' => array(
+          'name' => t('Digest Items'),
+          'description' => t('The array of formatted items to send to one recipient (for inclusion in a digest).'),
+        ),
+        'module' => array(
+          'name' => t('Module'),
+          'description' => t('The module of the item.'),
+        ),
+        'field' => array(
+          'name' => t('Field'),
+          'description' => t('The field of the item that triggered the notification.'),
+        ),
+        'value' => array(
+          'name' => t('Value'),
+          'description' => t('The value of the field of the item that triggered the notification.'),
+        ),
+        'files:field_FILES' => array(
+          'name' => t('Files'),
+          'description' => t('The array of attached files in the %field field, if such a field exists.', array('%field' => 'field_FILES')),
+          'type' => 'list<file>',
+        ),
+      ),
+    ),
+  );
+  return $info;
+}
+
+/**
+ * Provides the data for resolving tokens.
+ */
+function subscriptions_data(array &$data, array $queue_item) {
+  $data = array_merge_recursive($data, array('subs' => $queue_item));
+}
+
+/**
+ * Loads include files once.
+ *
+ * @param $module
+ * @param $ext
+ *
+ * @return bool
+ */
+function _subscriptions_module_load_include($module, $ext) {
+  static $loaded = array();
+
+  $key = "$module.$ext";
+  if (empty($loaded[$key])) {
+    $loaded[$key] = (bool) module_load_include($ext, $module);
+  }
+  return $loaded[$key];
 }
 

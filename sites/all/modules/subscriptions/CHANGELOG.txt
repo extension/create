@@ -3,7 +3,44 @@ CHANGELOG for Subscriptions 1.x for Drupal 7
 
 
 subscriptions 7.x-1.x-dev:
+  - #1310848: Fix undefined function _subscriptions_content_load() call.
+  - Remove the installation-time installation reminder, because Mail Editor is not optional anymore.
+  - #1309396: Fix inability to uninstall Subscriptions Mail.
+  - #1305520: Fix the prior fix.
+  - #1305520: Fix missing column in pre-existing {mail_edit} table.
+  - #1305792: Fix inability to save user settings.
+  - #1304258: Fix deprecated call-time pass-by-reference typo.
 
+
+subscriptions 7.x-1.0-alpha5 (2011-10-08):
+  - MAJOR OVERHAUL:
+    -- Switch proprietary !variables to [tokens].
+    -- Integrate with new Mail Editor, including preview.
+    -- Migrate conditional text processing to Mail Editor.
+    -- Reduce templates to content types only.
+  - #1286838 by mgriego: Check permission before presenting taxa subscribe options.
+  - #1276182: Fix a warning in theme_subscriptions_ui_table().
+  - #1280192: Fix form_alter() of content bulk processing.
+  - Get ready for Mail Editor.
+  - Remove old D5 database tables, if they're still hanging around.
+  - Tune diagnostics in case of mail failures.
+  - #1252786: Fix incorrect teaser handling.
+  - #1259662: Fix completely broken subscriptions_tableselect.js.
+  - #1258698: Fix default subscriptions not being assigned to new users.
+
+
+subscriptions 7.x-1.0-alpha4 (2011-08-24):
+  - #1253788, 1253790: Remove the temporary SubscriptionsMailSystem (needs 7.5 now!).
+  - #1249862: Fix a typo in a {subscriptions_queue} SQL query.
+  - #1252786: Handle nodes without bodies.
+  - #1252656: Fix notice about missing $ret variable in subscriptions_install().
+  - #1252700: Fix empty last column in Page subscriptions list.
+  - #1250572: Remove the call to the dropped subscriptions_update_9() function.
+  - Fix various porting issues, mostly related to DBTNG and comments.
+  - #1244176: Remove inadvertently-left dpm() call.
+  - #1241944: Remove hard-coded dependency on comment.module.
+  - #1236872: Fix notifications for new or updated comments.
+  - #1228214: Fully qualify field parameter in SelectQuery::condition(), SelectQuery::orderBy() calls.
 
 subscriptions 7.x-1.0-alpha3 (2011-07-23):
   - Fix the List-Id header.
@@ -13,7 +50,6 @@ subscriptions 7.x-1.0-alpha3 (2011-07-23):
   - #1215140: Fix PHP5.3 issue with the Purge Queue confirmation page.
   - #1189366: Fix name of {users} core table.
   - Remove left-over dpm() call, too.
-
 
 subscriptions 7.x-1.0-alpha2 (2011-05-31):
   - #1172646: Remove left-over kpr() call.

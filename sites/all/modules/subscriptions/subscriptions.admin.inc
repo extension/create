@@ -28,7 +28,7 @@ function subscriptions_settings_form($form, &$form_state) {
   if (module_exists('subscriptions_mail')) {
     if (module_exists('mail_edit')) {
       $form['links'][] = array(
-        '#markup' => '<div>' . l($tr('Mail templates'), 'admin/structure/mail-edit') . '</div>',
+        '#markup' => '<div>' . l($tr('Mail templates'), 'admin/config/system/mail-edit') . '</div>',
         '#weight' => -10,
       );
     }
@@ -73,8 +73,9 @@ function subscriptions_settings_form($form, &$form_state) {
         !module_exists('subscriptions_content') ||
         !module_exists('subscriptions_taxonomy'))) {
     if (empty($_POST)) {
-      include_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'subscriptions') . '/subscriptions.install.inc';
-      _subscriptions_install_information();
+      drupal_set_message(t('Note: For standard Subscriptions functionality you need to enable the following modules:')
+                         . '<ul><li>' . $tr('Subscriptions UI') . '</li><li>' . $tr('Subscriptions Mail ')
+                         . '</li><li>' . $tr('Content Subscriptions') . '</li><li>' . $tr('Taxonomy Subscriptions') . '</li></ul>', 'warning', FALSE);
     }
     $form['subscriptions_show_install_info'] = array(
       '#type'          => 'checkbox',
@@ -277,7 +278,7 @@ function subscriptions_page($account, $stype) {
     //  $form = subscriptions_user_suspend_form($dummy_form_state, $account);
     //}
     $form['header'][] = array(
-      '#value'         => t('Current subscriptions:'),
+      '#markup'        => t('Current subscriptions:'),
       '#weight'        => -2,
       );
   }
@@ -308,12 +309,12 @@ function subscriptions_page($account, $stype) {
  * @params $account
  *   Must be a valid user account from user_load() or NULL (for the admin form).
  */
-function subscriptions_page_user_overview($account) {
+function subscriptions_page_user_overview(array $form, array &$form_state, $account) {
   // Build summary
   $uid = (isset($account) ? $account->uid : -DRUPAL_AUTHENTICATED_RID);
   $counts = array();
   $result = db_query("SELECT module, field, COUNT(1) AS number FROM {subscriptions} WHERE recipient_uid = :recipient_uid GROUP BY module, field", array(':recipient_uid' => $uid));
-  foreach ($result->fetchAll() as $subs) {
+  foreach ($result as $subs) {
     if (!empty($subs->module)) {
       $counts[$subs->module][$subs->field] = $subs->number;
     }
@@ -346,14 +347,14 @@ function subscriptions_page_user_overview($account) {
   );
   $form['overview']['note'] = array(
     '#type' => 'item',
-    '#value' => '',
     '#description' => t('Note: The counts on this page may differ from the ones on the detail pages for various technical reasons.'),
     '#suffix' => '<br />',
   );
+  $form['#submit'] = array();
   if ($uid > 0) {
-    $form += drupal_get_form('subscriptions_user_suspend_form', $account);
+    $form = subscriptions_user_suspend_form($form, $form_state, $account);
   }
-  $form += drupal_get_form('subscriptions_user_settings_form', $account);
+  $form = subscriptions_user_settings_form($form, $form_state, $account);
   drupal_set_title($uid < 0 ? t('Subscriptions') : $account->name);
   return $form;
 }
@@ -415,10 +416,11 @@ function subscriptions_user_suspend_form($form, &$form_state, $account) {
     '#type'          => 'value',
     '#value'         => $uid,
   );
-  $form['suspend']['save'] = array(
+  $form['suspend']['save_notifications'] = array(
     '#type'          => 'submit',
-    '#value'         => t('Save'),
+    '#value'         => t('Save notifications'),
   );
+  $form['#submit'][] = '_subscriptions_user_suspend_form_submit';
   return $form;
 }
 
@@ -427,9 +429,9 @@ function subscriptions_user_suspend_form($form, &$form_state, $account) {
  *
  * @ingroup form
  */
-function subscriptions_user_suspend_form_submit($form, &$form_state) {
+function _subscriptions_user_suspend_form_submit($form, &$form_state) {
   $form_values = $form_state['values'];
-  if ($form_values['op'] == $form_values['save']) {
+  if ($form_values['op'] == $form_values['save_notifications']) {
     $uid = $form_values['uid'];
     $suspended = $form_values['state'];
     if ($suspended == -1) {
@@ -658,9 +660,9 @@ function subscriptions_user_settings_form($form, &$form_state, $account) {
       $form['settings']['preferences']['#access'] = TRUE;
     }
   }
-  $form['settings']['save'] = array(
+  $form['settings']['save_settings'] = array(
     '#type'          => 'submit',
-    '#value'         => t('Save'),
+    '#value'         => t('Save settings'),
   );
   if ($uid > 0 && !_subscriptions_get_setting('uses_defaults', $account)) {
     $form['settings']['reset'] = array(
@@ -668,6 +670,7 @@ function subscriptions_user_settings_form($form, &$form_state, $account) {
       '#value'       => t('Reset to site defaults'),
     );
   }
+  $form['#submit'][] = '_subscriptions_user_settings_form_submit';
   return $form;
 }
 
@@ -676,7 +679,7 @@ function subscriptions_user_settings_form($form, &$form_state, $account) {
  *
  * @ingroup form
  */
-function subscriptions_user_settings_form_submit($form, &$form_state) {
+function _subscriptions_user_settings_form_submit($form, &$form_state) {
   if (isset($form_state['values']['reset']) && $form_state['values']['op'] == $form_state['values']['reset']) {
     if (($uid = arg(1)) > 0) {
       db_update('subscriptions_user')
@@ -698,7 +701,7 @@ function subscriptions_user_settings_form_submit($form, &$form_state) {
       drupal_set_message(t('The site defaults were restored.'));
     }
   }
-  elseif ($form_state['values']['op'] == $form_state['values']['save']) {
+  elseif ($form_state['values']['op'] == $form_state['values']['save_settings']) {
     if (arg(0) == 'user') {
       $uid = arg(1);
     }
@@ -868,7 +871,7 @@ function subscriptions_del_form($form, &$form_state, $stype, $sid, $author_uid =
 
   if ($a = module_invoke_all('subscriptions', 'stype', $stype, $sid, (isset($author_uid) ? $author_uid : -1))) {
     list($module, $field, $value, $author_uid) = $a;
-    return subscriptions_delete_form($form_state, $module, $field, $value, $author_uid, $user->uid);
+    return subscriptions_delete_form($form, $form_state, $module, $field, $value, $author_uid, $user->uid);
   }
   drupal_set_message(t('Your subscription could not be deactivated.'));
 }
@@ -938,8 +941,7 @@ function subscriptions_form_helper(&$form, &$defaults, $author_uid, $key, $title
   }
   if (isset($subscription['extra_info'])) {
     $form['extra_info'][$key][$author_uid] = array(
-      '#type' => 'item',
-      '#value' => $subscription['extra_info'],
+      '#markup' => $subscription['extra_info'],
     );
   }
 }
@@ -957,3 +959,4 @@ function subscriptions_form_column_filter(&$form_table, $uid) {
     }
   }
 }
+

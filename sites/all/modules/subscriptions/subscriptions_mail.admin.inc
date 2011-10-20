@@ -98,7 +98,7 @@ function _subscriptions_mail_form_subscriptions_settings_form_alter(&$form, &$fo
       '#type'          => 'checkbox',
       '#title'         => t('Append the mailkey to every notification'),
       '#default_value' => variable_get('subscriptions_showmailkeys', 0),
-      '#description'   => t('Appends the key of the !Mail_Editor_template that was used to create each e-mail, to assist with configuration and testing. Default is OFF.', array('!Mail_Editor_template' => l('Mail Editor template', (module_exists('mail_edit') ? 'admin/structure/mail-edit' : 'http://drupal.org/project/mail_edit')))),
+      '#description'   => t('Appends the key of the !Mail_Editor_template that was used to create each e-mail, to assist with configuration and testing. Default is OFF.', array('!Mail_Editor_template' => l('Mail Editor template', (module_exists('mail_edit') ? 'admin/config/system/mail-edit' : 'http://drupal.org/project/mail_edit')))),
     );
   }
   array_unshift($form['#submit'], '_subscriptions_mail_submit_subscriptions_settings_form');
@@ -120,7 +120,7 @@ function _subscriptions_mail_submit_subscriptions_settings_form($form, &$form_st
  *
  * @ingroup hooks
  * @ingroup form
- */
+ * /
 function _subscriptions_mail_form_mail_edit_trans_alter(&$form, &$form_state) {
   $mailkey = 'subscriptions_mail_digest';
   if ($form['id']['#value'] == $mailkey) {
@@ -141,23 +141,6 @@ function _subscriptions_mail_form_mail_edit_trans_alter(&$form, &$form_state) {
       '#default_value'  => $digest_item,
       '#rows' => 15,
     );
-    if ($placeholders = module_invoke('subscriptions_content', 'mail_edit_tokens_list', 'digest')) {
-      $doc = "<dl>\n";
-      foreach ($placeholders as $name => $description) {
-        $doc .= '<dt>' . $name . '</dt>';
-        $doc .= '<dd>' . $description . '</dd>';
-      }
-      $doc .= "</dl>\n";
-      $form['mail']['digest_item_help'] = array(
-        '#title' => $tr('Replacement patterns'),
-        '#type' => 'fieldset',
-        '#collapsible' => TRUE,
-        '#collapsed' => TRUE,
-      );
-      $form['mail']['digest_item_help']['help'] = array(
-        '#value' => $doc,
-      );
-    }
     $form['mail']['digest_item_comment'] = array(
       '#title'      => t('Digest item comment'),
       '#type'       => 'textarea',
@@ -165,23 +148,6 @@ function _subscriptions_mail_form_mail_edit_trans_alter(&$form, &$form_state) {
       '#rows' => 4,
       '#description' => t('The comments inside a digest item body.'),
     );
-    if ($placeholders = module_invoke('subscriptions_content', 'mail_edit_tokens_list', 'comments')) {
-      $doc = "<dl>\n";
-      foreach ($placeholders as $name => $description) {
-        $doc .= '<dt>' . $name . '</dt>';
-        $doc .= '<dd>' . $description . '</dd>';
-      }
-      $doc .= "</dl>\n";
-      $form['mail']['comment_token_help'] = array(
-        '#title' => t('Replacement patterns'),
-        '#type' => 'fieldset',
-        '#collapsible' => TRUE,
-        '#collapsed' => TRUE,
-      );
-      $form['mail']['comment_token_help']['help'] = array(
-        '#value' => $doc,
-      );
-    }
     $form['mail']['digest_item_separator'] = array(
       '#title'      => t('Digest item separator'),
       '#type'       => 'textarea',
@@ -199,7 +165,7 @@ function _subscriptions_mail_form_mail_edit_trans_alter(&$form, &$form_state) {
 
 /**
  * Save handler for enhanced mail_edit page.
- */
+ * /
 function subscriptions_mail_form_mail_edit_trans_save($form, &$form_state) {
   $id = $form_state['values']['id'];
   $form_state['values']['description'] = '';
@@ -215,7 +181,7 @@ function subscriptions_mail_form_mail_edit_trans_save($form, &$form_state) {
 
 /**
  * Delete handler for enhanced mail_edit page.
- */
+ * /
 function subscriptions_mail_form_mail_edit_trans_delete($form, &$form_state) {
   foreach (array('item', 'comment') as $key) {
     db_delete('mail_edit')
@@ -224,4 +190,6 @@ function subscriptions_mail_form_mail_edit_trans_delete($form, &$form_state) {
       ->execute();
   }
 }
+
+/**/
 

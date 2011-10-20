@@ -264,7 +264,8 @@ function theme_subscriptions_ui_table($element) {
     }
     $rows[] = $row;
   }
-  unset($headers[end(array_keys($headers))]['width']);
+  $col_indexes = array_keys($headers);
+  unset($headers[end($col_indexes)]['width']);
   $output = theme('table', array('header' => $headers, 'rows' => $rows));
   $output .= drupal_render_children($element);
   drupal_add_js(drupal_get_path('module', 'subscriptions') . '/subscriptions_tableselect.js');

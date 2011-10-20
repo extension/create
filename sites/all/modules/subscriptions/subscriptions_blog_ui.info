@@ -1,14 +1,15 @@
 name = Blog Subscriptions UI
 description = Provides a separate blogs subscriptions page.
 package = "Subscriptions"
-dependencies[] = subscriptions
+
 dependencies[] = subscriptions_content
 dependencies[] = blog
+
 core = 7.x
 
-; Information added by drupal.org packaging script on 2011-07-22
-version = "7.x-1.0-alpha3"
+; Information added by drupal.org packaging script on 2011-10-16
+version = "7.x-1.x-dev"
 core = "7.x"
 project = "subscriptions"
-datestamp = "1311377521"
+datestamp = "1318725328"
 
