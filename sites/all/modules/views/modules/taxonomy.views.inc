@@ -71,6 +71,10 @@ function taxonomy_views_data() {
   $data['taxonomy_vocabulary']['vid'] = array(
     'title' => t('Vocabulary ID'), // The item it appears as on the UI,
     'help' => t('The taxonomy vocabulary ID'),
+    'field' => array(
+      'handler' => 'views_handler_field_numeric',
+      'click sortable' => TRUE,
+    ),
     'argument' => array(
       'handler' => 'views_handler_argument_vocabulary_vid',
       'name field' => 'name',
@@ -126,7 +130,7 @@ function taxonomy_views_data() {
   // tid field
   $data['taxonomy_term_data']['tid'] = array(
     'title' => t('Term ID'),
-    'help' => t('The taxonomy term ID.'),
+    'help' => t('The tid of a taxonomy term.'),
     'field' => array(
       'handler' => 'views_handler_field_numeric',
       'click sortable' => TRUE,
