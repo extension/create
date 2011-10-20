@@ -1,0 +1,12 @@
+name = Media Update
+description = "Provides the ability to update media files (in addition to the default insert and delete)"
+core = 7.x
+version = 7.x-0.1-dev
+package = Media
+dependencies[] = media
+; Information added by drupal.org packaging script on 2011-10-17
+version = "7.x-1.1"
+core = "7.x"
+project = "media_update"
+datestamp = "1318894899"
+
