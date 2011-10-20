@@ -25,4 +25,14 @@ class MediaFlickrStyles extends FileStyles {
     $variables = array_merge($variables, $this->variables);
     $this->setOutput(theme('media_flickr_embed', $variables));
   }
+  function flickr_photoset($effect) {
+    $variables = array(
+      'uri' => $this->getUri(),
+      'width' => $this->getWidth(),
+      'height' => $this->getHeight(),
+      'photoset' => TRUE,
+    );
+    $variables = array_merge($variables, $this->variables);
+    $this->setOutput(theme('media_flickr_embed', $variables));
+  }
 }

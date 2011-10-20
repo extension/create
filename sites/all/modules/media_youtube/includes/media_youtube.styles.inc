@@ -53,7 +53,7 @@ function media_youtube_styles_containers() {
 
 function media_youtube_formatter_filter($variables) {
   if (isset($variables['object'])) {
-    $object = $variables['object'];
+    $object = isset($variables['object']->file) ? $variables['object']->file : $variables['object'];
     return (file_uri_scheme($object->uri) == 'youtube') && ($object->filemime == 'video/youtube');
   }
 }
@@ -62,7 +62,8 @@ function media_youtube_formatter_filter($variables) {
  * Implementation of the File Styles module's hook_file_styles_filter().
  */
 function media_youtube_file_styles_filter($object) {
-  if ((file_uri_scheme($object->uri) == 'youtube') && ($object->filemime == 'video/youtube')) {
+  $file = isset($object->file) ? $object->file : $object;
+  if ((file_uri_scheme($file->uri) == 'youtube') && ($file->filemime == 'video/youtube')) {
     return 'media_youtube';
   }
 }
@@ -245,6 +246,20 @@ function media_youtube_styles_default_presets() {
     );
     $presets['file']['containers']['media_youtube']['presets']['unlinked_' . $style_name] = $presets['file']['containers']['media_youtube']['presets']['linked_' . $style_name];
     array_shift($presets['file']['containers']['media_youtube']['presets']['unlinked_' . $style_name]);
+    foreach ($image_style['effects'] as $effect) {
+      if (in_array($effect['name'], array('image_scale', 'image_scale_and_crop', 'image_resize', 'image_crop'))) {
+        $presets['file']['containers']['media_youtube']['presets']['video_' . $style_name] = array(
+          array(
+            'name' => 'resize',
+            'settings' => $effect['data'],
+          ),
+          array(
+            'name' => 'video',
+            'settings' => array(),
+          ),
+        );
+      }
+    }
   }
   return $presets;
 }

@@ -7,26 +7,7 @@
 
 class MediaInternetFlickrHandler extends MediaInternetBaseHandler {
   public function parse($embedCode) {
-    $patterns = array(
-      '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/in/photostream@i',
-      '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/in/set-([0-9]+)@i',
-      '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/?[^\? ]@i',
-    );
-    foreach ($patterns as $pattern) {
-      preg_match($pattern, $embedCode, $matches);
-      if (isset($matches[1]) && isset($matches[2])) {
-        return file_stream_wrapper_uri_normalize('flickr://u/' . $matches[1] . "/p/" . $matches[2]);
-      }
-    }
-    $patterns = array(
-      '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/sets/([0-9]+)@i',
-    );
-    foreach ($patterns as $pattern) {
-      preg_match($pattern, $embedCode, $matches);
-      if (isset($matches[1]) && isset($matches[2])) {
-        return file_stream_wrapper_uri_normalize('flickr://u/' . $matches[1] . "/s/" . $matches[2]);
-      }
-    }
+    return media_flickr_media_parse($embedCode);
   }
 
   public function claim($embedCode) {
@@ -42,7 +23,7 @@ class MediaInternetFlickrHandler extends MediaInternetBaseHandler {
     $uri = $this->parse($this->embedCode);
     $existing_files = file_load_multiple(array(), array('uri' => $uri));
     if (count($existing_files)) {
-      throw new MediaInternetValidationException(t('You have entered a URL for a image that is already in your library.'));
+      throw new MediaInternetValidationException(t('You have entered a URL for a flickr image or photoset that is already in your library.'));
     }
   }
 

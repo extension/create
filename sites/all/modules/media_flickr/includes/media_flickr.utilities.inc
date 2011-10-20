@@ -8,7 +8,7 @@
 /**
  *  Based on the Photo ID of a Flickr image, this will return the URL to the
  *  image itself.
- *  @param $photo_code
+ *  @param $photo_id
  *    The Flickr photo code.
  *  @param $width
  *  @param $height
@@ -17,18 +17,18 @@
  *    If TRUE, then we'll cache the remote URL if the attempt to save the file
  *    locally fails.
  */
-function _media_flickr_photo_url($photo_code, $width = 0, $height = 0, $cached = TRUE) {
-  if ($photo_code) {
+function _media_flickr_photo_url($photo_id, $width = 0, $height = 0, $cached = TRUE) {
+  if ($photo_id) {
     $size = _media_flickr_guess_size($width, $height);
-    return _media_flickr_photo_url_from_size($photo_code, $size);
+    return _media_flickr_photo_url_from_size($photo_id, $size);
   }
 }
 
 /**
  *  This returns a cached photo stream from the Flickr farm servers.
  */
-function _media_flickr_photo_remote_url($photo_code, $size) {
-  $getsize = _media_flickr_sets_request('flickr.photos.getSizes', array('photo_id' => $photo_code));
+function _media_flickr_photo_remote_url($photo_id, $size) {
+  $getsize = _media_flickr_sets_request('flickr.photos.getSizes', array('photo_id' => $photo_id));
 
   if ($getsize && ($getsize['@attributes']['stat'] != 'fail')) {
     // For small images, there may not be the sizes 0..4 that
@@ -61,7 +61,7 @@ function _media_flickr_sets_request($method, $args = array(), $refresh = FALSE) 
   }
   $args['method'] = $method;
 
-  $xml = media_retrieve_xml(MEDIA_FLICKR_RESTPOINT . '?' . drupal_http_build_query($args), FALSE, $refresh);
+  $xml = media_retrieve_xml(MEDIA_FLICKR_RESTPOINT . '?' . drupal_http_build_query($args), user_access('administer site configuration'), $refresh);
   return $xml;
 }
 
@@ -73,7 +73,6 @@ function _media_flickr_error_check() {
   static $checked;
   if (is_null($checked)) {
     if (media_flickr_variable_get('api_key') == '') {
-      global $user;
       $error = 'You do not yet have a Flickr API key set. You will need to !apply and enter your key at the !settings before Flickr images may be displayed.';
       $arguments = array('!apply' => l(t('apply for a Flickr API key'), MEDIA_FLICKR_API_APPLICATION_URL), '!settings' => l(t('Flickr administration page'), 'admin/config/media/media_flickr'));
       if (user_access('administer site configuration')) {
@@ -107,88 +106,145 @@ function _media_flickr_guess_size($width = 0, $height = 0) {
   return '5';
 }
 
-function _media_flickr_photo_url_from_size($photo_code, $size = 5) {
+function _media_flickr_photo_url_from_size($photo_id, $size = 5) {
   // Check to make sure we have a valid photo code.
-  if (is_numeric($photo_code)) {
-    $filepath = _media_flickr_photo_remote_url($photo_code, $size);
+  if (is_numeric($photo_id)) {
+    $filepath = _media_flickr_photo_remote_url($photo_id, $size);
     // URLize that path...
     $filepath = url($filepath, array('absolute' => TRUE));
     return $filepath;
   }
 }
 
-/**
- *  Returns an array of all URLs for photos associated with a photoset,
- *  associated by photo code. These will be of the Flickr specified size (1-5),
- *  and may be local or remote, based on settings and availability.
- *
- *  @param $photoset
- *    The Flickr photoset id.
- *  @param $size
- *    Optional. A number from 1-5 (small to large).
- */
-// function _media_flickr_photoset_load_photos($photoset, $size = 5) {
-//   static $photosets;
-//
-//   if (is_null($photosets)) {
-//     $photosets = array();
-//   }
-//
-//   $id = $photoset['photoset']['id'];
-//
-//   // We cache our results in a static variable.
-//   if (is_null($photosets[$id])) {
-//     // Reset the array of photos.
-//     $photosets[$id] = array();
-//
-//     // If we're allowed to store images locally, then grab the latest list
-//     // of local URL's.
-//     if ($store_local = variable_get('media_flickr_store_local', FALSE)) {
-//       $results = db_query("SELECT z.code, f.filepath FROM {media_flickr_sets} s INNER JOIN {media_flickr_sizes} z ON z.code = s.code AND z.size = %d INNER JOIN {files} f ON f.fid = z.fid WHERE s.photoset = '%s'", $size, $photoset['photoset']['id']);
-//       while ($result = db_fetch_object($results)) {
-//         $photosets[$id][$result->code] = $result->filepath;
-//       }
-//     }
-//
-//     // @TODO: remove 'dead' photos from photoset...
-//
-//     // Ensure we have a URL for each photo in the photoset.
-//     // This can be local or remote.
-//     foreach ($photoset['photoset']['photo'] as $photo_code => $photo) {
-//       // If we don't have a URL yet, grab one.
-//       if (!isset($photosets[$id][$photo_code])) {
-//         // If we're allowed to store local photos, then attempt to do so now.
-//         if ($store_local) {
-//           // First ensure we have the photo associated with this photoset.
-//           if (!db_result(db_query("SELECT COUNT(*) FROM {media_flickr_sets} WHERE photoset = '%s' AND code = '%s'", $id, $photo_code))) {
-//             // The photo is newly associated to this photoset. Put it in place.
-//             $record = array(
-//               'photoset' => $id,
-//               'code' => $photo_code,
-//             );
-//             drupal_write_record('media_flickr_sets', $record);
-//
-//             // Now record the metadata associated with a photo.
-//             media_flickr_record_photo($photo_code);
-//
-//             // Now we'll try to grab the URL manually, as it may have already
-//             // been stored locally through another photoset. If not, this will
-//             // attempt to fetch a photo and store it, or return the remote URL.
-//             $photosets[$id][$photo_code] = media_flickr_photo_url_from_size($photo_code, $size);
-//           }
-//           else {
-//             // We have the proper association; we just need this size photo.
-//             // Hopefully we'll grab a local photo. If not, we'll get the remote.
-//             $photosets[$id][$photo_code] = media_flickr_store_local($photo_code, $size);
-//           }
-//         }
-//         else {
-//           // Let's be happy with the remote URL.
-//           $photosets[$id][$photo_code] = media_flickr_photo_remote_url($photo_code, $size);
-//         }
-//       }
-//     }
-//   }
-//
-//   return $photosets[$id];
-// }
+function _media_flickr_photoset_photo_id($uri, $refresh = FALSE) {
+  $wrapper = file_stream_wrapper_get_instance_by_uri($uri);
+  $parts = $wrapper->get_parameters();
+  if (isset($parts['search'])) {
+    $photos = _media_flickr_sets_request('flickr.photos.search', array('text' => $parts['search'], 'per_page' => 1, 'media' => 'photos'));
+    if ($photos && ($photos['@attributes']['stat'] != 'fail')) {
+      return $photos['photos']['photo']['@attributes']['id'];
+    }
+  }
+  elseif (isset($parts['s'])) {
+    if ($parts['s'] == 'photostream') {
+      if (isset($parts['u'])) {
+        $photos = _media_flickr_sets_request('flickr.people.getPublicPhotos', array('user_id' => $parts['u'], 'per_page' => 1, 'media' => 'photos'));
+        if ($photos && ($photos['@attributes']['stat'] != 'fail')) {
+          return $photos['photos']['photo']['@attributes']['id'];
+        }
+      }
+    }
+    else {
+      $photos = _media_flickr_sets_request('flickr.photosets.getPhotos', array('photoset_id' => $parts['s'], 'per_page' => 1, 'media' => 'photos'));
+      if ($photos && ($photos['@attributes']['stat'] != 'fail')) {
+        return $photos['photoset']['photo']['@attributes']['id'];
+      }
+    }
+  }
+}
+
+function _media_flickr_photoset_image_url($uri, $width = 0, $height = 0, $refresh = FALSE) {
+  $photo_id = media_flickr_photoset_photo_id($uri, $refresh);
+  return media_flickr_image_url($photo_id, $width, $height, $refresh);
+}
+
+function _media_flickr_photo_exists($photo_id) {
+  $info = _media_flickr_sets_request('flickr.photos.getInfo', array('photo_id' => $photo_id));
+
+  if ($info && ($info['@attributes']['stat'] != 'fail')) {
+    return TRUE;
+  }
+}
+
+function _media_flickr_photoset_exists($photoset_id) {
+  $info = _media_flickr_sets_request('flickr.photosets.getInfo', array('photoset_id' => $photoset_id));
+  if ($info && ($info['@attributes']['stat'] != 'fail')) {
+    return TRUE;
+  }
+}
+
+function _media_flickr_get_user_id($user_id) {
+  $info = _media_flickr_sets_request('flickr.people.getInfo', array('user_id' => $user_id));
+
+  if ($info && ($info['@attributes']['stat'] != 'fail')) {
+    return $user_id;
+  }
+  elseif ($info['err']['@attributes']['code'] == 1) {
+    // See if we were passed a username instead.
+    $info = _media_flickr_sets_request('flickr.people.findByUsername', array('username' => $user_id));
+    if ($info && $info['@attributes']['stat'] != 'fail') {
+      return $info['user']['@attributes']['id'];
+    }
+  }
+}
+
+function _media_flickr_build_uri($parts) {
+  if (isset($parts['u'])) {
+     $user_id = _media_flickr_get_user_id($parts['u']);
+     $parts['u'] = isset($user_id) ? $user_id : $parts['u'];
+  }
+  if (isset($parts['u'])) {
+    if (isset($parts['p'])) {
+      $uri = file_stream_wrapper_uri_normalize('flickr://u/' . $parts['u'] . "/p/" . $parts['p']);
+      if (_media_flickr_photo_exists($parts['p'])) {
+        return $uri;
+      }
+    }
+    elseif (isset($parts['s'])) {
+      $uri = file_stream_wrapper_uri_normalize('flickr://u/' . $parts['u'] . "/s/" . $parts['s']);
+      if (($parts['s'] == 'photostream') || _media_flickr_photoset_exists($parts['s'])) {
+        return $uri;
+      }
+    }
+  }
+  if (isset($parts['search'])) {
+    return file_stream_wrapper_uri_normalize('flickr://search/' . $parts['search']);
+  }
+}
+
+function _media_flickr_media_parse($url, $options = array()) {
+  // The following are single images.
+  $patterns = array(
+    '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/in/photostream@i',
+    '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/in/set-([0-9]+)@i',
+    '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/?$@i',
+  );
+  foreach ($patterns as $pattern) {
+    preg_match($pattern, $url, $matches);
+    if (isset($matches[1]) && isset($matches[2])) {
+      return _media_flickr_build_uri(array('u' => $matches[1], 'p' => $matches[2]));
+    }
+  }
+  // Next we look for photosets.
+  $patterns = array(
+    '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/sets/([0-9]+)@i',
+  );
+  foreach ($patterns as $pattern) {
+    preg_match($pattern, $url, $matches);
+    if (isset($matches[1]) && isset($matches[2])) {
+      return _media_flickr_build_uri(array('u' => $matches[1], 's' => $matches[2]));
+    }
+  }
+  // Then we look for photostreams of the entire user.
+  $patterns = array(
+    '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/?$@i',
+    '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/show/?$@i',
+  );
+  foreach ($patterns as $pattern) {
+    preg_match($pattern, $url, $matches);
+    if (isset($matches[1])) {
+      return _media_flickr_build_uri(array('u' => $matches[1], 's' => 'photostream'));
+    }
+  }
+  // Finally we look for searches.
+  $patterns = array(
+    '@flickr\.com/search/?\?q=([^& ]+)@i',
+    '@flickr\.com/search/show/?\?q=([^& ]+)@i'
+  );
+  foreach ($patterns as $pattern) {
+    preg_match($pattern, $url, $matches);
+    if (isset($matches[1])) {
+      return _media_flickr_build_uri(array('search' => $matches[1]));
+    }
+  }
+}

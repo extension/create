@@ -36,31 +36,24 @@ function media_youtube_preprocess_media_youtube_video(&$variables) {
     </object>
 OUTPUT;
 
-  // @todo Replace this inline JavaScript with at least calls to
-  //   drupal_add_js()/drupal_get_js(), and ideally, with a behavior. Keep
-  //   in mind that the solution needs to work when inside a colorbox or
-  //   otherwise in an AJAX response, but that should now be possible in D7.
-  $iframe_id = drupal_json_encode($variables['wrapper_id'] .'_iframe');
-  $wrapper_id = drupal_json_encode($variables['wrapper_id']);
-  $JSObject = 'Drupal.settings.media_youtube[' . $wrapper_id . ']';
-  // YouTube apparently changed their params so it autoplays even if sent as 0.
-  $JSObjectSetAutoplay = $variables['autoplay'] ? "$JSObject.options = { autoplay: {$variables['autoplay']} };" : '';
-  $variables['output'] .= <<<OUTPUT
-    <script type="text/javascript">
-      if (Drupal.settings && Drupal.media_youtube) {
-        Drupal.settings.media_youtube = Drupal.settings.media_youtube || {};
-        $JSObject = {};
-        $JSObject.width = {$variables['width']};
-        $JSObject.height = {$variables['height']};
-        $JSObject.video_id = "{$variables['video_id']}";
-        $JSObject.fullscreen = {$variables['fullscreen']};
-        $JSObject.id = $iframe_id;
-        $JSObjectSetAutoplay
-        Drupal.media_youtube.insertEmbed($wrapper_id);
-      }
-    </script>
-OUTPUT;
-
+  // Pass the settings to replace the object tag with an iframe.
+  $settings = array(
+    'media_youtube' => array(
+      $variables['wrapper_id'] => array(
+        'width' => $variables['width'],
+        'height' => $variables['height'],
+        'video_id' => $variables['video_id'],
+        'fullscreen' => $variables['fullscreen'],
+        'id' => $variables['wrapper_id'] .'_iframe',
+      ),
+    ),
+  );
+  if ($variables['autoplay']) {
+    $settings['media_youtube'][$variables['wrapper_id']]['options'] = array(
+      'autoplay' => $variables['autoplay'],
+    );
+  }
+  drupal_add_js($settings, 'setting');
   drupal_add_js(drupal_get_path('module', 'media_youtube') . '/js/media_youtube.js');
   drupal_add_css(drupal_get_path('module', 'media_youtube') . '/css/media_youtube.css');
   drupal_add_js(drupal_get_path('module', 'media_youtube') . '/js/flash_detect_min.js');

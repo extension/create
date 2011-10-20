@@ -99,6 +99,15 @@ function media_flickr_styles_default_presets() {
       ),
     ),
   );
+  // Add optional photoset slideshow dipslay.
+  foreach ($presets['file']['containers']['media_flickr']['presets'] as $preset_name => $preset) {
+    $presets['file']['containers']['media_flickr']['presets'][$preset_name . '_photoset'] = $presets['file']['containers']['media_flickr']['presets'][$preset_name];
+    array_pop($presets['file']['containers']['media_flickr']['presets'][$preset_name . '_photoset']);
+    $presets['file']['containers']['media_flickr']['presets'][$preset_name . '_photoset'][] = array(
+      'name' => 'flickr_photoset',
+      'settings' => array(),
+    );
+  }
   // Allow any image style to be applied to the thumbnail.
   foreach (image_styles() as $style_name => $image_style) {
     $presets['file']['containers']['media_flickr']['presets']['linked_' . $style_name] = array(
@@ -119,6 +128,20 @@ function media_flickr_styles_default_presets() {
     );
     $presets['file']['containers']['media_flickr']['presets']['unlinked_' . $style_name] = $presets['file']['containers']['media_flickr']['presets']['linked_' . $style_name];
     array_shift($presets['file']['containers']['media_flickr']['presets']['unlinked_' . $style_name]);
+      foreach ($image_style['effects'] as $effect) {
+      if (in_array($effect['name'], array('image_scale', 'image_scale_and_crop', 'image_resize', 'image_crop'))) {
+        $presets['file']['containers']['media_flickr']['presets']['photoset_' . $style_name] = array(
+          array(
+            'name' => 'resize',
+            'settings' => $effect['data'],
+          ),
+          array(
+            'name' => 'flickr_photoset',
+            'settings' => array(),
+          ),
+        );
+      }
+    }
   }
   return $presets;
 }
