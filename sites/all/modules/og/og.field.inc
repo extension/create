@@ -117,7 +117,7 @@ function og_field_widget_settings_form($field, $instance) {
     $form['opt_group'] = array(
       '#type' => 'radios',
       '#title' => t('Input type'),
-      '#description' => t('Select the input type that should be used to get the groups audience. Note that the <em>Never show "other groups"</em> option will show all groups including the ones the user is a not a member of.'),
+      '#description' => t('Select the input type that should be used to get the groups audience. Note that the <em>Always show "other groups"</em> option will show all groups including the ones the user is a not a member of.'),
       '#options' => array(
         'auto' => t('Automatically decide the input according to user permissions (Recommended)'),
         'never' => t('Never show "other groups"'),
@@ -142,7 +142,7 @@ function og_field_widget_settings_form($field, $instance) {
       '#type'             => 'textfield',
       '#title'            => t('Size of textfield'),
       '#default_value'    => $settings['size'],
-      '#element_validate' => array('_element_validate_integer_positive'),
+      '#element_validate' => array('element_validate_integer_positive'),
       '#required'         => TRUE,
     );
   }
@@ -189,7 +189,7 @@ function og_field_widget_form(&$form, &$form_state, $field, $instance, $langcode
 
       // Get all the groups divided to "content groups" and "other groups".
       $audience = og_field_audience_options($opt_group);
-		
+
       // Get all groups that should be excluded.
       $excludes = array();
       // If it's an existing group, then exclude itself, as in some cases a group
@@ -273,9 +273,7 @@ function og_field_widget_form(&$form, &$form_state, $field, $instance, $langcode
           $options = array('_none' => theme('options_none', array('instance' => $dummy_instance))) + $options;
         }
       }
-	  
-	  asort($options['My groups']);
-	  asort($options['Other groups']);
+
 
       $element += array(
         // Input should be TRUE only if there are groups that can be selected.
@@ -535,20 +533,12 @@ function og_field_audience_options(&$opt_group = FALSE, $account = NULL) {
   //Initialize values.
   $return = array('content groups' => array(), 'other groups' => array());
 
-
   $content_groups = og_get_entity_groups('user', $account);
-  
- 
-  
-  
   $return['content groups'] = $content_groups;
 
   // Get all other groups.
   $all_groups = og_get_all_group();
-  
-  
   $return['other groups'] = array_diff($all_groups, $content_groups);
-  
 
   // Allow other modules to change the audience options. While it can be done
   // via hook_form_alter(), it will require other modules to know too much of

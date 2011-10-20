@@ -116,7 +116,7 @@ function og_help($path, $arg) {
  */
 function og_entity_info() {
   $items['group'] = array(
-    'label' => t('Organic groups group'),
+    'label' => t('OG group'),
     'entity class' => 'OgGroup',
     'controller class' => 'EntityAPIController',
     'base table' => 'og',
@@ -185,33 +185,31 @@ function og_entity_info() {
     'views controller class' => 'OgMembershipViewsController',
     'access callback' => 'og_membership_access',
   );
+
+  // Add bundle info but bypass entity_load() as we cannot use it here.
+  if (db_table_exists('og_membership_type')) {
+    $memberships = db_select('og_membership_type', 'g')
+      ->fields('g')
+      ->execute()
+      ->fetchAllAssoc('name');
+
+    foreach ($memberships as $type_name => $type) {
+      $items['og_membership']['bundles'][$type_name] = array(
+        //@todo do we need a short label too?
+        'label' => $type->name,
+        'admin' => array(
+          'path' => 'admin/config/group/group-membership/manage/%og_membership_type',
+          'real path' => 'admin/config/group/group-membership/manage/' . $type->name,
+          'bundle argument' => 5,
+          'access arguments' => array('administer group'),
+        ),
+      );
+    }
+  }
+
   return $items;
 }
 
-/**
- * Implements hook_entity_info_alter().
- *
- * Use this hook to specify bundles to avoid a recursion, as loading the entity
- * group membership types needs the entity info too.
- */
-function og_entity_info_alter(&$entity_info) {
-  // If we're updating, the schema may not be ready yet.
-  if (!class_exists('EntityAPIController') || !class_exists('OgMembershipTypeUIController')) {
-    return;
-  }
-  foreach (og_membership_type_load() as $type_name => $type) {
-    $entity_info['og_membership']['bundles'][$type_name] = array(
-      //@todo do we need a short label too?
-      'label' => $type->name,
-      'admin' => array(
-        'path' => 'admin/config/group/group-membership/manage/%og_membership_type',
-        'real path' => 'admin/config/group/group-membership/manage/' . $type->name,
-        'bundle argument' => 5,
-        'access arguments' => array('administer group'),
-      ),
-    );
-  }
-}
 
 /**
  * Implements hook_entity_property_info().
@@ -1924,17 +1922,10 @@ function og_get_entity_groups($entity_type = 'user', $entity = NULL, $states = a
   if ($cache) {
     return $groups[$entity_type][$id];
   }
-  
-  
 
   $entity = og_load_entity($entity_type, $entity);
-  
-  
   $groups = array();
   $groups['__info'][$entity_type][$id]['states'] = $states;
-  
-   
-  
   $query = new EntityFieldQuery();
   $result = $query
     ->entityCondition('entity_type', 'og_membership')
@@ -1942,8 +1933,6 @@ function og_get_entity_groups($entity_type = 'user', $entity = NULL, $states = a
     ->propertyCondition('etid', $id, '=')
     ->propertyCondition('state', $states, 'IN')
     ->execute();
-	
-	
   if (!empty($result['og_membership'])) {
     // Get the group ID from the group membership.
     $group_memberships = og_membership_load_multiple(array_keys($result['og_membership']));
@@ -1951,6 +1940,7 @@ function og_get_entity_groups($entity_type = 'user', $entity = NULL, $states = a
       $groups[$entity_type][$id][$group_membership->gid] = $group_membership->gid;
     }
   }
+
   return !empty($groups[$entity_type][$id]) ? $groups[$entity_type][$id] : array();
 }
 
@@ -3075,17 +3065,20 @@ function og_list_permissions($type) {
  *   Optional; The destiantion after a node is created. Defaults to the
  *   destination passed in the URL if exists, otherwise back to the current
  *   page.
+ * @param $types
+ *   Optional; An array of type names. Restrict the created links to the given
+ *   types.
  */
-function og_node_create_links($gid, $destination = '') {
+function og_node_create_links($gid, $destination = '', $types = NULL) {
   $group = og_get_group('group', $gid);
   if (!$group) {
     return;
   }
 
-  $name = array();
-  foreach (node_type_get_types() as $node) {
-    if (og_is_group_content_type('node', $node->type) && node_access('create', $node->type)) {
-      $names[$node->type] = node_type_get_name($node->type);
+  $types = isset($types) ? $types : array_keys(node_type_get_types());
+  foreach ($types as $type_name) {
+    if (og_is_group_content_type('node', $type_name) && node_access('create', $type_name)) {
+      $names[$type_name] = node_type_get_name($type_name);
     }
   }
 

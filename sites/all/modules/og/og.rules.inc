@@ -134,13 +134,13 @@ function og_rules_action_info() {
   );
 
   $items['og_group_content_add'] = array(
-    'label' => t('Add group content to group'),
+    'label' => t('Add entity to group'),
     'group' => t('Organic groups'),
     'parameter' => array(
       'entity' => array(
         // Do not use type 'entity' but restrict the type to group content type.
         'type' => array_keys(og_get_all_group_content_entity()),
-        'label' => t('Group content entity'),
+        'label' => t('Entity'),
         'description' => t('The group content which is to be added to a group.'),
         'wrapped' => TRUE,
         'save' => TRUE,
@@ -155,13 +155,13 @@ function og_rules_action_info() {
   );
 
   $items['og_group_content_remove'] = array(
-    'label' => t('Remove group content from group'),
+    'label' => t('Remove entity from group'),
     'group' => t('Organic groups'),
     'parameter' => array(
       'entity' => array(
         // Do not use type 'entity' but restrict the type to group content type.
         'type' => array_keys(og_get_all_group_content_entity()),
-        'label' => t('Group content entity'),
+        'label' => t('Entity'),
         'description' => t('The entity which is to be removed from a group.'),
         'wrapped' => TRUE,
         'save' => TRUE,
@@ -227,49 +227,56 @@ function og_rules_action_info() {
 }
 
 /**
- * Action: Get group members from group audience.
+ * Action: Get group members from a group content.
  */
 function og_rules_get_members($group_content) {
-  if (empty($group_content->og_membership)) {
+  if (!isset($group_content->og_membership)) {
+    // Not a group content.
     return;
   }
 
   $members = array();
   $gids = array();
-  foreach ($group_content->og_membership->value() as $group) {
+  foreach ($group_content->og_membership->value() as $og_membership) {
     // Get the groups the group content belongs to.
-    $gids[] = $group->gid;
+    $gids[] = $og_membership->gid;
   }
 
-  if ($gids) {
-    foreach ($gids as $gid) {
-      $wrapper = entity_metadata_wrapper('group', $gid);
-      $members = $wrapper->members->value(array('identifier' => TRUE));
-    }
+  if (!$gids) {
+    return;
+  }
+
+  foreach ($gids as $gid) {
+    $wrapper = entity_metadata_wrapper('group', $gid);
+    $members = array_merge_recursive($members, $wrapper->members->value(array('identifier' => TRUE)));
   }
 
   return array('group_members' => $members);
 }
 
 /**
- * Action: Get group managers from group audience.
+ * Action: Get group managers from a group content.
  */
 function og_rules_get_managers($group_content) {
-  if (empty($group_content->OG_AUDIENCE_FIELD)) {
+  if (!isset($group_content->og_membership)) {
+    // Not a group content.
     return;
   }
+
   $return = array();
   $gids = array();
-  foreach ($group_content->OG_AUDIENCE_FIELD as $key => $value) {
-    $gids[] = $value['gid'];
+  foreach ($group_content->og_membership->value() as $og_membership) {
+    $gids[] = $og_membership->gid;
   }
 
-  if ($gids) {
-    $groups = og_load_multiple($gids);
-    foreach ($groups as $group) {
-      if ($account = $group->user()) {
-        $return[] = $account;
-      }
+  if (!$gids) {
+    return;
+  }
+
+  $groups = og_load_multiple($gids);
+  foreach ($groups as $group) {
+    if ($account = $group->user()) {
+      $return[] = $account->uid;
     }
   }
 
@@ -363,6 +370,7 @@ function og_rules_condition_info() {
       'account' => array(
         'type' => 'user',
         'label' => t('User'),
+        'wrapped' => TRUE,
       ),
       'group' => array(
         'type' => 'group',
@@ -377,7 +385,7 @@ function og_rules_condition_info() {
         'default value' => array(OG_STATE_ACTIVE),
       ),
     ),
-    'base' => 'og_rules_condition_entity_in_group',
+    'base' => 'og_rules_condition_user_in_group',
     'access callback' => 'og_rules_integration_access',
   );
   $items['og_entity_in_group'] = array(
@@ -394,14 +402,6 @@ function og_rules_condition_info() {
       'group' => array(
         'type' => 'group',
         'label' => t('Group'),
-      ),
-      'states' => array(
-        'type' => 'list<integer>',
-        'label' => t('Membership states'),
-        'restriction' => 'input',
-        'options list' => 'og_group_content_states',
-        'optional' => TRUE,
-        'default value' => array(OG_STATE_ACTIVE),
       ),
     ),
     'base' => 'og_rules_condition_entity_in_group',
@@ -461,7 +461,14 @@ function og_rules_user_has_permission_options_list() {
 /**
  * Condition: Entity is in group.
  */
-function og_rules_condition_entity_in_group(EntityDrupalWrapper $entity, $group, $states = array(OG_STATE_ACTIVE)) {
+function og_rules_condition_entity_in_group(EntityDrupalWrapper $entity, $group) {
+  return og_is_member($group->gid, $entity->type(), $entity->value());
+}
+
+/**
+ * Condition: User is in group.
+ */
+function og_rules_condition_user_in_group(EntityDrupalWrapper $entity, $group, $states = array(OG_STATE_ACTIVE)) {
   return og_is_member($group->gid, $entity->type(), $entity->value(), $states);
 }
 
