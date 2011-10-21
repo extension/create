@@ -1,5 +1,7 @@
 <?php
 
+require_once (dirname(__FILE__) . '/media_update.admin.inc');
+
 /**
  * Implements hook_media_update_params().
  * 
@@ -160,11 +162,20 @@ function media_update_presubmit($form, &$form_state) {
   if (isset($form_state['update_field']) && $form_state['file_updated']) {
     $field = $form_state['update_field'];
     if (isset($form_state['values'][$field])) {
+      $media_update_settings = media_update_get_settings();
       $original_file = $form_state['file'];
       // We have to update the fid of the file object for file-based uploads,
       // but this entity isn't an object in other scenarios. 
       if (isset($form_state['values'][$field]) && is_object($form_state['values'][$field]) && $form_state['update_type'] == 'file') {
         $form_state['values'][$field]->fid = $original_file->fid;
+        if ($media_update_settings['replace']) {
+          // @todo: Find a better way to handle replacement than file delete/insert
+          // as this could potential create a race condition in extreme
+          // edge cases.
+          if ($original_file->filename == $form_state['values'][$field]->filename) {
+            file_unmanaged_delete($original_file->uri);
+          }
+        }
       }
       // @todo: Find a better way to handle this.
       // We're doing this because both the edit form and the add form pass an
@@ -186,4 +197,11 @@ function media_update_presubmit($form, &$form_state) {
       $form_state['build_info']['args'][0] = $arg0;
     }
   }
+}
+
+/**
+ * Helper function to return settings for the media update module.
+ */
+function media_update_get_settings() {
+  return variable_get('media_update', array('replace' => 0));
 }
