@@ -632,6 +632,27 @@ article .comment > footer{
 }
 
 
+.group-filters .views-exposed-form{
+	padding-top: 20px;
+	padding-bottom: 20px;
+	border-top: 1px solid #ccc;
+	border-bottom: 1px solid #ccc;
+	margin: 40px 0;
+}
+
+.group-filters .views-exposed-form .views-exposed-widget{
+	margin-right: 30px;
+}
+
+.group-filters .views-exposed-form .views-exposed-widget > label{
+	margin-bottom: 20px;
+	color: #C1272D;
+}
+
+.group-filters .views-exposed-form .views-exposed-widget .form-type-date-popup{
+	margin-bottom: 15px;
+}
+
 
 /* Exposed filter for appraisal improvements filter
 -----------------------------------------------------------------------------*/
