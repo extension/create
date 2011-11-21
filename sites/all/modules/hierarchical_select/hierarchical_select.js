@@ -21,7 +21,7 @@ Drupal.HierarchicalSelect.context = function() {
 
 Drupal.HierarchicalSelect.initialize = function(hsid) {
   // Prevent JS errors when Hierarchical Select is loaded dynamically.
-  if (undefined == Drupal.settings.HierarchicalSelect || undefined == Drupal.settings.HierarchicalSelect.settings[hsid]) {
+  if (undefined == Drupal.settings.HierarchicalSelect || undefined == Drupal.settings.HierarchicalSelect.settings["hs-" + hsid]) {
     return false;
   }
 
@@ -44,13 +44,13 @@ Drupal.HierarchicalSelect.initialize = function(hsid) {
     this.cache.initialize();
   }
 
-  Drupal.settings.HierarchicalSelect.settings[hsid]['updatesEnabled'] = true;
-  if (undefined == Drupal.HierarchicalSelect.state[hsid]) {
-    Drupal.HierarchicalSelect.state[hsid] = {};
+  Drupal.settings.HierarchicalSelect.settings["hs-" + hsid]['updatesEnabled'] = true;
+  if (undefined == Drupal.HierarchicalSelect.state["hs-" + hsid]) {
+    Drupal.HierarchicalSelect.state["hs-" + hsid] = {};
   }
 
   this.transform(hsid);
-  if (Drupal.settings.HierarchicalSelect.settings[hsid].resizable) {
+  if (Drupal.settings.HierarchicalSelect.settings["hs-" + hsid].resizable) {
     this.resizable(hsid);
   }
   Drupal.HierarchicalSelect.attachBindings(hsid);
@@ -64,28 +64,28 @@ Drupal.HierarchicalSelect.initialize = function(hsid) {
 
 Drupal.HierarchicalSelect.log = function(hsid, messages) {
   // Only perform logging if logging is enabled.
-  if (Drupal.settings.HierarchicalSelect.initialLog == undefined || Drupal.settings.HierarchicalSelect.initialLog[hsid] == undefined) {
+  if (Drupal.settings.HierarchicalSelect.initialLog == undefined || Drupal.settings.HierarchicalSelect.initialLog["hs-" + hsid] == undefined) {
     return;
   }
   else {
-    Drupal.HierarchicalSelect.state[hsid].log = [];
+    Drupal.HierarchicalSelect.state["hs-" + hsid].log = [];
   }
 
   // Store the log messages. The first call to this function may not contain a
   // message: the initial log included in the initial HTML rendering should be
   // used instead.. 
-  if (Drupal.HierarchicalSelect.state[hsid].log.length == 0) {
-    Drupal.HierarchicalSelect.state[hsid].log.push(Drupal.settings.HierarchicalSelect.initialLog[hsid]);
+  if (Drupal.HierarchicalSelect.state["hs-" + hsid].log.length == 0) {
+    Drupal.HierarchicalSelect.state["hs-" + hsid].log.push(Drupal.settings.HierarchicalSelect.initialLog["hs-" + hsid]);
   }
   else {
-      Drupal.HierarchicalSelect.state[hsid].log.push(messages);
+      Drupal.HierarchicalSelect.state["hs-" + hsid].log.push(messages);
   }
 
   // Print the log messages.
   console.log("HIERARCHICAL SELECT " + hsid);
-  var logIndex = Drupal.HierarchicalSelect.state[hsid].log.length - 1;
-  for (var i = 0; i < Drupal.HierarchicalSelect.state[hsid].log[logIndex].length; i++) {
-    console.log(Drupal.HierarchicalSelect.state[hsid].log[logIndex][i]);
+  var logIndex = Drupal.HierarchicalSelect.state["hs-" + hsid].log.length - 1;
+  for (var i = 0; i < Drupal.HierarchicalSelect.state["hs-" + hsid].log[logIndex].length; i++) {
+    console.log(Drupal.HierarchicalSelect.state["hs-" + hsid].log[logIndex][i]);
   }
   console.log(' ');
 };
@@ -120,19 +120,19 @@ Drupal.HierarchicalSelect.resizable = function(hsid) {
   // speed up DOM manipulation during dragging.
   var $selects = $selectsWrapper.find('select');
 
-  var defaultHeight = Drupal.HierarchicalSelect.state[hsid].defaultHeight = $selects.slice(0, 1).height();
-  var defaultSize = Drupal.HierarchicalSelect.state[hsid].defaultSize = $selects.slice(0, 1).attr('size');
+  var defaultHeight = Drupal.HierarchicalSelect.state["hs-" + hsid].defaultHeight = $selects.slice(0, 1).height();
+  var defaultSize = Drupal.HierarchicalSelect.state["hs-" + hsid].defaultSize = $selects.slice(0, 1).attr('size');
   defaultSize = (defaultSize == 0) ? 1 : defaultSize;
-  var margin = Drupal.HierarchicalSelect.state[hsid].margin = parseInt($selects.slice(0, 1).css('margin-bottom').replace(/^(\d+)px$/, "$1"));
+  var margin = Drupal.HierarchicalSelect.state["hs-" + hsid].margin = parseInt($selects.slice(0, 1).css('margin-bottom').replace(/^(\d+)px$/, "$1"));
 
   // Bind the drag event.
   $('.grippie', $selectsWrapper)
   .mousedown(startDrag)
   .dblclick(function() {
-    if (Drupal.HierarchicalSelect.state[hsid].resizedHeight == undefined) {
-      Drupal.HierarchicalSelect.state[hsid].resizedHeight = defaultHeight;
+    if (Drupal.HierarchicalSelect.state["hs-" + hsid].resizedHeight == undefined) {
+      Drupal.HierarchicalSelect.state["hs-" + hsid].resizedHeight = defaultHeight;
     }
-    var resizedHeight = Drupal.HierarchicalSelect.state[hsid].resizedHeight = (Drupal.HierarchicalSelect.state[hsid].resizedHeight > defaultHeight + 2) ? defaultHeight : 4.6 / defaultSize * defaultHeight;
+    var resizedHeight = Drupal.HierarchicalSelect.state["hs-" + hsid].resizedHeight = (Drupal.HierarchicalSelect.state["hs-" + hsid].resizedHeight > defaultHeight + 2) ? defaultHeight : 4.6 / defaultSize * defaultHeight;
     Drupal.HierarchicalSelect.resize($selects, defaultHeight, resizedHeight, defaultSize, margin);
   });
 
@@ -154,8 +154,8 @@ Drupal.HierarchicalSelect.resizable = function(hsid) {
 
     $(document).unbind("mousemove", performDrag).unbind("mouseup", endDrag);
     $selects.css('opacity', 1);
-    if (height != Drupal.HierarchicalSelect.state[hsid].resizedHeight) {
-      Drupal.HierarchicalSelect.state[hsid].resizedHeight = (height > defaultHeight) ? height : defaultHeight;
+    if (height != Drupal.HierarchicalSelect.state["hs-" + hsid].resizedHeight) {
+      Drupal.HierarchicalSelect.state["hs-" + hsid].resizedHeight = (height > defaultHeight) ? height : defaultHeight;
     }
   }
 };
@@ -197,7 +197,7 @@ Drupal.HierarchicalSelect.enableForm = function(hsid) {
   if (!dropboxLimitExceeded) {
     $e = $e.add($('#hierarchical-select-' + hsid +'-wrapper .hierarchical-select .selects select'));
   }
-  $e.attr('disabled', false);
+  $e.removeAttr("disabled");
 
   // Don't enable the 'Add' button again if it's been disabled because the
   // dropbox limit was exceeded.
@@ -262,7 +262,7 @@ Drupal.HierarchicalSelect.attachBindings = function(hsid) {
   $('#hierarchical-select-'+ hsid +'-wrapper', this.context)
   // "disable-updates" event
   .unbind('disable-updates').bind('disable-updates', data, function(e) {
-    Drupal.settings.HierarchicalSelect.settings[e.data.hsid]['updatesEnabled'] = false;
+    Drupal.settings.HierarchicalSelect.settings["hs-" + e.data.hsid]['updatesEnabled'] = false;
   })
   
   // "enforce-update" event
@@ -278,7 +278,7 @@ Drupal.HierarchicalSelect.attachBindings = function(hsid) {
   // "update-hierarchical-select" event
   .find('.hierarchical-select .selects select').unbind().change(function(_hsid) {
     return function() {
-      if (Drupal.settings.HierarchicalSelect.settings[_hsid]['updatesEnabled']) {
+      if (Drupal.settings.HierarchicalSelect.settings["hs-" + _hsid]['updatesEnabled']) {
         Drupal.HierarchicalSelect.update(_hsid, 'update-hierarchical-select', { opString: updateOpString, select_id : $(this).attr('id') });
       }
     };
@@ -333,7 +333,7 @@ Drupal.HierarchicalSelect.preUpdateAnimations = function(hsid, updateType, lastU
     case 'update-hierarchical-select':
       // Drop out the selects of the levels deeper than the select of the
       // level that just changed.
-      var animationDelay = Drupal.settings.HierarchicalSelect.settings[hsid]['animationDelay'];
+      var animationDelay = Drupal.settings.HierarchicalSelect.settings["hs-" + hsid]['animationDelay'];
       var $animatedSelects = $('#hierarchical-select-'+ hsid +'-wrapper .hierarchical-select .selects select', Drupal.HierarchicalSelect.context).slice(lastUnchanged);
       if ($animatedSelects.size() > 0) {
         $animatedSelects.hide();
@@ -359,14 +359,14 @@ Drupal.HierarchicalSelect.preUpdateAnimations = function(hsid, updateType, lastU
 };
 
 Drupal.HierarchicalSelect.postUpdateAnimations = function(hsid, updateType, lastUnchanged, callback) {
-  if (Drupal.settings.HierarchicalSelect.settings[hsid].resizable) {
+  if (Drupal.settings.HierarchicalSelect.settings["hs-" + hsid].resizable) {
     // Restore the resize.  
     Drupal.HierarchicalSelect.resize(
       $('#hierarchical-select-' + hsid + '-wrapper .hierarchical-select .selects select', Drupal.HierarchicalSelect.context),
-      Drupal.HierarchicalSelect.state[hsid].defaultHeight,
-      Drupal.HierarchicalSelect.state[hsid].resizedHeight,
-      Drupal.HierarchicalSelect.state[hsid].defaultSize,
-      Drupal.HierarchicalSelect.state[hsid].margin
+      Drupal.HierarchicalSelect.state["hs-" + hsid].defaultHeight,
+      Drupal.HierarchicalSelect.state["hs-" + hsid].resizedHeight,
+      Drupal.HierarchicalSelect.state["hs-" + hsid].defaultSize,
+      Drupal.HierarchicalSelect.state["hs-" + hsid].margin
     );
   }
 
@@ -391,7 +391,7 @@ Drupal.HierarchicalSelect.postUpdateAnimations = function(hsid, updateType, last
       }
       // Hide the loaded selects after the one that was just changed, then
       // drop them in.
-      var animationDelay = Drupal.settings.HierarchicalSelect.settings[hsid]['animationDelay'];
+      var animationDelay = Drupal.settings.HierarchicalSelect.settings["hs-" + hsid]['animationDelay'];
       var $animatedSelects = $('#hierarchical-select-'+ hsid +'-wrapper .hierarchical-select .selects select', Drupal.HierarchicalSelect.context).slice(lastUnchanged);
       if ($animatedSelects.size() > 0) {
         $animatedSelects.hide();
@@ -413,7 +413,7 @@ Drupal.HierarchicalSelect.postUpdateAnimations = function(hsid, updateType, last
       // Make sure that other Hierarchical Selects that represent the same
       // hierarchy are also updated, to make sure that they have the newly
       // created item!
-      var cacheId = Drupal.settings.HierarchicalSelect.settings[hsid].cacheId;
+      var cacheId = Drupal.settings.HierarchicalSelect.settings["hs-" + hsid].cacheId;
       for (var otherHsid in Drupal.settings.HierarchicalSelect.settings) {
         if (Drupal.settings.HierarchicalSelect.settings[otherHsid].cacheId == cacheId) {
           $('#hierarchical-select-'+ otherHsid +'-wrapper')
@@ -482,16 +482,16 @@ Drupal.HierarchicalSelect.update = function(hsid, updateType, settings) {
       //   (the renderFlatSelect setting is disabled or the dropbox is enabled)
       //   and
       //   (the createNewLevels setting is disabled).
-      if ((value == 'none' && Drupal.settings.HierarchicalSelect.settings[hsid]['renderFlatSelect'] == false)
+      if ((value == 'none' && Drupal.settings.HierarchicalSelect.settings["hs-" + hsid]['renderFlatSelect'] == false)
           || value.match(/^label_\d+$/)
           || (optionClass == 'has-no-children'
              &&
              (
-               (Drupal.settings.HierarchicalSelect.settings[hsid]['renderFlatSelect'] == false
+               (Drupal.settings.HierarchicalSelect.settings["hs-" + hsid]['renderFlatSelect'] == false
                 || $('#hierarchical-select-'+ hsid +'-wrapper .dropbox').length > 0
                )
                &&
-               Drupal.settings.HierarchicalSelect.settings[hsid]['createNewLevels'] == false
+               Drupal.settings.HierarchicalSelect.settings["hs-" + hsid]['createNewLevels'] == false
              )
            )
          )
@@ -527,7 +527,7 @@ Drupal.HierarchicalSelect.update = function(hsid, updateType, settings) {
   }
 
   // Construct the URL the request should be made to.
-  var url = Drupal.settings.basePath + Drupal.settings.HierarchicalSelect.settings[hsid].ajax_path;
+  var url = Drupal.settings.HierarchicalSelect.settings["hs-" + hsid].ajax_url;
 
   // Construct the object that contains the options for a callback to the
   // server. If a client-side cache is found however, it's possible that this
@@ -601,8 +601,8 @@ Drupal.HierarchicalSelect.update = function(hsid, updateType, settings) {
   // - the cache system is running.
   // Otherwise, perform a normal dynamic form submit.
   if (updateType == 'update-hierarchical-select'
-      && Drupal.settings.HierarchicalSelect.settings[hsid]['renderFlatSelect'] == false
-      && Drupal.settings.HierarchicalSelect.settings[hsid]['createNewItems'] == false
+      && Drupal.settings.HierarchicalSelect.settings["hs-" + hsid]['renderFlatSelect'] == false
+      && Drupal.settings.HierarchicalSelect.settings["hs-" + hsid]['createNewItems'] == false
       && Drupal.HierarchicalSelect.cache != null
       && Drupal.HierarchicalSelect.cache.status())
   {
@@ -623,7 +623,7 @@ Drupal.ajax.prototype.commands.hierarchicalSelectUpdate = function(ajax, respons
 };
 
 Drupal.ajax.prototype.commands.hierarchicalSelectSettingsUpdate = function(ajax, response, status, hsid) {
-  Drupal.settings.HierarchicalSelect.settings[response.hsid] = response.settings;
+  Drupal.settings.HierarchicalSelect.settings["hs-" + response.hsid] = response.settings;
 };
 
 })(jQuery);

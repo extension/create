@@ -13,7 +13,6 @@
 function _subscriptions_mail_cron() {
 
   global $user, $language;
-  drupal_language_initialize();
   _subscriptions_mail_module_load_include('templates.inc');
 
   $mails_allowed = variable_get('subscriptions_number_of_mails', 0);
@@ -47,53 +46,55 @@ function _subscriptions_mail_cron() {
   while ((empty($mails_allowed) || $single_count + $digest_count < $mails_allowed)
           && timer_read('page')/1000 < $lost_seconds + $usable_seconds) {
     $result = db_query_range("SELECT * FROM {subscriptions_queue} WHERE suspended = 0 AND last_sent + send_interval < :time ORDER BY sqid", 0, 1, array(':time' => time()));
-    if (!($subs = $result->fetchAssoc())) {
+    if (!($queue_item = $result->fetchAssoc())) {
       break;  // No more ready queue items, terminate loop.
     }
 
     $saved_user = $user;
     $saved_language = $language;
     drupal_save_session(FALSE);
-    $user = user_load($subs['uid']);
+    $user = user_load($queue_item['uid']);
     $lang_code = $language->language;
     $digest_data = array();
 
     do {  // once and repeat while adding to a digest
       if ($user->status && $user->access) {
-        $subs['mail'] = $user->mail;
-        $load_function = $subs['load_function'];
-        $load_args = $subs['load_args'];
-        if (!isset($loaded_objects[$user->uid][$load_function][$load_args]) && $load_function($subs)) {
-          $object = $subs['object'];
+        $queue_item['mail'] = $user->mail;
+        /** @var $load_function string */
+        $load_function = $queue_item['load_function'];
+        $load_args = $queue_item['load_args'];
+        if (!isset($loaded_objects[$user->uid][$load_function][$load_args]) && $load_function($queue_item)) {
+          $object = $queue_item['object'];
           $access = module_invoke_all('subscriptions', 'access', $load_function, $load_args, $object);
           // One FALSE vote is enough to deny. Also, we need a non-empty array.
           $allow = !empty($access) && array_search(FALSE, $access) === FALSE;
           $loaded_objects[$user->uid][$load_function][$load_args] = $allow ? $object : FALSE;
         }
         if ($object = $loaded_objects[$user->uid][$load_function][$load_args]) {
-          $module = $subs['module'];
-          $ori_field = $field = $subs['field'];
-          $ori_value = $value = $subs['value'];
+          $module = $queue_item['module'];
+          $ori_field = $field = $queue_item['field'];
+          $ori_value = $value = $queue_item['value'];
           if (!isset($fields[$lang_code][$module])) {
             $fields[$lang_code][$module] = module_invoke_all('subscriptions', 'fields', $module);
           }
           $data_function = $fields[$lang_code][$module][$field]['data_function'];
           $mailmod = (empty($fields[$lang_code][$module][$field]['mail_module']) ? 'subscriptions_mail' : $fields[$lang_code][$module][$field]['mail_module']);
           $mailkey = $fields[$lang_code][$module][$field]['mailkey'];
-          $mailkey = module_invoke_all('subscriptions', 'mailkey_alter', $mailkey, $object);
-          $mailkey = $mailkey[0];
-          $digest = $subs['digest'] > 0 || $subs['digest'] == -1 && _subscriptions_get_setting('digest', 0) > 0;
+          if ($mailkey_altered = module_invoke_all('subscriptions', 'mailkey_alter', $mailkey, $object)) {
+            $mailkey = $mailkey_altered[0];
+          }
+          $digest = $queue_item['digest'] > 0 || $queue_item['digest'] == -1 && _subscriptions_get_setting('digest', 0) > 0;
           //$show_node_info = (isset($object->type) ? variable_get('node_submitted_' . $object->type, TRUE) : TRUE);
 
           $data = array(
             'subs' => array(
               'type'             => $fields[$lang_code][$module][$field]['subs_type'],
-              'unsubscribe_path' => "s/del/$module/$ori_field/$ori_value/" . $subs['author_uid'] . '/' . $subs['uid'] . '/' . md5(drupal_get_private_key() . $module . $ori_field . $ori_value . $subs['author_uid'] . $subs['uid']),
+              'unsubscribe_path' => "s/del/$module/$ori_field/$ori_value/" . $queue_item['author_uid'] . '/' . $queue_item['uid'] . '/' . md5(drupal_get_private_key() . $module . $ori_field . $ori_value . $queue_item['author_uid'] . $queue_item['uid']),
             ),
             'user' => user_load(!empty($object->revision_uid) ? $object->revision_uid : $object->uid),
           );
-          $data_function($data, $object, $subs);
-          drupal_alter('subscriptions_data', $data, $object, $subs);
+          $data_function($data, $object, $queue_item);
+          drupal_alter('subscriptions_data', $data, $object, $queue_item);
           //mail_edit_format($values['subscriptions_comment_body'], $data + array('comment' => $comment), array('language' => $language));
           if ($digest && !empty($object->_subscriptions_comments) && module_exists('subscriptions_content')) {
             $digest_comment_template = subscriptions_mail_template_load($mailmod, SUBSCRIPTIONS_DIGEST_MAILKEY . '+comment', $lang_code, 'body', 'DITEMCMT');
@@ -102,39 +103,39 @@ function _subscriptions_mail_cron() {
           if ($digest) {
             $digest_data['bodies'][] = $body;
             $digest_data['send'] = array(
-              'name' => $subs['name'],
-              'mail' => $subs['mail'],
+              'name' => $queue_item['name'],
+              'mail' => $queue_item['mail'],
               'from' => $from,
               '!name' => $mailvars['!name'],
               '!manage_url' => $mailvars['!manage_url'],
             );
-            $digest_data['send_intervals'][$subs['send_interval']] = $subs['send_interval'];
+            $digest_data['send_intervals'][$queue_item['send_interval']] = $queue_item['send_interval'];
           }
           else {
-            (_subscriptions_mail_send($mailmod, $mailkey, $subs['name'], $subs['mail'], $from, $subs['uid'], array($subs['send_interval']), $data)
+            (_subscriptions_mail_send($mailmod, $mailkey, $queue_item['name'], $queue_item['mail'], $from, $queue_item['uid'], array($queue_item['send_interval']), $data)
               ? ++$single_count
               : ++$single_failed);
           }
         }
       }
       db_delete('subscriptions_queue')
-        ->condition('load_function', $subs['load_function'])
-        ->condition('load_args', $subs['load_args'])
-        ->condition('uid', $subs['uid'])
+        ->condition('load_function', $queue_item['load_function'])
+        ->condition('load_args', $queue_item['load_args'])
+        ->condition('uid', $queue_item['uid'])
         ->execute();
 
       if (!empty($digest)) {
         // Get next ready queue item for this user.
         $result = db_query_range('SELECT * FROM {subscriptions_queue} WHERE uid = :uid AND last_sent + send_interval < :send_interval ORDER BY sqid', 0, 1, array(':uid' => $user->uid, ':send_interval' => time()));
-        if (!($subs = $result->fetchAssoc())) {
+        if (!($queue_item = $result->fetchAssoc())) {
           // No more ready queue items for this user, finish off this digest.
-          $subs = $digest_data['send'];
+          $queue_item = $digest_data['send'];
           $subject_template = subscriptions_mail_template_load($mailmod, SUBSCRIPTIONS_DIGEST_MAILKEY, $lang_code, 'subject', 'DSUBJ');
           $body_template = subscriptions_mail_template_load($mailmod, SUBSCRIPTIONS_DIGEST_MAILKEY, $lang_code, 'body', 'DBODY');
           $separator = subscriptions_mail_template_load($mailmod, SUBSCRIPTIONS_DIGEST_MAILKEY . '+item', $lang_code, 'subject', 'SEP');
           $mailvars['!bodies'] = implode($separator, $digest_data['bodies']);
-          $mailvars['!name'] = $subs['!name'];
-          $mailvars['!manage_url'] = $subs['!manage_url'];
+          $mailvars['!name'] = $queue_item['!name'];
+          $mailvars['!manage_url'] = $queue_item['!manage_url'];
           $digest_data['mailvars'] = $mailvars;
           foreach (module_implements('subscriptions_digest_alter') as $module) {
             $function = $module . '_subscriptions_digest_alter';
@@ -147,14 +148,14 @@ function _subscriptions_mail_cron() {
             $mailvars = $digest_data['mailvars'];
             $subject = strtr($subject_template, $mailvars);
             $body = strtr($body_template, $mailvars);
-            (_subscriptions_mail_send($mailmod, SUBSCRIPTIONS_DIGEST_MAILKEY, $subs['name'], $subs['mail'], $subject, $body, $subs['from'], $user->uid, $digest_data['send_intervals'], $data)
+            (_subscriptions_mail_send($mailmod, SUBSCRIPTIONS_DIGEST_MAILKEY, $queue_item['name'], $queue_item['mail'], $subject, $body, $queue_item['from'], $user->uid, $digest_data['send_intervals'], $data)
               ? ++$digest_count
               : ++$digest_failed);
           }
           $digest = FALSE;
         }
       }
-    } while ( $digest );
+    } while (!empty($digest));
 
     $user = $saved_user;
     $language = $saved_language;

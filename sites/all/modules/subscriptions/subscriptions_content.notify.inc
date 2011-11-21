@@ -6,126 +6,6 @@
  */
 
 /**
- * Implements hook_tokens().
- */
-function subscriptions_content_tokens($type, array $tokens, array $data = array(), array $options = array()) {
-  //dpm($tokens, "subscriptions_content_tokens($type)");
-  //dpm($data, "subscriptions_content_tokens($type)");
-  $sanitize = !empty($options['sanitize']);
-
-  $replacements = array();
-
-  if ($type == 'node' && !empty($data['node'])) {
-    $node = $data['node'];
-
-    foreach ($tokens as $name => $original) {
-      switch ($name) {
-        // Simple key values on the node.
-        case 'node-html':
-          $replacements[$original] = $node->nid;
-          break;
-      }
-    }
-  }
-
-  if ($type == 'subs' && !empty($data['comment'])) {
-    $comment = $data['comment'];
-    foreach ($tokens as $name => $original) {
-      switch ($name) {
-        case 'is-new':
-          $replacements[$original] = (int) !empty($comment->_subscriptions_is_new);
-          break;
-        case 'is-updated':
-          $replacements[$original] = (int) empty($comment->_subscriptions_is_new);
-          break;
-        case 'is-old':
-          $replacements[$original] = 0;
-          break;
-        case 'is-published':
-          $replacements[$original] = (int) ($comment->status == COMMENT_PUBLISHED);
-          break;
-      }
-    }
-
-    // files:field_FILE
-    if (user_access('view uploaded files')) {
-      $replacements += subscriptions_content_tokens_field_array($type, $tokens, $data, $options, 'comment', 'files', 'list<file>');
-    }
-  }
-  elseif ($type == 'subs' && !empty($data['node'])) {
-    $node = $data['node'];
-    foreach ($tokens as $name => $original) {
-      switch ($name) {
-        case 'is-new':
-          $replacements[$original] = (int) !empty($node->_subscriptions_is_new);
-          break;
-        case 'is-updated':
-          $replacements[$original] = (int) !empty($node->_subscriptions_is_updated);
-          break;
-        case 'is-old':
-          $replacements[$original] = (int) (empty($node->_subscriptions_is_new) && empty($node->_subscriptions_is_updated));
-          break;
-        case 'is-published':
-          $replacements[$original] = $node->status;
-          break;
-      }
-    }
-
-    if (($comments_tokens = token_find_with_prefix($tokens, 'comments')) && !empty($node->_subscriptions_comments)) {
-      if (empty($node->_subscriptions_comments_rendered)) {
-        foreach ($node->_subscriptions_comments as $comment) {
-          $node->_subscriptions_comments_rendered[] = mail_edit_format($data['template']['subscriptions_comment_body'], $data + array('comment' => $comment), $options);
-        }
-      }
-      $replacements += token_generate('array', $comments_tokens, array(
-        'array' => (isset($node->_subscriptions_comments_rendered) ? $node->_subscriptions_comments_rendered : array()),
-      ), array('sanitize' => FALSE) + $options);
-    }
-
-    // files:field_FILE
-    if (user_access('view uploaded files')) {
-      $replacements += subscriptions_content_tokens_field_array($type, $tokens, $data, $options, 'node', 'files', 'list<file>');
-    }
-  }
-
-  return $replacements;
-}
-
-function subscriptions_content_tokens_field_array($type, $tokens, array $data, array $options, $data_type, $token, $token_type)
-{
-  $replacements = array();
-
-  if ($files_tokens = token_find_with_prefix($tokens, $token)) {
-
-    $url_options = array('absolute' => TRUE);
-    if (isset($options['language'])) {
-      $url_options['language'] = $options['language'];
-      $language_code = $options['language']->language;
-    }
-    else {
-      $language_code = NULL;
-    }
-
-    $tokenss = array();
-    foreach ($files_tokens as $files_token => $original) {
-      $files_field = strtok($files_token, ':');
-      $tokenss[$files_field][substr($files_token, strlen($files_field) + 1)] = $original;
-    }
-    foreach ($tokenss as $files_field => $tokens) {
-      if ($files = field_get_items($data_type, $data[$data_type], $files_field, $language_code)) {
-        foreach ($files as $key => $file) {
-          $file_objs[$key] = (object) $file;
-        }
-        if (!empty($file_objs)) {
-          $replacements += token_generate($token_type, $tokens, array($token_type => $file_objs), $options);
-        }
-      }
-    }
-  }
-  return $replacements;
-}
-
-/**
  * Returns a node if published, including any comments that are still queued, but
  * limited by the given subscriptions queue ID.
  *
@@ -146,8 +26,6 @@ function _subscriptions_content_load($nid, $comment_load_sqid = NULL) {
 
   if (!empty($node)) {
     if (module_exists('comment')) {
-      $published_comments_only = $limit_sqids = '';
-
       // Load comments like comment_get_thread().
       $query = db_select('comment', 'c');
       $query->addField('c', 'cid');
@@ -175,7 +53,7 @@ function _subscriptions_content_load($nid, $comment_load_sqid = NULL) {
           ':uid' => $user->uid,
           ':sqid' => $comment_load_sqid))->fetchField()
         ) {
-          $query->condition('q.sqid', $cutoff_sqid, '<');
+          $query->condition('sq.sqid', $cutoff_sqid, '<');
         }
       }
 

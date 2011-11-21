@@ -70,7 +70,7 @@ function theme_hierarchical_select($variables) {
 
   // Update $element['#attributes']['class'].
   if (!isset($element['#attributes']['class'])) {
-    $element['#attributes']['class'] = '';
+    $element['#attributes']['class'] = array();
   }
   $hsid = $element['hsid']['#value'];
   $level_labels_style = variable_get('hierarchical_select_level_labels_style', 'none');
@@ -83,6 +83,7 @@ function theme_hierarchical_select($variables) {
    'hierarchical-select-wrapper-for-name-' . $element['#id'],
    (isset($element['#config']['config_id'])) ? 'hierarchical-select-wrapper-for-config-' . $element['#config']['config_id'] : NULL,
   );
+  array_merge($element['#attributes']['class'], $classes);
   $element['#attributes']['class'] .= ' ' . implode(' ', $classes);
   $element['#attributes']['id'] = "hierarchical-select-$hsid-wrapper";
   $element['#id'] = "hierarchical-select-$hsid-wrapper"; // This ensures the label's for attribute is correct.
@@ -122,6 +123,17 @@ function theme_hierarchical_select_select($variables) {
   _form_set_class($element, array('form-select'));
 
   return '<select' . drupal_attributes($element['#attributes']) . '>' . _hierarchical_select_options($element) . '</select>';
+}
+
+/**
+ * Format an item separator (for use in a lineage).
+ */
+function theme_hierarchical_select_item_separator($variables) {
+  $output = '';
+  $output .= '<span class="hierarchical-select-item-separator">';
+  $output .= '›';
+  $output .= '</span>';
+  return $output;
 }
 
 /**

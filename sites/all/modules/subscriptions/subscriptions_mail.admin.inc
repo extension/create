@@ -9,11 +9,11 @@
  * Implementation of hook_form_alter().
  *
  * Adds to the General Settings part at admin/settings/subscriptions.
+ *
+ * @param array $form
+ * @param array $form_state
  */
-function _subscriptions_mail_form_subscriptions_settings_form_alter(&$form, &$form_state) {
-  global $user;
-  $tr = 't';
-
+function _subscriptions_mail_form_subscriptions_settings_form_alter(array &$form, array &$form_state) {
   if (variable_get('subscriptions_mail_trash_silently', 0)) {
     drupal_set_message(t('All notification mails are discarded because the %varname variable is set &mdash; see the @filename file for more information.', array('%varname' => 'subscriptions_mail_trash_silently', '@filename' => 'README.txt')), 'error');
   }
@@ -106,8 +106,11 @@ function _subscriptions_mail_form_subscriptions_settings_form_alter(&$form, &$fo
 
 /**
  * Submit handler for the Purge-the-queue button on the Subscriptions settings form.
+ *
+ * @param array $form
+ * @param array $form_state
  */
-function _subscriptions_mail_submit_subscriptions_settings_form($form, &$form_state) {
+function _subscriptions_mail_submit_subscriptions_settings_form(array $form, array &$form_state) {
   if ($form_state['values']['op'] == $form_state['values']['purge_queue']) {
     drupal_goto('admin/config/subscriptions/purge-queue', array('query' => drupal_get_destination()));
   }

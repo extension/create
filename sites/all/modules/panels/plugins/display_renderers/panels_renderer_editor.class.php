@@ -726,7 +726,8 @@ class panels_renderer_editor extends panels_renderer_standard {
 
     // If $rc is FALSE, there was no actual form.
     if ($output === FALSE || !empty($form_state['complete'])) {
-      $pane = $this->cache->new_pane;
+      // References get blown away with AJAX caching. This will fix that.
+      $pane = $form_state['pane'];
       unset($this->cache->new_pane);
 
       // Add the pane to the display
@@ -790,6 +791,9 @@ class panels_renderer_editor extends panels_renderer_standard {
       $this->commands[] = ctools_modal_command_dismiss();
     }
     else if (!empty($form_state['complete'])) {
+      // References get blown away with AJAX caching. This will fix that.
+      $this->cache->display->content[$pid] = $form_state['pane'];
+
       panels_edit_cache_set($this->cache);
       $this->command_update_pane($pid);
       $this->commands[] = ctools_modal_command_dismiss();

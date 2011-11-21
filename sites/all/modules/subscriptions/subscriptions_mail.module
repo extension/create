@@ -9,6 +9,8 @@
  * Implements hook_menu().
  *
  * Registers a callback to purge the queue.
+ *
+ * @return array
  */
 function subscriptions_mail_menu() {
   $items['admin/config/subscriptions/purge-queue'] = array(
@@ -32,7 +34,11 @@ function subscriptions_mail_cron() {
 }
 
 /**
- * Return the 'From:' address to use for sending e-mail.
+ * Returns the 'From:' address to use for sending e-mail.
+ *
+ * @param bool $address_only
+ *
+ * @return string
  */
 function _subscriptions_mail_site_mail($address_only = FALSE) {
   $email = variable_get('subscriptions_site_mail', '');
@@ -49,16 +55,23 @@ function _subscriptions_mail_site_mail($address_only = FALSE) {
  * Implements hook_form_alter().
  *
  * Adds to the General Settings part at admin/settings/subscriptions.
+ *
+ * @param array $form
+ * @param array $form_state
  */
-function subscriptions_mail_form_subscriptions_settings_form_alter(&$form, &$form_state) {
+function subscriptions_mail_form_subscriptions_settings_form_alter(array &$form, array &$form_state) {
   _subscriptions_mail_module_load_include('admin.inc');
   _subscriptions_mail_form_subscriptions_settings_form_alter($form, $form_state);
 }
 
 /**
  * Form builder for the purge Subscriptions queue confirmation form.
+ *
+ * @param array $form_state
+ *
+ * @return array
  */
-function _subscriptions_mail_purge_queue_form($form_state) {
+function _subscriptions_mail_purge_queue_form(array $form_state) {
   $form['#submit'][] = 'subscriptions_purge_queue';
   return confirm_form($form, t('Are you sure you want to purge the !Module queue?', array('!Module' => 'Subscriptions')), array('path' => drupal_get_destination(), 'fragment' => 'edit-purge-queue'), NULL, t('Purge the queue'));
 }
@@ -156,7 +169,6 @@ function subscriptions_mail_schema_alter(array &$schema) {
 
 /**
  * Implements hook_modules_installed().
- *
  *
  * Extends the {mail_edit} table if Mail Editor is installed after
  * Subscriptions.

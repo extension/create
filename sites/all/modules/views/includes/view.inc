@@ -102,6 +102,11 @@ class view extends views_db_object {
   var $override_path = NULL;
 
   /**
+   * Allow to override the used database which is used for this query.
+   */
+  var $base_database = NULL;
+
+  /**
    * Constructor
    */
   function __construct() {
@@ -1279,6 +1284,16 @@ class view extends views_db_object {
     }
     return $title;
   }
+
+  /**
+   * Override the view's current title.
+   *
+   * The tokens in the title get's replaced before rendering.
+   */
+  function set_title($title) {
+     $this->build_info['title'] = $title;
+     return TRUE;
+   }
 
   /**
    * Return the human readable name for a view.

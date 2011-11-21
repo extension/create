@@ -17,7 +17,7 @@
  *
  * @ingroup hooks
  */
- function _subscriptions_mail_mail_edit_text($mailkey, $language) {
+function _subscriptions_mail_mail_edit_text($mailkey, $language) {
   $langcode = $language->language;
   _subscriptions_mail_module_load_include('templates.inc');
   $return = array();
@@ -54,6 +54,8 @@ function _subscriptions_mail_mail_edit_token_types($mailkey, $options = array())
   if (module_exists('token')) {
     //dpm(token_get_info(), "TRIGGER HACK");
     // Clear token.module's caches.
+    cache_clear_all('tree-rendered:', 'cache_token', TRUE);
+    cache_clear_all('tree:subs:', 'cache_token', TRUE);
     cache_clear_all("info:{$language->language}", 'cache_token');
     $token_get_info = &drupal_static('token_get_info');
     $token_get_info = NULL;
@@ -63,6 +65,7 @@ function _subscriptions_mail_mail_edit_token_types($mailkey, $options = array())
     $massage_tokens = TRUE;
     // Trigger a refresh of token.module's caches.
     token_get_info();
+    $massage_tokens = FALSE;
     //dpm(token_get_info(), "HACK DONE");
     // Clear the permanent cache, keeping token.module's static caches.
     cache_clear_all("info:{$language->language}", 'cache_token');
@@ -71,74 +74,6 @@ function _subscriptions_mail_mail_edit_token_types($mailkey, $options = array())
   $token_types = module_invoke_all('subscriptions', 'token_types', substr($mailkey, 19));
   $token_types = array_merge($token_types, ($mailkey == 'subscriptions_mail_digest' ? array('subs') : array('user', 'subs')));
   return $token_types;
-}
-
-/**
- * Implements hook_tokens().
- *
- * @param $type
- * @param $tokens
- * @param array $data
- * @param array $options
- *
- * @return array
- */
-function subscriptions_mail_tokens($type, $tokens, array $data = array(), array $options = array())
-{
-  global $user;
-
-  $url_options = array('absolute' => TRUE);
-  if (isset($options['language'])) {
-    $url_options['language'] = $options['language'];
-    $language_code = $options['language']->language;
-  }
-  else {
-    $language_code = NULL;
-  }
-  $sanitize = !empty($options['sanitize']);
-
-  $replacements = array();
-  if ($type == 'subs' && isset($data['subs'])) {
-    foreach ($tokens as $name => $original) {
-      switch ($name) {
-        case 'type':
-          $replacements[$original] = $data['subs']['type'];
-          break;
-        case 'manage-url':
-          $replacements[$original] = url('user/' . $user->uid . '/subscriptions', $url_options);
-          break;
-        case 'unsubscribe-url':
-          $replacements[$original] = url($data['subs']['unsubscribe_path'], $url_options);
-          break;
-        case 'module':
-          $replacements[$original] = $data['subs']['module'];
-          break;
-        case 'field':
-          $replacements[$original] = $data['subs']['field'];
-          break;
-        case 'value':
-          $replacements[$original] = $data['subs']['value'];
-          break;
-        case 'forum':
-          if (isset($data['node']['forum_tid'])) {
-            $replacements[$original] = render(taxonomy_term_view(taxonomy_term_load($data['node']['forum_tid']), 'full', $language_code));
-          }
-          break;
-      }
-    }
-
-    // Chained token relationships.
-    if ($url_tokens = token_find_with_prefix($tokens, 'manage-url')) {
-      $replacements += token_generate('url', $url_tokens, array('path' => 'user/' . $user->uid . '/subscriptions'), $options);
-    }
-    if ($url_tokens = token_find_with_prefix($tokens, 'unsubscribe-url')) {
-      $replacements += token_generate('url', $url_tokens, array('path' => $data['subs']['unsubscribe_path']), $options);
-    }
-    if ($forum_tokens = token_find_with_prefix($tokens, 'forum')) {
-      $replacements += token_generate('term', $forum_tokens, array('term' => taxonomy_term_load($data['node']['forum_tid'])), $options);
-    }
-  }
-  return $replacements;
 }
 
 /**
@@ -243,7 +178,8 @@ function _subscriptions_mail_preview(array $form, array &$form_state) {
  * @return array
  */
 function _subscriptions_mail_preview_form(array $values) {
-  $language = language_initialize($values['language']);
+  $language_list = language_list();
+  $language = $language_list[$values['language']];
   $data = array();
   $query = db_select('node', 'n')
     ->fields('n', array('nid'));
@@ -269,18 +205,17 @@ function _subscriptions_mail_preview_form(array $values) {
     }
   }
 
-  if (isset($node->forum_tid)) {
-    $data['term'] = taxonomy_term_load($node->forum_tid);
-  }
-
   $data['user'] = user_load(!empty($node->revision_uid) ? $node->revision_uid : $node->uid);
   $data['subs'] = array(
     'type'             => (isset($values['content_type']) ? t('content type') : t('thread')),
     'unsubscribe_path' => 's/del/...',
-    'module'           => 'module',
-    'field'            => 'field',
-    'value'            => 'value',
+    'subs-module'      => 'MODULE',
+    'subs-field'       => 'FIELD',
+    'subs-value'       => 'VALUE',
    );
+  if (isset($node->forum_tid)) {
+    $data['subs']['category'] = taxonomy_term_load($node->forum_tid);
+  }
   $data['template'] = $values;
 
   $subject = mail_edit_format($values['subject'], $data, array('language' => $language));

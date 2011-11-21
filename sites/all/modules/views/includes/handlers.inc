@@ -1404,7 +1404,7 @@ function views_date_sql_extract($extract_type, $field, $field_type = 'int', $set
  *   - - operator: defaults to =
  *   - - value: Must be set. If an array, operator will be defaulted to IN.
  *   - - numeric: If true, the value will not be surrounded in quotes.
- *   - extra type: How all the extras will be combined. Either AND or OR. Defaults to AND.
+ *   - - extra type: How all the extras will be combined. Either AND or OR. Defaults to AND.
  */
 class views_join {
   /**
@@ -1452,7 +1452,7 @@ class views_join {
    */
   function build_join($select_query, $table, $view_query) {
     if (empty($this->definition['table formula'])) {
-      $right_table = "{" . $this->table . "}";
+      $right_table = $this->table;
     }
     else {
       $right_table = $this->definition['table formula'];

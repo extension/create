@@ -3,6 +3,22 @@ CHANGELOG for Subscriptions 1.x for Drupal 7
 
 
 subscriptions 7.x-1.x-dev:
+
+
+subscriptions 7.x-1.0-alpha6 (2011-10-30):
+  - Fix [subs:forum] token.
+  - Add support for term fields/tokens.
+  - Integrate the Token patch into Subscriptions, move the various token hooks where they belong, improve the rendering of the token tree.
+  - Avoid calling drupal_language_initialize(), too.
+  - #1323422: Avoid calling language_initialize().
+  - Rename [subs:module/field/value] to avoid confusion with core fields.
+  - Rename [subs:term] to [subs:category] and improve the cooperation with [subs:forum].
+  - #1321384: Fix 'Column not found' SQL error.
+  - Fix line endings of multiple files (no functional change).
+  - Move the token hooks to *.tokens.inc files.
+  - #1318454: Fix failure to find the proper template in cron.
+  - Add proper docblocks and fix most PhpStorm issues.
+  - Fix porting errors in the subscriptions pages.
   - #1310848: Fix undefined function _subscriptions_content_load() call.
   - Remove the installation-time installation reminder, because Mail Editor is not optional anymore.
   - #1309396: Fix inability to uninstall Subscriptions Mail.
@@ -27,7 +43,6 @@ subscriptions 7.x-1.0-alpha5 (2011-10-08):
   - #1252786: Fix incorrect teaser handling.
   - #1259662: Fix completely broken subscriptions_tableselect.js.
   - #1258698: Fix default subscriptions not being assigned to new users.
-
 
 subscriptions 7.x-1.0-alpha4 (2011-08-24):
   - #1253788, 1253790: Remove the temporary SubscriptionsMailSystem (needs 7.5 now!).

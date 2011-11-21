@@ -11,10 +11,13 @@
  *
  * Add the Content Settings part to admin/settings/subscriptions.
  *
+ * @param array $form
+ * @param array $form_state
+ *
  * @ingroup hooks
  * @ingroup form
  */
-function _subscriptions_content_form_subscriptions_settings_form_alter(&$form, &$form_state) {
+function _subscriptions_content_form_subscriptions_settings_form_alter(array &$form, array &$form_state) {
   $tr = 't';
 
   // General content settings
@@ -93,9 +96,12 @@ function _subscriptions_content_form_subscriptions_settings_form_alter(&$form, &
 }
 
 /**
- * Validate the 'subscriptions_blocked_nodes' input.
+ * Validates the 'subscriptions_blocked_nodes' input.
+ *
+ * @param array $form
+ * @param array $form_state
  */
-function _subscriptions_content_validate_blocked_nodes($form, $form_state) {
+function _subscriptions_content_validate_blocked_nodes(array $form, array $form_state) {
   $form_values = $form_state['values'];
   $values = $form_values['subscriptions_blocked_nodes'];
   if (!empty($values)) {
@@ -112,10 +118,15 @@ function _subscriptions_content_validate_blocked_nodes($form, $form_state) {
 /**
  * Build the Thread subscriptions form at user/UID/subscriptions/node.
  *
+ * @param array $form
+ * @param int $uid
+ *   ID of a user if >0 or of a role if <0.
+ *
+ * @return array
+ *
  * @ingroup form
  */
-function _subscriptions_content_node_form($form, &$form_state, $account, $form) {
-  $uid = $account->uid;
+function _subscriptions_content_node_form(array $form, $uid) {
   $tr = 't';
   $subscriptions = array();
   $query = db_select('node', 'n', array('fetch' => PDO::FETCH_ASSOC))
@@ -214,23 +225,11 @@ function _subscriptions_content_node_form($form, &$form_state, $account, $form) 
       '#value' => $defaults,
     );
     subscriptions_form_column_filter($form[0], $uid);
-    $form['#tree'] = TRUE;
-    $form['uid'] = array('#type' => 'value', '#value' => $uid);
-    $form['access_key'] = array('#type' => 'value', '#value' => 'node');
-    $form['module'] = array('#type' => 'value', '#value' => 'node');
-    $form['field'] = array('#type' => 'value', '#value' => 'nid');
-    $form['submit'] = array('#type' => 'submit', '#value' => t('Save'), '#weight' => 10);
-    $form['#submit'][] = 'subscriptions_page_form_submit';
     $form['note'] = array('#type' => 'item', '#description' => '<div>' . t('Note: Deactivated subscriptions will be removed from the list.') . '</div>' );
     $form['pager'] = array('#value' => theme('pager', array('tags' => NULL, 'element' => 0, 'quantity' => 50)));
   }
   else {
-    unset($form['header']);
-    unset($form['footer']);
-    $form['notice'] = array(
-      '#markup' => t('There are no subscribed pages. '),
-      '#weight' => 10,
-    );
+    $form = array(array('#markup' => t('There are no available subscribed pages.')));
   }
   return $form;
 }
@@ -238,11 +237,17 @@ function _subscriptions_content_node_form($form, &$form_state, $account, $form) 
 /**
  * Build the Content Types subscriptions form at user/UID/subscriptions/type.
  *
+ * @param array $form
+ * @param int $uid
+ *   ID of a user if >0 or of a role if <0.
+ *
+ * @return array
+ *
  * @ingroup form
  */
-function _subscriptions_content_type_form($form, &$form_state, $account, $form) {
-  $uid = (isset($account) ? $account->uid : (is_numeric(arg(5)) ? -arg(5) : -DRUPAL_AUTHENTICATED_RID));
+function _subscriptions_content_type_form(array $form, $uid) {
   $unlisteds = variable_get('subscriptions_unlisted_content_types', array());
+  /** @var $blockeds array */
   $blockeds = variable_get('subscriptions_blocked_content_types', array());
   $omits = array_merge($unlisteds, $blockeds);
   $query = db_select('subscriptions', 's', array('fetch' => PDO::FETCH_ASSOC));
@@ -262,7 +267,7 @@ function _subscriptions_content_type_form($form, &$form_state, $account, $form) 
   $form[0] = array(
     '#theme' => 'subscriptions_form_table',
   );
-  $intervals = _subscriptions_send_intervals();
+  $defaults = array();
   foreach (node_type_get_types() as $type) {
     // add the active subscriptions
     $type_name = check_plain($type->name);
@@ -282,9 +287,9 @@ function _subscriptions_content_type_form($form, &$form_state, $account, $form) 
     if (!isset($subscriptions[$type->type][-1])) {
       // author-less item is missing -- add it here:
       $subscriptions[$type->type][-1] = array(
-        'send_interval' => _subscriptions_get_setting('send_interval', ($uid < 0 ? $uid : $account)),
-        'send_comments' => _subscriptions_get_setting('send_comments', ($uid < 0 ? $uid : $account)),
-        'send_updates' => _subscriptions_get_setting('send_updates', ($uid < 0 ? $uid : $account)),
+        'send_interval' => _subscriptions_get_setting('send_interval', $uid),
+        'send_comments' => _subscriptions_get_setting('send_comments', $uid),
+        'send_updates' => _subscriptions_get_setting('send_updates', $uid),
         'author_uid' => FALSE,
       );
     }
@@ -299,17 +304,9 @@ function _subscriptions_content_type_form($form, &$form_state, $account, $form) 
       '#value' => $defaults,
     );
     subscriptions_form_column_filter($form[0], $uid);
-    $form['#tree'] = TRUE;
-    $form['uid'] = array('#type' => 'value', '#value' => $uid);
-    $form['access_key'] = array('#type' => 'value', '#value' => 'type');
-    $form['module'] = array('#type' => 'value', '#value' => 'node');
-    $form['field'] = array('#type' => 'value', '#value' => 'type');
-    $form['submit'] = array('#type' => 'submit', '#value' => t('Save'), '#weight' => 10);
-    $form['#submit'][] = 'subscriptions_page_form_submit';
   }
   else {
-    $form['header']['#value'] = t('There are no available !subs_types. ', array('!subs_types' => t('content types')));
-    unset($form['footer']);
+    $form = array(array('#markup' => t('There are no available content types.')));
   }
   return $form;
 }

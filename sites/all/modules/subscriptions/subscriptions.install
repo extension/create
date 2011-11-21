@@ -7,6 +7,8 @@
 
 /**
  * Implements hook_schema().
+ *
+ * @return array
  */
 function subscriptions_schema() {
 
@@ -176,6 +178,8 @@ function subscriptions_uninstall() {
  * Implements hook_update_last_removed().
  *
  * We've removed the D5 update functions.
+ *
+ * @return int
  */
 function subscriptions_update_last_removed() {
   return 9;

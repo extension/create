@@ -7,6 +7,11 @@
 
 define('SUBSCRIPTIONS_DIGEST_MAILKEY', 'subscriptions_mail_digest');
 
+/**
+ * @param $key
+ * @param $langcode
+ * @return array|null|string
+ */
 function subscriptions_mail_template_raw($key, $langcode) {
   switch ($key) {
 
@@ -31,14 +36,16 @@ t('| Greetings, [current-user:name].
 }}{{[subs:is-old]#new comments:
 }}|
 {{![subs:is-published]#| ***** This post is unpublished! *****
-}}{{![term:name]?:| Category: [term:name]
+}}{{![subs:category:tid]?:{{[subs:category:tid]==[subs:forum:tid]?:| Category: [subs:category:name]
+}}}}{{![subs:forum:tid]?:| Forum: [subs:forum:name]
 }}{{![user:name]?:| Author: [user:name]
 }}| Title: [node:title]
-&nbsp;
+{{![subs:terms:field_tags:count]?:| [subs:terms:field_tags:first:vocabulary:name]: {{[subs:terms:field_tags:count]#{{!!#0#, }}[subs:terms:field_tags:index:#0:name]}}
+}}&nbsp;
 {{[subs:is-old]?{{[node:summary]?[node:summary]:[node:body]}}:[node:body]}}
 | LINK: [node:url]
 {{!![subs:files:field_files:count]#| Attached files:
-{{[subs:files:field_files:count]#| [subs:files:field_files:value:#0:url]
+{{[subs:files:field_files:count]#| [subs:files:field_files:index:#0:url]
 }}}}{{![subs:comments:count]?!SEPARATOR
 :|
 | Comments: [subs:comments:count]
@@ -57,7 +64,7 @@ t('| {{[subs:is-new]?New:Updated}} {{[subs:is-published]?:UNPUBLISHED }}comment:
 [comment:body]
 | LINK: [comment:url]
 {{!![subs:files:field_files:count]#| Attached files:
-{{[subs:files:field_files:count]#| [subs:files:field_files:value:#0:url]
+{{[subs:files:field_files:count]#| [subs:files:field_files:index:#0:url]
 }}}}!SEPARATOR', array('!SEPARATOR' => subscriptions_mail_template_raw('SEP', $langcode)), array('langcode' => $langcode));
 
     case 'DSUBJ':    return // SUBSCRIPTIONS_DEFAULT_DIGEST_SUBJECT
@@ -86,6 +93,7 @@ t('| Comment: [comment:title]
 ', array(), array('langcode' => $langcode));
 
   }
+  return NULL;
 }
 
 function subscriptions_mail_template($key, $langcode) {
@@ -100,17 +108,20 @@ function subscriptions_mail_template($key, $langcode) {
  * Retrieve a mail template, either from the mail_edit table or take
  * our default template in this file, passing it through t().
  *
+ * @param string $mailmod
+ *  The module requesting the template (part of the full mailkey).
  * @param string $mailkey
- *  the full mailkey, used as id in the mail_edit table
+ *  The mailkey, used with $mailmod as id in the {mail_edit} table.
  * @param string $langcode
- *  the language code, used as language in the mail_edit table or for
- *  translating out default template
+ *  The language code, used as language in the {mail_edit} table or for
+ *  translating out default template.
  * @param string $part
- *  either 'subject' or 'body', used to indicate the column to retrieve
- *  from the mail_edit table
+ *  Either 'subject' or 'body', used to indicate the column to retrieve
+ *  from the {mail_edit} table.
  * @param string $key
- *  the key for calling subscriptions_mail_template() to retrieve the
- *  default template, if there's no match in the mail_edit table
+ *  The key for calling subscriptions_mail_template() to retrieve the
+ *  default template, if there's no match in the {mail_edit} table.
+ * @return
  */
 function subscriptions_mail_template_load($mailmod, $mailkey, $langcode, $part, $key) {
   if (module_exists('mail_edit')) {

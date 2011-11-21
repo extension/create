@@ -92,6 +92,7 @@ function _subscriptions_taxonomy_node_options($account, $node) {
     return NULL;
   }
   $options = array();
+  /** @var $vids_to_omit array */
   $vids_to_omit = variable_get('subscriptions_omitted_taxa', array());
   foreach ((array) $node as $field_key => $field_value) {
     if (is_array($field_value)) {
@@ -144,7 +145,6 @@ function _subscriptions_taxonomy_node_options($account, $node) {
  * @see subscriptions_types()
  */
 function _subscriptions_taxonomy_types() {
-  $tr = 't';
   $types['taxa'] = array(
     'title' => 'Categories',
     'access' => 'subscribe to taxonomy terms',
@@ -153,7 +153,7 @@ function _subscriptions_taxonomy_types() {
     ),
     'page' => 'subscriptions_taxonomy_page_taxa',
     'fields' => array('node', 'tid'),
-    'weight' => -10,
+    'weight' => -20,
   );
   return $types;
 }
@@ -170,7 +170,6 @@ function _subscriptions_taxonomy_types() {
  * @ingroup form
  */
 function subscriptions_taxonomy_form_subscriptions_settings_form_alter(array &$form, array &$form_state) {
-  global $user;
   $tr = 't';
 
   $form['taxonomy'] = array(
@@ -218,14 +217,15 @@ function subscriptions_taxonomy_form_subscriptions_settings_form_alter(array &$f
 /**
  * Returns a list of taxonomy subscriptions.
  *
- * @param $account
  * @param array $form
+ * @param int $uid
+ *   ID of a user if >0 or of a role if <0.
  *
- * @return array|string
+ * @return array
  *
  * @ingroup form
  */
-function subscriptions_taxonomy_page_taxa($account, array $form) {
+function subscriptions_taxonomy_page_taxa(array $form, $uid) {
   // traverse the taxonomy tree
   $vocabularies = function_exists('taxonomy_help') ? taxonomy_get_vocabularies() : array();
 
@@ -235,10 +235,10 @@ function subscriptions_taxonomy_page_taxa($account, array $form) {
     unset($vocabularies[$omit]);
   }
   if ($vocabularies) {
-    return drupal_get_form('subscriptions_taxonomy_taxa_form', $vocabularies, $account, $form);
+    return subscriptions_taxonomy_taxa_form($form, $uid, $vocabularies);
   }
   else {
-    return t('There are no available !subs_types.', array('!subs_types' => t('category groups')));
+    return array(array('#markup' => t('There are no available category groups.')));
   }
 }
 
@@ -246,18 +246,17 @@ function subscriptions_taxonomy_page_taxa($account, array $form) {
  * Build the Categories subscription form at user/UID/subscriptions/taxa.
  *
  * @param array $form
- * @param array $form_state
+ * @param int $uid
  * @param array $vocabularies
- * @param $account
+ *   ID of a user if >0 or of a role if <0.
  *
  * @return array
  *
  * @ingroup form
  */
-function subscriptions_taxonomy_taxa_form(array $form, array &$form_state, array $vocabularies, $account) {
-  $uid = (isset($account) ? $account->uid : (is_numeric(arg(5)) ? -arg(5) : -DRUPAL_AUTHENTICATED_RID));
+function subscriptions_taxonomy_taxa_form(array $form, $uid, array $vocabularies) {
   $query = db_select('taxonomy_term_data', 't', array('fetch' => PDO::FETCH_ASSOC));
-  $subscriptions_alias = $query->join('subscriptions', 's', (db_driver() != 'pgsql' ? 't.tid = s.value' : 'CAST(t.tid AS VARCHAR) = s.value'));
+  $query->join('subscriptions', 's', (db_driver() != 'pgsql' ? 't.tid = s.value' : 'CAST(t.tid AS VARCHAR) = s.value'));
   $result = $query
     ->fields('s', array('value', 'send_interval', 'author_uid', 'send_comments', 'send_updates'))
     ->fields('t', array('tid', 'vid', 'name'))
@@ -284,6 +283,7 @@ function subscriptions_taxonomy_taxa_form(array $form, array &$form_state, array
       '#theme' => 'subscriptions_form_table',
     );
     $subscriptions_vid = (isset($subscriptions[$vocab->vid]) ? $subscriptions[$vocab->vid] : NULL);
+    /** @var $vids_to_restrict array */
     $vids_to_restrict = variable_get('subscriptions_restricted_taxa', array());
     $tree = NULL;
     if (!in_array($vocab->vid, $vids_to_restrict)) {
@@ -316,9 +316,9 @@ function subscriptions_taxonomy_taxa_form(array $form, array &$form_state, array
         if (!isset($subscriptions_vid[$term->tid][-1])) {
           // author-less item is missing -- add it here:
           $subscriptions_vid[$term->tid][-1] = array(
-            'send_interval' => _subscriptions_get_setting('send_interval', ($uid < 0 ? $uid : $account)),
-            'send_comments' => _subscriptions_get_setting('send_comments', ($uid < 0 ? $uid : $account)),
-            'send_updates' => _subscriptions_get_setting('send_updates', ($uid < 0 ? $uid : $account)),
+            'send_interval' => _subscriptions_get_setting('send_interval', $uid),
+            'send_comments' => _subscriptions_get_setting('send_comments', $uid),
+            'send_updates' => _subscriptions_get_setting('send_updates', $uid),
             'author_uid' => FALSE,
           );
         }
@@ -343,37 +343,7 @@ function subscriptions_taxonomy_taxa_form(array $form, array &$form_state, array
     );
     subscriptions_form_column_filter($form[$vocab->vid][0], $uid);
   }
-
-  if (empty($form)) {
-    $form = array('#value' => t('There are no active categories.'));
-  }
-  else {
-    $form['#tree'] = TRUE;
-    $form['uid'] = array('#type' => 'value', '#value' => $uid);
-    $form['access_key'] = array('#type' => 'value', '#value' => 'taxa');
-    $form['module'] = array('#type' => 'value', '#value' => 'node');
-    $form['field'] = array('#type' => 'value', '#value' => 'tid');
-    $form['submit'] = array('#type' => 'submit', '#value' => t('Save'), '#weight' => 10);
-    $form['#submit'][] = 'subscriptions_page_form_submit';
-  }
   return $form;
-}
-
-/**
- * Implements hook_token_info().
- *
- * @return array
- */
-function subscriptions_taxonomy_token_info() {
-  $subs['term'] = array(
-    'name' => t("Category"),
-    'description' => t("The category (taxonomy term), if this notification was triggered by a %Category subscription.", array('%Category' => t('Category'))),
-    'type' => 'term',
-  );
-  return array(
-    'types' => array(),
-    'tokens' => array('subs' => $subs),
-  );
 }
 
 /**
@@ -383,54 +353,9 @@ function subscriptions_taxonomy_token_info() {
  * @param $node
  * @param array $subs
  */
-function subscriptions_taxonomy_data(array &$data, $node, array $subs) {
-  $data['term'] = taxonomy_term_load($subs['value']);
-  subscriptions_content_data($data, $node, $subs);
-}
-
-/**
- * Implements hook_tokens().
- *
- * @param $type
- * @param $tokens
- * @param array $data
- * @param array $options
- *
- * @return array
- *
- * @ingroup hooks
- */
-function subscriptions_taxonomy_tokens($type, $tokens, array $data = array(), array $options = array()) {
-  $url_options = array('absolute' => TRUE);
-  if (isset($options['language'])) {
-    $url_options['language'] = $options['language'];
-    $language_code = $options['language']->language;
-  }
-  else {
-    $language_code = NULL;
-  }
-  $sanitize = !empty($options['sanitize']);
-
-  $replacements = array();
-
-  if ($type == 'subs' && !empty($data['term'])) {
-    $term = $data['term'];
-
-    foreach ($tokens as $name => $original) {
-      switch ($name) {
-          // Default values for the chained tokens handled below.
-        case 'term':
-          //$replacements[$original] = $sanitize ? filter_xss($term->name) : $term->name;
-          $replacements[$original] = render(taxonomy_term_view($term, 'full', $language_code));
-          break;
-      }
-    }
-
-    if ($term_tokens = token_find_with_prefix($tokens, 'term')) {
-      $replacements += token_generate('term', $term_tokens, array('term' => $term), $options);
-    }
-  }
-  return $replacements;
+function subscriptions_taxonomy_data(array &$data, $node, array $queue_item) {
+  $data['subs']['category'] = taxonomy_term_load($queue_item['value']);
+  subscriptions_content_data($data, $node, $queue_item);
 }
 
 /**

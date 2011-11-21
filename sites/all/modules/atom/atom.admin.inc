@@ -1,5 +1,4 @@
 <?php
-// $Id: atom.admin.inc,v 1.3 2010/09/11 03:53:52 deekayen Exp $
 
 /**
  * @file

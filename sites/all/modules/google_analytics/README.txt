@@ -1,4 +1,3 @@
-// $Id: README.txt,v 1.10.2.2 2011/01/02 15:35:59 hass Exp $
 
 Module: Google Analytics
 Author: Alexander Hass <http://drupal.org/user/85918>
@@ -39,9 +38,10 @@ default the following pages are listed for exclusion:
 
 admin
 admin/*
-user/*/*
+batch
 node/add*
 node/*/*
+user/*/*
 
 These defaults are changeable by the website administrator or any other
 user with 'administer google analytics' permission.
@@ -51,9 +51,6 @@ choice for "Add if the following PHP code returns TRUE." Sample PHP snippets
 that can be used in this textarea can be found on the handbook page
 "Overview-approach to block visibility" at http://drupal.org/node/64135.
 
-A code snippet that creates opt-out by role functionality for unchecked roles
-can be found in the Google Analytics handbook at http://drupal.org/node/261997.
-
 Custom variables
 =================
 One example for custom variables tracking is the "User roles" tracking. Enter
@@ -62,7 +59,7 @@ admin/config/system/googleanalytics.
 
 Slot: 1
 Name: User roles
-Value: [current-user:roles]
+Value: [current-user:role-names]
 Scope: Visitor
 
 More details about Custom variables can be found in the Google API documentation at

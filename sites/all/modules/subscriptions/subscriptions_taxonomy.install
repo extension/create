@@ -13,6 +13,8 @@ function subscriptions_taxonomy_install() {
 
 /**
  * Implements hook_update_last_removed().
+ *
+ * @return int
  */
 function subscriptions_taxonomy_update_last_removed() {
   return 2;

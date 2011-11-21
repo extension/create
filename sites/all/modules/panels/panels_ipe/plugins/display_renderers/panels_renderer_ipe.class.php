@@ -25,7 +25,10 @@ class panels_renderer_ipe extends panels_renderer_editor {
 
     ctools_include('cleanstring');
     $this->clean_key = ctools_cleanstring($this->display->cache_key);
-    panels_ipe_get_cache_key($this->clean_key);
+    $button = theme('panels_ipe_edit_button', array('class' => 'panels-ipe-startedit', 'text' => t('Customize this page')));
+    panels_ipe_toolbar_add_button($this->clean_key, 'panels-ipe-startedit', $button);
+
+//    panels_ipe_get_cache_key($this->clean_key);
 
     ctools_include('ajax');
     ctools_include('modal');

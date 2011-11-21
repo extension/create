@@ -308,7 +308,21 @@ function panels_ctools_plugin_directory($module, $plugin) {
   if (!module_invoke('ctools', 'api_version', PANELS_REQUIRED_CTOOLS_API)) {
     return;
   }
+
+  // We don't support the 'ctools' 'cache' plugin and pretending to causes
+  // errors when they're in use.
+  if ($module == 'ctools' && $plugin == 'cache') {
+    return;
+    // if we did we'd make a plugin/ctools_cache or something.
+  }
+
   if ($module == 'page_manager' || $module == 'panels' || $module == 'ctools' || $module == 'stylizer') {
+    // Panels and CTools both implement a 'cache' plugin but we don't implement
+    // the CTools version.
+    if ($module == 'ctools' && $plugin == 'cache') {
+      return;
+    }
+
     return 'plugins/' . $plugin;
   }
 }
@@ -1027,7 +1041,6 @@ function panels_render_display(&$display, $renderer = NULL) {
     if ($form_context = ctools_context_get_form($display->context)) {
       $form_context->form['#theme'] = 'panels_render_display_form';
       $form_context->form['#display'] = &$display;
-      $form_context->form['#form_context_id'] = $form_context->id;
       return $form_context->form;
     }
   }
