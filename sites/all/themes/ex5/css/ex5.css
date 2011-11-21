@@ -1041,6 +1041,8 @@ article .comment > footer{
 	height: 210px;
 	background-color: #FDDFB1;
 	margin: 5px 0 19px 5px;
+	font-size: 12px;
+	color:#544;
 }
 
 #important-info-block h4, #important-info-block h5{
