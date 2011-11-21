@@ -1,4 +1,3 @@
-
 # Requires mod_expires to be enabled.
 <IfModule mod_expires.c>
   # Enable expirations.
@@ -88,7 +87,7 @@
 
     <FilesMatch "(\.js\.gz|\.css\.gz)$">
       # Serve correct encoding type.
-      Header append Content-Encoding gzip
+      Header set Content-Encoding gzip
       # Force proxies to cache gzipped & non-gzipped css/js files separately.
       Header append Vary Accept-Encoding
     </FilesMatch>
