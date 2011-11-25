@@ -55,6 +55,8 @@ function media_field_formatter_info() {
  * @see media_field_formatter_info()
  */
 function media_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+
   if ($display['type'] == 'media_large_icon') {
     foreach ($items as $delta => $item) {
       $element[$delta] = array(
@@ -62,8 +64,9 @@ function media_field_formatter_view($entity_type, $entity, $field, $instance, $l
         '#file' => $item,
       );
     }
-    return $element;
   }
+
+  return $element;
 }
 
 /**
@@ -144,12 +147,6 @@ function media_field_widget_settings_form($field, $instance) {
 function media_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   $field_settings = $instance['settings'];
   $widget_settings = $instance['widget']['settings'];
-
-  $permission = user_access('edit file');
-  if (!$permission) {
-    // @todo: show the default file upload field.
-    return;
-  }
 
   // @todo The Field API supports automatic serialization / unserialization, so
   //   this should no longer be needed. After verifying with a module that uses
