@@ -239,7 +239,7 @@ function theme_media_thumbnail($variables) {
   $destination = drupal_get_destination();
 
   // Wrappers to go around the thumbnail
-  $prefix = '<div class="media-item">test<div class="media-thumbnail">';
+  $prefix = '<div class="media-item"><div class="media-thumbnail">';
   $suffix = '</div></div>';
 
   // Arguments for the thumbnail link
