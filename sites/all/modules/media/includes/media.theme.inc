@@ -257,12 +257,12 @@ function theme_media_thumbnail($variables) {
   drupal_add_css(drupal_get_path('module', 'media') . '/css/media.css');
 
   $output = $prefix;
-  if (!empty($element['#add_link'])) {
-    $output .= l($thumb, $target, $options);
-  }
-  else {
+  //if (!empty($element['#add_link'])) {
+    //$output .= l($thumb, $target, $options);
+  //}
+  //else {
     $output .= $thumb;
-  }
+  //}
   $output .= $label . $suffix;
   return $output;
 }
