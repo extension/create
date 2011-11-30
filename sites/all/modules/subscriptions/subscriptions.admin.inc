@@ -185,7 +185,7 @@ function subscriptions_page_form_submit(array $form, array &$form_state) {
     $field = $form_values['field'];
     $access_key = (isset($form_values['access_key']) ? $form_values['access_key'] : $module);
     foreach ($form_values as $element_values) {
-      if (isset($element_values[0])) {
+      if (is_array($element_values) && isset($element_values[0])) {
         $element_values = $element_values[0];
       }
       if (isset($element_values['defaults']['send_interval'])) {
@@ -326,6 +326,14 @@ function subscriptions_page_form($form, &$form_state, $account, $stype) {
   $callback = $stypes[$stype]['page'];
   if (!empty($callback) && function_exists($callback)) {
     $form = $callback($form, $uid);
+    if (is_string($form)) {
+      $form = array(
+        'message' => array(
+          '#type' => 'item',
+          '#markup' => '<br /><br />' . $form,
+        ),
+      );
+    }
   }
   //$form = function_exists($callback) ? $callback($account, $form) : NULL;
   //drupal_add_link(array(
@@ -393,7 +401,7 @@ function subscriptions_page_user_overview(array $form, array &$form_state, $acco
   );
   $form['#submit'] = array();
   if ($uid > 0) {
-    $form = subscriptions_user_suspend_form($form, $form_state, $account);
+    subscriptions_user_suspend_form($form, $form_state, $account);
   }
   $form = subscriptions_user_settings_form($form, $form_state, $account);
   drupal_set_title($uid < 0 ? t('Subscriptions') : $account->name);
@@ -408,21 +416,19 @@ function subscriptions_page_user_overview(array $form, array &$form_state, $acco
  * @param object|null $account
  *   Must be a valid user account from user_load().
  *
- * @return array|null
- *
  * @ingroup form
  */
-function subscriptions_user_suspend_form(array $form, array &$form_state, $account) {
+function subscriptions_user_suspend_form(array &$form, array &$form_state, $account) {
   global $user;
 
   if (!isset($account)) {
-    return NULL;
+    return;
   }
   $uid = $account->uid;
   $suspended = subscriptions_suspended($uid, TRUE);
 
   if (!user_access('administer user subscriptions') && !($user->uid == $uid && (user_access('suspend own subscriptions') || $suspended))) {
-    return NULL;
+    return;
   }
 
   $tr = 't';
@@ -466,7 +472,6 @@ function subscriptions_user_suspend_form(array $form, array &$form_state, $accou
     '#value'         => t('Save notifications'),
   );
   $form['#submit'][] = '_subscriptions_user_suspend_form_submit';
-  return $form;
 }
 
 /**
@@ -513,10 +518,10 @@ function _subscriptions_user_suspend_form_submit(array $form, array &$form_state
  * @param bool $suspended
  */
 function _subscriptions_suspended_alert($uid, $suspended) {
-  $path2 = url("user/$uid/subscriptions/overview", array('fragment' => 'subscriptions-user-suspend-form'));
+  $path2 = url("user/$uid/subscriptions/overview", array('fragment' => 'edit-suspend'));
   switch ($suspended) {
     case 2:
-      $msg = t('Your subscriptions have been suspended because your e-mail address does not work anymore!');
+      $msg = t('Your subscriptions have been suspended because your e-mail address did not work anymore!');
       if (!(arg(0) == 'user' && arg(1) == $uid && arg(2) == 'edit')) {
         drupal_set_message($msg . '<br />' . t('Please go <a href="@path1">here</a> to update your e-mail address and then <a href="@path2">here</a> to resume delivery of your notifications.', array('@path1' => url("user/$uid/edit"), '@path2' => $path2)), 'error', FALSE);
       }

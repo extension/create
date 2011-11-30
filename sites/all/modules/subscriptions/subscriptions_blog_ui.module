@@ -50,7 +50,7 @@ function _subscriptions_blog_ui_types() {
       'title' => t('Subscribe to blogs'),
     ),
     'page' => 'subscriptions_blog_ui_page_blog',
-    'fields' => array('blog', 'author_uid'),
+    'fields' => array('node', 'type'),
     'weight' => -3,
   );
   return $types;

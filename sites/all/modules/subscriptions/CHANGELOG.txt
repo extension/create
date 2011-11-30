@@ -3,6 +3,9 @@ CHANGELOG for Subscriptions 1.x for Drupal 7
 
 
 subscriptions 7.x-1.x-dev:
+  - Fix inability to save blog subscriptions.
+  - Fix crash caused by empty user subscriptions form.
+  - #1331670: Fix suspend subscription sub-form.
 
 
 subscriptions 7.x-1.0-alpha6 (2011-10-30):
