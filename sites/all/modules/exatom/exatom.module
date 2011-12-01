@@ -1,12 +1,13 @@
 <?php
 /**
  * @file
- * exatom - spewing content on request.
+ * exatom - feeds for publishing content
  *
  * @package exatom 
- * @version 0.1
- * @author James E. Robinson, III <james.robinson@extension.org>
- * @copyright North Carolina State University 2010
+ * @version 0.2
+ * @author Jason Adam Young <jason.young@extension.org>
+ * @copyright North Carolina State University 2010-2011
+ * @author Based on work by James E. Robinson, III, formerly of eXtension
  * @author Based, in part, on work by David Kent Norman and Kristjan Jansen
  */
 
@@ -167,8 +168,11 @@ function _exatom_print_feed(array $nids, array $feed_info) {
     $item_text = '';
     $links = '';
     $extra = array();
-    
-    $node->link = url("node/$node->nid", array('absolute' => TRUE));
+
+    # lie that the first is already an alias so that it won't resolve node/nid to /editor-created-alias
+    $node->link = url("node/$node->nid", array('absolute' => TRUE,'alias' => TRUE));
+    $node->alias = url("node/$node->nid", array('absolute' => TRUE));
+
 
     if (property_exists($node, 'unpublished') and $node->unpublished) {
       $item_text .= 'unpublished';
@@ -263,6 +267,7 @@ function _exatom_print_feed(array $nids, array $feed_info) {
     $output .= theme('exatom_feed_item',
                      array('title' => $node->title, 
                            'link' => $node->link,
+                           'alias' => $node->alias,
                            'item' => $item,
                            'extra' => $extra));
   }
@@ -328,7 +333,7 @@ function theme_exatom_feed_item($variables) {
           . check_plain($variables['item']['id'])
           . "</id>\n";
   $output .= '    <link rel="alternate" type="text/html" href="'
-          . check_plain($variables['link'])
+          . check_plain($variables['alias'])
           . '" />' . "\n";
   $output .= "    <published>"
           . gmdate(DATE_ATOM, $variables['item']['published'])
