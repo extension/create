@@ -642,6 +642,9 @@ article .comment > footer{
 
 .group-filters .views-exposed-form .views-exposed-widget{
 	margin-right: 23px;
+	margin-top: 45px;
+	width: 400px;
+	float: none;
 }
 
 .group-filters .views-exposed-form .views-exposed-widget > label{
@@ -668,8 +671,8 @@ article .comment > footer{
 }
 
 .views-widget-filter-field_appraisal_improvements_date .views-widget > div{
-	width: 500px;
-	/* float: left; */
+	width: 200px;
+	float: left;
 }
 
 
