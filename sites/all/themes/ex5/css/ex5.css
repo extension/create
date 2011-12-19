@@ -668,8 +668,8 @@ article .comment > footer{
 }
 
 .views-widget-filter-field_appraisal_improvements_date .views-widget > div{
-	width: 200px;
-	float: left;
+	width: 500px;
+	/* float: left; */
 }
 
 
