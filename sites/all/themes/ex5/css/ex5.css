@@ -633,7 +633,7 @@ article .comment > footer{
 
 
 .group-filters .views-exposed-form{
-	padding-top: 20px;
+	padding-top: 5px;
 	padding-bottom: 20px;
 	border-top: 1px solid #ccc;
 	border-bottom: 1px solid #ccc;
@@ -675,8 +675,15 @@ article .comment > footer{
 	float: left;
 }
 
+.container-inline-date{
+	clear: none;
+	float: left;
+}
 
-
+.views-result-count{
+	margin-bottom: 15px;
+	color: #aaa;
+}
 
 
 /* Dashboard panels
