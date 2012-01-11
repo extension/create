@@ -3,10 +3,25 @@ CHANGELOG for Subscriptions 1.x for Drupal 7
 
 
 subscriptions 7.x-1.x-dev:
+
+
+subscriptions 7.x-1.0-beta2 (2012-01-07):
+  - Fix minor string error.
+  - #1378692: Fix direct unsubscribe link not working.
+  - #1370820: Fix path element offsets that were broken by #1253846.
+  - Move the 'Overview' subtab into the first position on the 'User defaults' tab.
+  - #1369146: Fix the [Purge the queue] button.
+  - #1367768: Avoid passing an inacceptable NULL to an array parameter.
+
+
+subscriptions 7.x-1.0-beta1 (2011-12-11):
+  - #1253846: Move the configuration pages to admin/config/system/subscriptions.
+  - #1327376: Implement digest mode.
+  - Use content type names rather than machine names for the template descriptions.
+  - #1358634 by rbayliss: Fix double-escaped node type in node subscribe form.
   - Fix inability to save blog subscriptions.
   - Fix crash caused by empty user subscriptions form.
   - #1331670: Fix suspend subscription sub-form.
-
 
 subscriptions 7.x-1.0-alpha6 (2011-10-30):
   - Fix [subs:forum] token.
@@ -29,7 +44,6 @@ subscriptions 7.x-1.0-alpha6 (2011-10-30):
   - #1305520: Fix missing column in pre-existing {mail_edit} table.
   - #1305792: Fix inability to save user settings.
   - #1304258: Fix deprecated call-time pass-by-reference typo.
-
 
 subscriptions 7.x-1.0-alpha5 (2011-10-08):
   - MAJOR OVERHAUL:

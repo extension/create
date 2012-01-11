@@ -53,7 +53,7 @@ function media_flickr_add($form, &$form_state = array(), $redirect = NULL) {
     ':uri' => 'flickr%%'
   ))->fetchAll();
 
-  module_load_include('inc', 'media_flickr', 'media_flickr.utilities');
+  module_load_include('inc', 'media_flickr', 'includes/media_flickr.utilities');
 
   foreach ($results as $result) {
     $file = file_load($result->fid);
@@ -124,7 +124,7 @@ function media_flickr_add_submit($form, &$form_state) {
   file_save($file);
 
   if ($file) {
-    $form_state['redirect'] = 'media/' . $file->fid . '/edit';
+    $form_state['redirect'] = 'file/' . $file->fid . '/edit';
     field_attach_submit('media', $file, $form, $form_state);
     // Make a copy of the file object to use as the media object
     // (file is a field of media and the base table). This is weird.
@@ -139,5 +139,5 @@ function media_flickr_add_submit($form, &$form_state) {
     drupal_set_message(t('An error occurred and no file was saved.'), 'error');
   }
 
-  $form_state['redirect'] = !empty($form_state['values']['redirect']) ? $form_state['values']['redirect'] : 'media/' . $file->fid . '/edit';
+  $form_state['redirect'] = !empty($form_state['values']['redirect']) ? $form_state['values']['redirect'] : 'file/' . $file->fid . '/edit';
 }

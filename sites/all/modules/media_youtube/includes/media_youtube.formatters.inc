@@ -15,6 +15,7 @@ function media_youtube_file_formatter_info() {
       'width' => media_youtube_variable_get('width'),
       'height' => media_youtube_variable_get('height'),
       'autoplay' => media_youtube_variable_get('autoplay'),
+      'related' => media_youtube_variable_get('related'),
     ),
     'view callback' => 'media_youtube_file_formatter_video_view',
     'settings callback' => 'media_youtube_file_formatter_video_settings',
@@ -42,7 +43,7 @@ function media_youtube_file_formatter_video_view($file, $display, $langcode) {
       '#theme' => 'media_youtube_video',
       '#uri' => $file->uri,
     );
-    foreach (array('width', 'height', 'autoplay') as $setting) {
+    foreach (array('width', 'height', 'autoplay', 'related') as $setting) {
       $element['#' . $setting] = isset($file->override[$setting]) ? $file->override[$setting] : $display['settings'][$setting];
     }
     return $element;
@@ -68,6 +69,11 @@ function media_youtube_file_formatter_video_settings($form, &$form_state, $setti
     '#title' => t('Autoplay'),
     '#type' => 'checkbox',
     '#default_value' => $settings['autoplay'],
+  );
+  $element['related'] = array(
+    '#title' => t('Show suggested videos when the video finishes'),
+    '#type' => 'checkbox',
+    '#default_value' => $settings['related'],
   );
   return $element;
 }

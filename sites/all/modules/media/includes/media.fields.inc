@@ -77,21 +77,6 @@ function media_field_widget_settings_form($field, $instance) {
   $settings = $widget['settings'];
   $form = array();
 
-  if ($field['type'] == 'media') {
-    // Make the extension list a little more human-friendly by comma-separation.
-    $extensions = str_replace(' ', ', ', $instance['settings']['file_extensions']);
-    $form['file_extensions'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Allowed file extensions for uploaded files'),
-      '#default_value' => $extensions,
-      '#description' => t('Separate extensions with a space or comma and do not include the leading dot.'),
-      '#element_validate' => array('_file_generic_settings_extensions'),
-      // By making this field required, we prevent a potential security issue
-      // that would allow files of any type to be uploaded.
-      '#required' => TRUE,
-    );
-  }
-
   // Setup type selection form
   $types = media_type_get_types();
   $options = array();
@@ -178,7 +163,7 @@ function media_field_widget_form(&$form, &$form_state, $field, $instance, $langc
         'file_directory' => isset($field_settings['file_directory']) ? $field_settings['file_directory'] : NULL,
         'file_extensions' => isset($field_settings['file_extensions']) ? $field_settings['file_extensions'] : media_variable_get('file_extensions'),
         'max_filesize' => isset($field_settings['max_filesize']) ? $field_settings['max_filesize'] : NULL,
-        'uri_scheme' => !empty($field_settings['uri_scheme']) ? $field_settings['uri_scheme'] : file_default_scheme(),
+        'uri_scheme' => !empty($field['settings']['uri_scheme']) ? $field['settings']['uri_scheme'] : file_default_scheme(),
       ),
     ),
   );

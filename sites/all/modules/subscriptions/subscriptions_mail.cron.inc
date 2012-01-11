@@ -32,7 +32,7 @@ function _subscriptions_mail_cron() {
   if ($usable_seconds <= 0) {
     $variables = array(
       '!Module' => 'Subscriptions',
-      '@link'   => url('admin/config/subscriptions', array('fragment' => 'edit-subscriptions-cron-percent')),
+      '@link'   => url(SUBSCRIPTIONS_CONFIG_PATH, array('fragment' => 'edit-subscriptions-cron-percent')),
     );
     $watchdog = 'watchdog';  // keep potx from translating 'cron'
     if ($usable_seconds == 0) {
@@ -55,7 +55,7 @@ function _subscriptions_mail_cron() {
     drupal_save_session(FALSE);
     $user = user_load($queue_item['uid']);
     $lang_code = $language->language;
-    $digest_data = array();
+    $digest_data = array('subs' => array('type' => 'digest'));
 
     do {  // once and repeat while adding to a digest
       if ($user->status && $user->access) {
@@ -96,20 +96,10 @@ function _subscriptions_mail_cron() {
           $data_function($data, $object, $queue_item);
           drupal_alter('subscriptions_data', $data, $object, $queue_item);
           //mail_edit_format($values['subscriptions_comment_body'], $data + array('comment' => $comment), array('language' => $language));
-          if ($digest && !empty($object->_subscriptions_comments) && module_exists('subscriptions_content')) {
-            $digest_comment_template = subscriptions_mail_template_load($mailmod, SUBSCRIPTIONS_DIGEST_MAILKEY . '+comment', $lang_code, 'body', 'DITEMCMT');
-            $data['subs:comments'] = subscriptions_content_format_comments($object, $digest_comment_template, '');
-          }
+
           if ($digest) {
-            $digest_data['bodies'][] = $body;
-            $digest_data['send'] = array(
-              'name' => $queue_item['name'],
-              'mail' => $queue_item['mail'],
-              'from' => $from,
-              '!name' => $mailvars['!name'],
-              '!manage_url' => $mailvars['!manage_url'],
-            );
-            $digest_data['send_intervals'][$queue_item['send_interval']] = $queue_item['send_interval'];
+            $digest_data = subscriptions_mail_digest_add_item($digest_data, $mailmod, $mailkey, $data, $user);
+            $digest_data['subs']['send_intervals'][$queue_item['send_interval']] = $queue_item['send_interval'];
           }
           else {
             (_subscriptions_mail_send($mailmod, $mailkey, $queue_item['name'], $queue_item['mail'], $from, $queue_item['uid'], array($queue_item['send_interval']), $data)
@@ -129,30 +119,11 @@ function _subscriptions_mail_cron() {
         $result = db_query_range('SELECT * FROM {subscriptions_queue} WHERE uid = :uid AND last_sent + send_interval < :send_interval ORDER BY sqid', 0, 1, array(':uid' => $user->uid, ':send_interval' => time()));
         if (!($queue_item = $result->fetchAssoc())) {
           // No more ready queue items for this user, finish off this digest.
-          $queue_item = $digest_data['send'];
-          $subject_template = subscriptions_mail_template_load($mailmod, SUBSCRIPTIONS_DIGEST_MAILKEY, $lang_code, 'subject', 'DSUBJ');
-          $body_template = subscriptions_mail_template_load($mailmod, SUBSCRIPTIONS_DIGEST_MAILKEY, $lang_code, 'body', 'DBODY');
-          $separator = subscriptions_mail_template_load($mailmod, SUBSCRIPTIONS_DIGEST_MAILKEY . '+item', $lang_code, 'subject', 'SEP');
-          $mailvars['!bodies'] = implode($separator, $digest_data['bodies']);
-          $mailvars['!name'] = $queue_item['!name'];
-          $mailvars['!manage_url'] = $queue_item['!manage_url'];
-          $digest_data['mailvars'] = $mailvars;
-          foreach (module_implements('subscriptions_digest_alter') as $module) {
-            $function = $module . '_subscriptions_digest_alter';
-            $function($digest_data);
-            if (empty($digest_data)) {
-              break;  // forget it
-            }
-          }
-          if (!empty($digest_data)) {
-            $mailvars = $digest_data['mailvars'];
-            $subject = strtr($subject_template, $mailvars);
-            $body = strtr($body_template, $mailvars);
-            (_subscriptions_mail_send($mailmod, SUBSCRIPTIONS_DIGEST_MAILKEY, $queue_item['name'], $queue_item['mail'], $subject, $body, $queue_item['from'], $user->uid, $digest_data['send_intervals'], $data)
-              ? ++$digest_count
-              : ++$digest_failed);
-          }
+          (_subscriptions_mail_send($mailmod, SUBSCRIPTIONS_DIGEST_MAILKEY, $digest_data['subs']['name'], $digest_data['subs']['mail'], $from, $digest_data['subs']['uid'], $digest_data['subs']['send_intervals'], $digest_data)
+            ? ++$digest_count
+            : ++$digest_failed);
           $digest = FALSE;
+          $digest_data = array('subs' => array('type' => 'digest'));
         }
       }
     } while (!empty($digest));
@@ -187,10 +158,74 @@ function _subscriptions_mail_cron() {
     else {
       $message = t('!Module sent !single_count single and !digest_count digest notifications in !used_seconds of !total_seconds seconds.', $variables);
     }
-    $message .= ' ' . t('!remaining_items queue items remaining (plus !suspended_items suspended), !remaining_seconds seconds left for other @cron client modules.', $variables);
+    $message .= ' ' . t('!remaining_items queue items remaining (plus !suspended_items suspended), !remaining_seconds seconds left for other !cron client modules.', $variables);
     $watchdog = 'watchdog'; // keep potx from translating 'cron'
     $watchdog('cron', $message);
   }
+}
+
+/**
+ * Formats an item and adds it to the digest data.
+ *
+ * @param array $digest_data
+ * @param string $mailmod
+ * @param string $mailkey
+ * @param array $data
+ * @param object $user
+ *
+ * @return array
+ *   The updated $digest_data array.
+ */
+function subscriptions_mail_digest_add_item($digest_data, $mailmod, $mailkey, $data, $user) {
+  $params = array(
+    'data' => $data,
+    'account' => $user,
+    'object' => NULL,
+    'context' => array(
+      'mail_edit' => 'DIGEST',
+    ),
+  );
+
+  // This code is adapted from drupal_mail() and simulates mailing the item.
+  // We probably need to provide all data in order to not surprise any
+  // third-party module that implements hook_mail() or hook_mail_alter().
+  $message = array(
+    'id'       => $mailmod . '_' . $mailkey,
+    'module'   => $mailmod,
+    'key'      => $mailkey,
+    'to'       => '',
+    'from'     => '', //isset($from) ? $from : $default_from,
+    'language' => user_preferred_language($user),
+    'params'   => $params,
+    'subject'  => '',
+    'body'     => array()
+  );
+  $headers = array(
+    'MIME-Version'              => '1.0',
+    'Content-Type'              => 'text/plain; charset=UTF-8; format=flowed; delsp=yes',
+    'Content-Transfer-Encoding' => '8Bit',
+    'X-Mailer'                  => 'Drupal'
+  );
+  $headers['From'] = $headers['Sender'] = $headers['Return-Path'] = variable_get('site_mail', ini_get('sendmail_from'));
+  $message['headers'] = $headers;
+  if (function_exists($function = $mailmod . '_mail')) {
+    $function($mailkey, $message, $params);
+  }
+
+  // Invoke hook_mail_alter() to allow all modules to alter the resulting e-mail.
+  drupal_alter('mail', $message);
+
+  // Save the formatted body and return the modified $data.
+  $data['subs']['formatted_item'] = $message['body'][0];
+  $item_data = $data;
+
+  $digest_data['subs']['items'][] = $item_data;
+  $digest_data['subs'] += array(
+    'name' => $item_data['subs']['name'],
+    'mail' => $item_data['subs']['mail'],
+    'uid' => $item_data['subs']['uid'],
+  );
+  return $digest_data;
 }
 
 /**
@@ -236,9 +271,6 @@ function _subscriptions_mail_send($module, $mailkey, $name, $to, $from, $uid, $s
     'data' => $data,
     'account' => $user,
     'object' => NULL,
-    'context' => array(
-      'recipient' => $to,
-    ),
   ), $from, TRUE);
 
   $watchdog_params = array('%name' => $name, '!address' => "<a href='mailto:$to'>$to</a>");

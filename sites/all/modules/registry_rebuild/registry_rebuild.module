@@ -1,0 +1,9 @@
+<?php
+/**
+ * @file registry_rebuild.module
+ * This isn't really a module but pretends to be one so that the packaging system can deliver it.
+ */
+
+function registry_rebuild_enable() {
+  drupal_set_message(t("Enabling Registry Rebuild doesn't do anything except perhaps make the drush command available. And if you are able to enable modules, you don't really need Registry Rebuild. Please see the instructions at http://drupal.org/project/registry_rebuild"));
+}

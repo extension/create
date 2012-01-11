@@ -7,6 +7,8 @@
 
 /**
  * Implements hook_mailkeys().
+ *
+ * @return array
  */
 function user_mailkeys() {
   return array(
@@ -24,6 +26,11 @@ function user_mailkeys() {
 
 /**
  * Implements hook_mail_edit_text().
+ *
+ * @param string $mailkey
+ * @param object $language
+ *
+ * @return array
  */
 function user_mail_edit_text($mailkey, $language) {
   $return = array();
@@ -34,6 +41,10 @@ function user_mail_edit_text($mailkey, $language) {
 
 /**
  * Implements hook_mail_edit_token_types().
+ *
+ * @param string $mailkey
+ *
+ * @return array
  */
 function user_mail_edit_token_types($mailkey)
 {

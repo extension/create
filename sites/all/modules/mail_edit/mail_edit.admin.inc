@@ -37,11 +37,11 @@ function mail_edit_list() {
 /**
  * Filter the mail_edit table.
  *
- * @param $languages_selected array
+ * @param array $languages_selected
  *   The list of selected langauges.
- * @param $module
+ * @param string $module
  *   The selected module option.
- * @param $language_list array
+ * @param array $language_list
  *   The list of known languages.
  *
  * @return array
@@ -98,11 +98,11 @@ function mail_edit_list_filter(array $languages_selected, $module, array $langua
 /**
  * Create $form array with filtered list.
  *
- * @param $languages_selected array
+ * @param array $languages_selected
  *   The list of selected languages.
- * @param $module
+ * @param string $module
  *   The module option to restrict the list with.
- * @param $display_language_names bool
+ * @param bool $display_language_names
  *   Whether to display the language names.
  *
  * @return array
@@ -277,7 +277,7 @@ function theme_mail_edit_list_filter($variables) {
 /**
  * The theme function for the mail_edit table.
  *
- * @param $variables
+ * @param array $variables
  * @return string
  *
  * @ingroup themeable
@@ -317,6 +317,7 @@ function theme_mail_edit_table($variables) {
  *
  * @param bool $all
  *   Return all modules if TRUE, or only enabled ones otherwise.
+ *
  * @return array
  */
 function _mail_edit_module_list($all = FALSE) {
@@ -344,17 +345,18 @@ function _mail_edit_module_list($all = FALSE) {
 /**
  * Form builder function to prepare the template edit form.
  *
- * @param $form
- * @param $form_state
- * @param $id
- * @param $lang
+ * @param array $form
+ * @param array $form_state
+ * @param string $id
+ * @param string $lang
+ *
  * @return array
  */
-function mail_edit_template_form($form, $form_state, $id, $lang) {
+function mail_edit_template_form(array $form, array $form_state, $id, $lang) {
   _mail_edit_include();
   _mail_edit_module_load_include('alter.inc');
   $template = _mail_edit_load($id, $lang, TRUE);
-  $new = !empty($template->default);
+  $new = !empty($template['default']);
 
   $language_list = mail_edit_language_list();
   $variables = array('%mailkey' => $template['type']['mailkey'], '%language' => $language_list[$lang]);
@@ -400,10 +402,10 @@ function mail_edit_template_form($form, $form_state, $id, $lang) {
     '#weight' => 10,
   );
   if (!$new) {
-    $form['delete'] = array(
+    $form['remove'] = array(
       '#type'   => 'submit',
-      '#value'  => t('Remove @language translation', array('@language' => $language_list[$lang])),
-      '#submit' => array('mail_edit_template_form_delete'),
+      '#value'  => (count($language_list) > 1 ? t('Remove @language template', array('@language' => $language_list[$lang])) : t('Remove template')),
+      '#submit' => array('mail_edit_template_form_remove'),
       '#weight' => 20,
     );
   }
@@ -420,6 +422,7 @@ function mail_edit_template_form($form, $form_state, $id, $lang) {
  * @param array $template
  *   An array with optional 'subject' and 'body' keys, containing the current
  *   subject and body strings.
+ *
  * @return array
  */
 function mail_edit_template_subform($template){
@@ -432,9 +435,10 @@ function mail_edit_template_subform($template){
   if (isset($template['subject'])) {
     $form['subject'] = array(
       '#title'         => t('Subject'),
-      '#type'          => 'textfield',
+      '#type'          => 'textarea',
       '#default_value' => $template['subject'],
-      '#size'          => 100,
+      '#rows'          => 1,
+      '#description'   => t("Subject must expand into a single line; it's a multiline field for editing convenience only.")
     );
   }
   if (isset($template['body'])) {
@@ -507,36 +511,79 @@ function mail_edit_template_subform($template){
 }
 
 /**
- * Submit handler to delete a template from the template edit form.
+ * Submit handler to remove a template.
  *
- * @param $form
- * @param $form_state
- * @return void
+ * @param array $form
+ * @param array $form_state
  */
-function mail_edit_template_form_delete($form, &$form_state) {
+function mail_edit_template_form_remove(array $form, array &$form_state) {
+  $form_state['redirect'] = array($_GET['q'] . '/remove');
+}
+
+/**
+ * Asks for confirmation of template removal.
+ *
+ * @param array $form
+ * @param array $form_state
+ * @param string $id
+ * @param string $lang_code
+ *
+ * @return array
+ */
+function mail_edit_template_remove_confirm(array $form, array &$form_state, $id, $lang_code) {
+  $form['id'] = array(
+    '#type' => 'hidden',
+    '#value' => $id,
+  );
+  $form['lang_code'] = array(
+    '#type' => 'hidden',
+    '#value' => $lang_code,
+  );
+  $args = explode('/', $_GET['q']);
+  array_pop($args);
+  $path = implode('/', $args);
+  return confirm_form($form, t('Are you sure you want to remove the %mailkey template?', array('%mailkey' => "$id/$lang_code")), $path, NULL, t('Remove'));
+}
+
+/**
+ * Executes the template removal.
+ *
+ * @param array $form
+ * @param array $form_state
+ */
+function mail_edit_template_remove_confirm_submit(array $form, array &$form_state) {
+  $form_values = $form_state['values'];
   $success = db_delete('mail_edit')
-    ->condition('id', $form_state['values']['id'])
-    ->condition('language', $form_state['values']['language'])
+    ->condition('id', $id = $form_values['id'])
+    ->condition('language', $lang_code = $form_values['lang_code'])
     ->execute();
   $language_list = mail_edit_language_list();
   $variables = array(
-    '%language' => $language_list[$form_state['values']['language']],
-    '%id' => $form_state['values']['id'],
+    '%id' => $id,
+    '%language' => $language_list[$lang_code],
   );
-  drupal_set_message(t($success
-    ? '%language translation of %id has been removed.'
-    : 'Failed to remove %language translation of %id.', $variables));
+  if (count($language_list) > 1) {
+    drupal_set_message(t($success
+      ? '%language translation of %id has been removed.'
+      : 'Failed to remove %language translation of %id.', $variables));
+  }
+  else {
+    drupal_set_message(t($success
+      ? 'Template %id has been removed.'
+      : 'Failed to remove the %id template.', $variables));
+  }
   $form_state['redirect'] = 'admin/config/system/mail-edit';
 }
 
 /**
  * Submit handler to save the template edit form.
  *
- * @param $form
- * @param $form_state
+ * @param array $form
+ * @param array $form_state
+ *
  * @return void
  */
-function mail_edit_template_form_save($form, &$form_state) {
+function mail_edit_template_form_save(array $form, array &$form_state) {
   $values = $form_state['values'];
   $success = drupal_write_record('mail_edit', $values, $values['update'] ? array('id', 'language') : array());
   $language_list = mail_edit_language_list();
@@ -551,7 +598,7 @@ function mail_edit_template_form_save($form, &$form_state) {
  * Builds the registry of exposed mailkeys, keeps track of which module
  * exposed them.
  *
- * @return unknown
+ * @return void
  */
 function _mail_edit_key_registry_rebuild() {
   // Fetch exposed mailkeys.
@@ -610,11 +657,11 @@ function mail_edit_language_list() {
 /**
  * Page callback for purging a mail template.
  *
- * @param $form array
- * @param $form_state array
- * @param $mailkey
+ * @param array $form
+ * @param array $form_state
+ * @param string $mailkey
  *
- * @return string
+ * @return array
  */
 function mail_edit_purge_mailkey(array $form, array $form_state, $mailkey) {
   $form['mailkey'] = array(
@@ -627,10 +674,12 @@ function mail_edit_purge_mailkey(array $form, array $form_state, $mailkey) {
 /**
  * Submit handler for purging a mail template.
  *
- * @param $form
- * @param $form_state
+ * @param array $form
+ * @param array $form_state
+ *
+ * @return void
  */
-function mail_edit_purge_mailkey_submit($form, &$form_state) {
+function mail_edit_purge_mailkey_submit(array $form, array &$form_state) {
   $id = $form_state['values']['mailkey'];
   db_delete('mail_edit')
     ->condition('id', $id)
@@ -648,9 +697,9 @@ function mail_edit_purge_mailkey_submit($form, &$form_state) {
  *
  * Removes templates when a module is uninstalled.
  *
- * @param $modules
+ * @param array $modules
  */
-function _mail_edit_modules_uninstalled($modules) {
+function _mail_edit_modules_uninstalled(array $modules) {
   $templates = db_select('mail_edit_registry', 'mer')
     ->fields('mer')
     ->condition('mer.module', $modules, 'IN')

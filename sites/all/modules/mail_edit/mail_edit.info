@@ -2,12 +2,12 @@ name = Mail Editor
 description = Allows editing of e-mail templates.
 core = 7.x
 
-configure = admin/config/system/mail_edit
+configure = admin/config/system/mail-edit
 
 
-; Information added by drupal.org packaging script on 2011-10-04
-version = "7.x-1.0-alpha2"
+; Information added by drupal.org packaging script on 2011-12-05
+version = "7.x-1.0-beta2"
 core = "7.x"
 project = "mail_edit"
-datestamp = "1317694608"
+datestamp = "1323076245"
 

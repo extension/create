@@ -161,7 +161,7 @@ function _subscriptions_taxonomy_types() {
 /**
  * Implements hook_form_alter().
  *
- * Adds the Taxonomy Settings part to admin/config/subscriptions.
+ * Adds the Taxonomy Settings part to SUBSCRIPTIONS_CONFIG_PATH.
  *
  * @param array $form
  * @param array $form_state

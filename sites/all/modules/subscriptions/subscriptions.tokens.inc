@@ -11,12 +11,18 @@
  * @return array
  */
 function subscriptions_token_info() {
+  $variables = array('%TYPE' => 'TYPE', '!TYPE' => 'TYPE');
   $info = array(
     'types' => array(
       'subs' => array(
         'name' => t('Subscriptions information'),
         'description' => t('Tokens related to the %Subscriptions module.', array('%Subscriptions' => 'Subscriptions')),
         'needs-data' => 'subs',
+      ),
+      'subs_item' => array(
+        'name' => t('Subscriptions item'),
+        'description' => t('Tokens related to the %Subscriptions module for building a digest.', array('%Subscriptions' => 'Subscriptions')),
+        'needs-data' => 'subs_item',
       ),
     ),
     'tokens' => array(
@@ -63,7 +69,8 @@ function subscriptions_token_info() {
         ),
         'items' => array(
           'name' => t('Digest Items'),
-          'description' => t('The array of formatted items to send to one recipient (for inclusion in a digest).'),
+          'description' => t('The array of formatted items to send to one recipient (for building a digest).'),
+          'type' => 'list<subs_item>',
         ),
         'subs-module' => array(
           'name' => t('Subscription module'),
@@ -90,6 +97,25 @@ function subscriptions_token_info() {
            'dynamic' => TRUE,
          ),
        ),
+      'subs_item' => array(
+        'as-TYPE' => array(
+          'name' => t('Cast to %TYPE', $variables),
+          'description' => t("Makes the !TYPE  tokens available for use (e.g. '!example').", $variables + array('!example' => 'as-node:?')),
+        ),
+        'is-TYPE' => array(
+          'name' => t('Is %TYPE', $variables),
+          'description' => t("Whether the item is of type !TYPE (e.g. '!example').", $variables + array('!example' => 'is-node')),
+        ),
+        'formatted' => array(
+          'name' => t('Formatted'),
+          'description' => t("Formatted string representation of the item, processed by its own template in the !DIGEST context.", $variables + array('!DIGEST' => 'DIGEST')),
+        ),
+        'subs' => array(
+          'name' => t('Item information'),
+          'description' => t('The Subscriptions information of the digest item.'),
+          'type' => 'subs',
+        ),
+      ),
     ),
   );
   return $info;
@@ -159,12 +185,42 @@ function subscriptions_tokens($type, array $tokens, array $data = array(), array
     if (isset($data['node']->forum_tid) && ($forum_tokens = token_find_with_prefix($tokens, 'forum'))) {
       $replacements += token_generate('term', $forum_tokens, array('term' => taxonomy_term_load($data['node']->forum_tid)), $options);
     }
+    if (isset($data['subs']['items']) && ($items_tokens = token_find_with_prefix($tokens, 'items'))) {
+      $replacements += token_generate('list<subs_item>', $items_tokens, array('list<subs_item>' => $data['subs']['items']), $options);
+    }
+  }
+
+  // subs_item tokens.
+  if ($type == 'subs_item' && isset($data['subs_item'])) {
+    foreach ($tokens as $name => $original) {
+      if ($name == ':' || $name == 'formatted') {
+        // Plain [subs:item:?] token: return the formatted item.
+        $replacements[$original] = $data['subs_item']['subs']['formatted_item'];
+      }
+      elseif (($subs_tokens = token_find_with_prefix($tokens, 'subs')) && !empty($data['subs_item']['subs']) && is_array($data['subs_item']['subs'])) {
+        // Return the Subscriptions information of the item.
+        $replacements += token_generate('subs', $subs_tokens, $data['subs_item'], $options);
+      }
+      elseif (preg_match('/is-([a-z_]*)/', $name, $match) && !in_array($xtype = $match[1], array('new', 'updated', 'old', 'published'))) {
+        // Type query, like 'is-node': verify directly.
+        $replacements[$original] = !empty($data['subs_item'][$xtype]) && is_object($data['subs_item'][$xtype]);
+      }
+      elseif (preg_match('/as-([a-z_]*)/', $name, $match)) {
+        $xtype = $match[1];
+        if (($xtype_tokens = token_find_with_prefix($tokens, "as-$xtype")) && !empty($data['subs_item'][$xtype]) && is_object($data['subs_item'][$xtype])) {
+          // Cast, like 'as-node': pass on as the detected type.
+          $replacements += token_generate($xtype, $xtype_tokens, $data['subs_item'], $options);
+        }
+      }
+      else {
+      }
+    }
   }
 
   // List<TYPE> tokens.
   // We've tried to contribute this code to Token module, see
   // http://drupal.org/node/1195874#comment-5070144
-  if (preg_match('/list<([a-z]*)>/', $type, $match) && !empty($data[$type]) && is_array($data[$type])) {
+  if (preg_match('/list<([a-z_]*)>/', $type, $match) && !empty($data[$type]) && is_array($data[$type])) {
     $array_type = $type;
     $element_type = $match[1];
     $array = $data[$array_type];
@@ -173,7 +229,7 @@ function subscriptions_tokens($type, array $tokens, array $data = array(), array
     $keys = element_children($array, $sort);
 
     foreach ($tokens as $name => $original) {
-      if ($name === 0) {
+      if ($name == ':') {
         // Plain [list<>] token.
         switch ($element_type) {
           case 'term':
@@ -219,7 +275,7 @@ function subscriptions_tokens($type, array $tokens, array $data = array(), array
       $tokss = array();
       foreach ($value_tokens as $key => $original) {
         $k = strtok($key, ':');
-        $tokss[$k][substr($key, strlen($k) + 1)] = $original;
+        $tokss[$k][($k == $key ? ':' : substr($key, strlen($k) + 1))] = $original;
       }
       foreach ($tokss as $key => $toks) {
         if ($key[0] !== '#' && isset($array[$key])) {
@@ -255,8 +311,12 @@ function subscriptions_tokens($type, array $tokens, array $data = array(), array
 
     // [list<>:join:?] dynamic tokens.
     if ($join_tokens = token_find_with_prefix($tokens, 'join')) {
+      $formatted = array();
+      foreach ($array as $item) {
+        $formatted[] = (is_string($item) ? $item : current(token_generate($element_type, array(':'), array($element_type => $item), array('sanitize' => FALSE) + $options)));
+      }
       foreach ($join_tokens as $join => $original) {
-        $replacements[$original] = token_render_array($array, array('join' => $join) + $options);
+        $replacements[$original] = token_render_array($formatted, array('join' => $join) + $options);
       }
     }
 
@@ -309,7 +369,7 @@ function subscriptions_token_info_alter(array &$data) {
   $list_types = array();
   foreach ($data['tokens'] as $group => $tokens) {
     foreach ($tokens as $token) {
-      if (isset($token['type']) && preg_match('/list<([a-z]*)>/', $token['type'], $match)) {
+      if (isset($token['type']) && preg_match('/list<([a-z_]*)>/', $token['type'], $match)) {
         $list_types[$match[1]] = $match[0];
       }
     }
@@ -342,4 +402,3 @@ function subscriptions_token_info_alter(array &$data) {
 
   //dpm($data, "AFT subscriptions_content_token_info_alter");
 }
-
