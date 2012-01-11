@@ -19,6 +19,7 @@ function media_youtube_preprocess_media_youtube_video(&$variables) {
   $variables['width'] = isset($variables['width']) ? $variables['width'] : media_youtube_variable_get('width');
   $variables['height'] = isset($variables['height']) ? $variables['height'] : media_youtube_variable_get('height');
   $variables['autoplay'] = isset($variables['autoplay']) ? $variables['autoplay'] : media_youtube_variable_get('autoplay');
+  $variables['related'] = isset($variables['related']) ? $variables['related'] : 1;
   $variables['fullscreen'] = isset($variables['fullscreen']) ? $variables['fullscreen'] : media_youtube_variable_get('fullscreen');
   $variables['autoplay'] = $variables['autoplay'] ? 1 : 0;
   $variables['fullscreen'] = $variables['fullscreen'] ? 'true' : 'false';
@@ -52,6 +53,9 @@ OUTPUT;
     $settings['media_youtube'][$variables['wrapper_id']]['options'] = array(
       'autoplay' => $variables['autoplay'],
     );
+  }
+  if ($variables['related'] === 0) {
+    $settings['media_youtube'][$variables['wrapper_id']]['options']['rel'] = $variables['related'];
   }
   drupal_add_js($settings, 'setting');
   drupal_add_js(drupal_get_path('module', 'media_youtube') . '/js/media_youtube.js');

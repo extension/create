@@ -8,9 +8,9 @@
 /**
  * Loads and returns a template.
  *
- * @param $id
- * @param $language
- * @param $force_always bool
+ * @param string $id
+ * @param string|object $language
+ * @param bool $force_always
  *
  * @return array|null
  */
@@ -65,15 +65,15 @@ function _mail_edit_load($id, $language, $force_always = FALSE) {
 /**
  * Implements hook_mail_alter().
  *
- * @param $message array
+ * @param array $message
  */
-function _mail_edit_mail_alter(&$message) {
+function _mail_edit_mail_alter(array &$message) {
   //dpm($message, "BEFORE mail_edit_mail_alter({$message['id']})");
   if (!$template = _mail_edit_load($message['id'], $message['language'])) {
     return;
   }
 
-  $data = $message['params']['data'];
+  $data = (isset($message['params']['data']) ? $message['params']['data'] : $message['params']);
   $data['template'] = $template;
   if (isset($message['params']['account']) && !isset($data['user'])) {
     $data['user'] = $message['params']['account'];
@@ -86,7 +86,11 @@ function _mail_edit_mail_alter(&$message) {
     $options['callback'] = 'user_mail_tokens';
   }
   $message['subject'] = drupal_html_to_text(mail_edit_format($template['subject'], $data, $options));
-  $body = mail_edit_format($template['body'], $data, $options);
+  $args = array($template['body'], $data, $options);
+  if (isset($message['params']['context']['mail_edit'])) {
+    $args[] = $message['params']['context']['mail_edit'];
+  }
+  $body = call_user_func_array('mail_edit_format', $args);
   // Remove trailing spaces because these may be interpreted as soft line
   // breaks by the email client.
   $message['body'] = array(preg_replace('/ +(\r?\n)/', '\\1', $body));
@@ -101,13 +105,13 @@ function _mail_edit_mail_alter(&$message) {
  * Preprocess a mail template, detecting conditional text
  * that conform to a prescribed syntax.
  *
- * @param $template string
+ * @param string $template
  *  The template for preprocessing.
- * @param $data array
+ * @param array $data
  *  $data parameter for token_replace();
- * @param $options array
+ * @param array $options
  *  $options parameter for token_replace();
- * @param $context string
+ * @param string $context
  *
  * @return string
  *
@@ -123,7 +127,7 @@ function _mail_edit_mail_alter(&$message) {
  * true_text and false_text may contain newlines as well as a nested
  * conditional text (one level of recursion).
  */
-function _mail_edit_preprocess($template, $data, array $options, $context) {
+function _mail_edit_preprocess($template, array $data, array $options, $context) {
   for ($n = 0; $n < 5 && $result = preg_match_all('/{{(?P<condition>[^?#@]+?)(?P<operator>\?|#|@)(?P<text>(({{(({{(({{(({{((.|\n)*?)}}|.|\n)*?)}}|.|\n)*?)}}|.|\n)*?)}}|.|\n)*?))}}/', $template, $clauses); ++$n) {
     //'(?P<text>((               .|\n)*?))';
     //'(?P<text>(({{((.|\n)*?)}}|.|\n)*?))';
@@ -141,7 +145,7 @@ function _mail_edit_preprocess($template, $data, array $options, $context) {
           $template = str_replace($clause, $replacement, $template);
           continue;
         }
-        if (preg_match('/^(?P<operand_1>.*?)\s*(?P<operator>==|!=|\<\>|\>=|\<=|\>|\<)\s*(?P<operand_2>.?)$/', $clauses['condition'][$i], $condition)) {
+        if (preg_match('/^(?P<operand_1>.*?)\s*(?P<operator>==|!=|\<\>|\>=|\<=|\>|\<)\s*(?P<operand_2>.*?)$/', $clauses['condition'][$i], $condition)) {
           $operand1 = token_replace($condition['operand_1'], $data, $options + array('clear' => TRUE));
           $operand2 = token_replace($condition['operand_2'], $data, $options + array('clear' => TRUE));
           switch ($condition['operator']) {
@@ -196,7 +200,7 @@ function _mail_edit_preprocess($template, $data, array $options, $context) {
             }
           }
           elseif ($clauses['operator'][$i] == '@') {
-            $replacement = ($result == $context xor $not ? $clauses['text'][$i] : '');
+            $replacement = ((($result == $context) xor $not) ? $clauses['text'][$i] : '');
           }
         }
       }

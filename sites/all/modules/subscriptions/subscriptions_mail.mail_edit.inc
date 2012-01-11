@@ -87,39 +87,48 @@ function _subscriptions_mail_mail_edit_token_types($mailkey, $options = array())
  * @param array $template
  */
 function _subscriptions_mail_mail_edit_form_extra(array &$form, array &$form_state, $mailkey, array $template) {
-  $form['mail']['body']['#description'] = t('The mail body contains one node of the named type. Recommended tokens: <ul><li>@t1, except for @t2,</li> <li>@t3, @t4, and @t5,</li> <li>!t6, if comments should be included.</li></ul>', array(
-    '@t1' => '[subs:*]',
-    '@t2' => '[subs:nodes]',
-    '@t3' => '[node:*]',
-    '@t4' => '[user:*]',
-    '@t5' => '[current-user:*]',
-    '!t6' => '<code>{{[subs:comments:count]#...[subs:comments:value:#0]...}}</code>',
-  ));
-  if (isset($template['subscriptions_comment_body'])) {
-    $form['mail']['subscriptions_comment_body'] = array(
-      '#title'         => t('Comment'),
-      '#type'          => 'textarea',
-      '#default_value' => $template['subscriptions_comment_body'],
-      '#rows'          => 5,
-      '#description'   => t('This template formats one comment for inclusion in the @Body template above. Recommended tokens:<ul><li>@t1, @t2, @t3, @t4, and @t5, if available,</li> <li>@t6 and @t7.</li></ul>', array(
-        '@Body'        => t('Body'),
-        '@t1'          => '[subs:is-new]',
-        '@t2'          => '[subs:is-updated]',
-        '@t3'          => '[subs:is-published]',
-        '@t4'          => '[subs:type]',
-        '@t5'          => '[subs:files:field_FILES]',
-        '@t6'          => '[comment:*]',
-        '@t7'          => '[comment:author:*]',
-      )),
-      '#weight'        => 5,
-    );
+  if ($mailkey == 'digest') {
+    $form['mail']['body']['#description'] = t('The mail body contains a repeat loop that pulls in multiple items that are ready for sending. Recommended tokens: <ul><li>@t1 and @t2,</li> <li>@t3,</li></ul>', array(
+      '@t1' => '[subs:items]',
+      '@t2' => '[subs:manage-url]',
+      '@t3' => '[current-user:*]',
+    ));
+  }
+  else {
+    $form['mail']['body']['#description'] = t('The mail body contains one node of the named type. Recommended tokens: <ul><li>@t1, except for @t2,</li> <li>@t3, @t4, and @t5,</li> <li>!t6, if comments should be included.</li></ul>', array(
+      '@t1' => '[subs:*]',
+      '@t2' => '[subs:items]',
+      '@t3' => '[node:*]',
+      '@t4' => '[user:*]',
+      '@t5' => '[current-user:*]',
+      '!t6' => '<code>{{[subs:comments:count]#...[subs:comments:value:#0]...}}</code>',
+    ));
+    if (isset($template['subscriptions_comment_body'])) {
+      $form['mail']['subscriptions_comment_body'] = array(
+        '#title'         => t('Comment'),
+        '#type'          => 'textarea',
+        '#default_value' => $template['subscriptions_comment_body'],
+        '#rows'          => 5,
+        '#description'   => t('This template formats one comment for inclusion in the @Body template above. Recommended tokens:<ul><li>@t1, @t2, @t3, @t4, and @t5, if available,</li> <li>@t6 and @t7.</li></ul>', array(
+          '@Body'        => t('Body'),
+          '@t1'          => '[subs:is-new]',
+          '@t2'          => '[subs:is-updated]',
+          '@t3'          => '[subs:is-published]',
+          '@t4'          => '[subs:type]',
+          '@t5'          => '[subs:files:field_FILES]',
+          '@t6'          => '[comment:*]',
+          '@t7'          => '[comment:author:*]',
+        )),
+        '#weight'        => 5,
+      );
+    }
   }
 }
 
 /**
  * Implements hook_form_alter().
  *
- * Adds the digest parts to the subscriptions_mail_digest mail_edit page.
+ * Adds the preview functionality to mail_edit's edit page.
  *
  * @param $form
  * @param $form_state
@@ -178,49 +187,98 @@ function _subscriptions_mail_preview(array $form, array &$form_state) {
  * @return array
  */
 function _subscriptions_mail_preview_form(array $values) {
+  global $user;
+
+  _subscriptions_module_load_include('subscriptions_mail', 'cron.inc');
   $language_list = language_list();
   $language = $language_list[$values['language']];
-  $data = array();
+  $is_digest = $values['id'] == 'subscriptions_mail_digest';
+  $preview_mode = variable_get('subscriptions_preview_mode', 'text');
+  $digest_data = array('subs' => array('type' => 'digest'));
+
   $query = db_select('node', 'n')
-    ->fields('n', array('nid'));
+    ->fields('n', array('nid', 'comment'));
   if (isset($values['content_type'])) {
     $query
       ->condition('type', $values['content_type']);
   }
-  $nid = $query
+  $query
     ->orderBy('n.nid', 'DESC')
-    ->addTag('node_access')
-    ->execute()
-    ->fetchField();
-  $data['node'] = $node = node_load($nid);
-  $node->_subscriptions_is_new = TRUE;
+    ->addTag('node_access');
 
-  $cids = comment_get_thread($node, COMMENT_MODE_FLAT, 5);
-  $node->_subscriptions_comments = array();
-  if (!empty($cids)) {
-    foreach (comment_load_multiple($cids) as $comment) {
-      // Fake every other comment as new.
-      $comment->_subscriptions_is_new = $comment->cid%2;
-      $node->_subscriptions_comments[] = $comment;
+  foreach ($query->execute() as $row) {
+    // This code is adapted from _subscriptions_mail_cron().
+    $queue_item = array(
+      'sqid'          => 0,
+      'uid'           => $user->uid,
+      'name'          => $user->name,
+      'language'      => $user->language,
+      'module'        => 'node',
+      'field'         => 'nid',
+      'value'         => $row->nid,
+      'author_uid'    => -1,
+      'send_interval' => 1,
+      'digest'        => $is_digest,
+      'load_args'     => $row->nid,
+      'load_function' => 'subscriptions_content_load_node',
+      'is_new'        => 1,
+      'mail'          => $user->mail,
+    );
+    $load_function = $queue_item['load_function'];
+    if ($load_function($queue_item)) {
+      $node = $queue_item['object'];
+      $access = module_invoke_all('subscriptions', 'access', $load_function, $queue_item['load_args'], $node);
+      $allow = !empty($access) && array_search(FALSE, $access) === FALSE;
+      if ($allow) {
+        // Load and add all comments for this node.
+        $cids = comment_get_thread($node, COMMENT_MODE_FLAT, 5);
+        $node->_subscriptions_comments = array();
+        if (!empty($cids)) {
+          foreach (comment_load_multiple($cids) as $comment) {
+            // Fake every other comment as new.
+            $comment->_subscriptions_is_new = $comment->cid%2;
+            $node->_subscriptions_comments[] = $comment;
+          }
+        }
+
+        $fields = module_invoke_all('subscriptions', 'fields', $queue_item['module']);
+        $field = $queue_item['field'];
+        $data_function = $fields[$field]['data_function'];
+        $mailmod = (empty($fields[$field]['mail_module']) ? 'subscriptions_mail' : $fields[$field]['mail_module']);
+        $mailkey = $fields[$field]['mailkey'];
+        if ($mailkey_altered = module_invoke_all('subscriptions', 'mailkey_alter', $mailkey, $node)) {
+          $mailkey = $mailkey_altered[0];
+        }
+        $data = array(
+          'subs' => array(
+            'type'             => $fields[$field]['subs_type'],
+            'unsubscribe_path' => 's/del/...',
+            'subs-module'      => 'MODULE',
+            'subs-field'       => 'FIELD',
+            'subs-value'       => 'VALUE',
+          ),
+          'user' => user_load(!empty($node->revision_uid) ? $node->revision_uid : $node->uid),
+        );
+        $data_function($data, $node, $queue_item);
+        drupal_alter('subscriptions_data', $data, $node, $queue_item);
+        $digest_data = subscriptions_mail_digest_add_item($digest_data, $mailmod, $mailkey, $data, $user);
+      }
+    }
+    if (count($digest_data['subs']['items']) >= ($is_digest ? 3 : 1)) {
+      break;
     }
   }
 
-  $data['user'] = user_load(!empty($node->revision_uid) ? $node->revision_uid : $node->uid);
-  $data['subs'] = array(
-    'type'             => (isset($values['content_type']) ? t('content type') : t('thread')),
-    'unsubscribe_path' => 's/del/...',
-    'subs-module'      => 'MODULE',
-    'subs-field'       => 'FIELD',
-    'subs-value'       => 'VALUE',
-   );
-  if (isset($node->forum_tid)) {
-    $data['subs']['category'] = taxonomy_term_load($node->forum_tid);
+  if ($is_digest) {
+    $data = $digest_data;
   }
-  $data['template'] = $values;
-
   $subject = mail_edit_format($values['subject'], $data, array('language' => $language));
-  $body = mail_edit_format($values['body'], $data, array('language' => $language));
-  switch ($preview_mode = variable_get('subscriptions_preview_mode','text')) {
+  $body = $values['body'];
+  if ($preview_mode == 'html-rendered-nl') {
+    $body = str_replace("\n", "<br />\n", $body);
+  }
+  $body = mail_edit_format($body, $data, array('language' => $language));
+  switch ($preview_mode) {
     case 'text':
       $body = drupal_html_to_text($body);
     case 'html-raw':
@@ -228,6 +286,7 @@ function _subscriptions_mail_preview_form(array $values) {
       $body = '<pre>' . $body . '</pre>';
       break;
     case 'html-rendered':
+    case 'html-rendered-nl':
       $body = '<div>' . filter_xss_admin($body) . '</div>';
       break;
   }
@@ -244,9 +303,10 @@ function _subscriptions_mail_preview_form(array $values) {
     '#title'         => t('Preview mode'),
     '#default_value' => $preview_mode,
     '#options'       => array(
-      'text'           => t('Text (default)'),
-      'html-raw'       => t('Raw HTML'),
-      'html-rendered'  => t('Rendered HTML'),
+      'text'             => t('Text (default)'),
+      'html-raw'         => t('Raw HTML'),
+      'html-rendered'    => t('Rendered HTML'),
+      'html-rendered-nl' => t('Rendered HTML with line breaks'),
     ),
   );
   $form['preview_mode_info'] = array(

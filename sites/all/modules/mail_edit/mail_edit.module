@@ -56,7 +56,13 @@ function mail_edit_menu() {
     'file' => 'mail_edit.admin.inc',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('mail_edit_template_form', 4, 5),
-    'description' => 'Edit mails being sent out by Drupal.',
+    'type' => MENU_CALLBACK,
+  );
+  $items['admin/config/system/mail-edit/%/%/remove'] = array(
+    'access arguments' => array('administer mail templates'),
+    'file' => 'mail_edit.admin.inc',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mail_edit_template_remove_confirm', 4, 5),
     'type' => MENU_CALLBACK,
   );
   return $items;
@@ -83,7 +89,7 @@ function mail_edit_theme() {
 /**
  * Implements hook_mail_alter().
  *
- * @param $message array
+ * @param array $message
  */
 function mail_edit_mail_alter(array &$message) {
   _mail_edit_module_load_include('alter.inc');
@@ -97,13 +103,13 @@ function mail_edit_mail_alter(array &$message) {
  * is called to retrieve the default template, and if the default template's
  * 'always' key is TRUE, then the default template is returned; otherwise NULL.
  *
- * @param $module
+ * @param string $module
  *   The module requesting the template.
- * @param $mailkey
+ * @param string $mailkey
  *   The key for the template.
- * @param $language
+ * @param string|object $language
  *   The language object or language code for the template.
- * @param $force_always bool
+ * @param bool $force_always
  *   Always return the default template if no custom template is stored.
  *
  * @return object|null
@@ -116,13 +122,13 @@ function mail_edit_load($module, $mailkey, $language, $force_always = FALSE) {
 /**
  * Formats a text using the supplied template, data, and options.
  *
- * @param $template string
+ * @param string $template
  *   The template to use.
- * @param $data array
+ * @param array $data
  *   The data to be passed on to token_replace().
- * @param $options array
+ * @param array $options
  *   The options to be passed on to token_replace().
- * @param $context string
+ * @param string $context
  *   The context string that can be used to conditionally add or omit text
  *   depending on the context. The default is 'MAIL'.
  *
@@ -150,9 +156,9 @@ function mail_edit_hook_info() {
  *
  * Removes templates when a module is uninstalled.
  *
- * @param $modules
+ * @param array $modules
  */
-function mail_edit_modules_uninstalled($modules) {
+function mail_edit_modules_uninstalled(array $modules) {
   _mail_edit_module_load_include('admin.inc');
   _mail_edit_modules_uninstalled($modules);
 }
@@ -172,6 +178,7 @@ function _mail_edit_include() {
  *
  * @param $name_or_ext
  * @param $ext
+ *
  * @return bool
  */
 function _mail_edit_module_load_include($name_or_ext, $ext = NULL) {

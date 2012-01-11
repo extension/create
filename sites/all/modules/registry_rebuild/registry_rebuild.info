@@ -1,0 +1,10 @@
+name = Registry Rebuild
+description = Not really a module. Please see README.txt and run registry_rebuild.php. Visit <a href="http://drupal.org/project/registry_rebuild">the project page</a> for more information.
+core = 7.x
+
+; Information added by drupal.org packaging script on 2011-08-05
+version = "7.x-1.4"
+core = "7.x"
+project = "registry_rebuild"
+datestamp = "1312505102"
+

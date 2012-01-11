@@ -5,7 +5,7 @@
  * Subscriptions module mail templates constants.
  */
 
-define('SUBSCRIPTIONS_DIGEST_MAILKEY', 'subscriptions_mail_digest');
+define('SUBSCRIPTIONS_DIGEST_MAILKEY', 'digest');
 
 /**
  * @param $key
@@ -16,7 +16,10 @@ function subscriptions_mail_template_raw($key, $langcode) {
   switch ($key) {
 
     case 'SEP':      return // SUBSCRIPTIONS_DEFAULT_SEPARATOR
-t('| ------------------------------------------------------------------------', array(), array('langcode' => $langcode));
+t('| ---------------------------------------------------', array(), array('langcode' => $langcode));
+
+    case 'SEPD':     return // SUBSCRIPTIONS_DIGEST_SEPARATOR
+t('=====================================================', array(), array('langcode' => $langcode));
 
     case 'SUBJ':     return // SUBSCRIPTIONS_DEFAULT_SUBJECT
 t('[[site:name]] [subs:type] subscription for [current-user:name]: [node:title]', array(), array('langcode' => $langcode));
@@ -28,14 +31,14 @@ t('| This is an automated message. Please do NOT reply to the sender address!
 ', array(), array('langcode' => $langcode));
 
     case 'BODY':     return // SUBSCRIPTIONS_DEFAULT_BODY
-t('| Greetings, [current-user:name].
+t('{{MAIL@| Greetings, [current-user:name].
 |
 | Your subscription on [site:name]
 | notifies you of {{[subs:is-new]==0?:a new post:
 }}{{[subs:is-updated]#an updated post:
 }}{{[subs:is-old]#new comments:
 }}|
-{{![subs:is-published]#| ***** This post is unpublished! *****
+}}{{![subs:is-published]#| ***** This post is unpublished! *****
 }}{{![subs:category:tid]?:{{[subs:category:tid]==[subs:forum:tid]?:| Category: [subs:category:name]
 }}}}{{![subs:forum:tid]?:| Forum: [subs:forum:name]
 }}{{![user:name]?:| Author: [user:name]
@@ -53,8 +56,8 @@ t('| Greetings, [current-user:name].
 [subs:comments:join:
 ]
 }}| Direct unsubscribe link ([subs:type]):
-| [subs:unsubscribe-url]
-!FOOTER', array('!SEPARATOR' => subscriptions_mail_template_raw('SEP', $langcode), '!FOOTER' => subscriptions_mail_template_raw('FOOT', $langcode)), array('langcode' => $langcode));
+| [subs:unsubscribe-url]{{MAIL@
+!FOOTER}}', array('!SEPARATOR' => subscriptions_mail_template_raw('SEP', $langcode), '!FOOTER' => subscriptions_mail_template_raw('FOOT', $langcode)), array('langcode' => $langcode));
 
     case 'CITEM':    return // SUBSCRIPTIONS_DEFAULT_COMMENT_ITEM
 t('| {{[subs:is-new]?New:Updated}} {{[subs:is-published]?:UNPUBLISHED }}comment:
@@ -68,7 +71,7 @@ t('| {{[subs:is-new]?New:Updated}} {{[subs:is-published]?:UNPUBLISHED }}comment:
 }}}}!SEPARATOR', array('!SEPARATOR' => subscriptions_mail_template_raw('SEP', $langcode)), array('langcode' => $langcode));
 
     case 'DSUBJ':    return // SUBSCRIPTIONS_DEFAULT_DIGEST_SUBJECT
-t('[[site:name]] Subscription Digest for [current-user:name]', array(), array('langcode' => $langcode));
+t('[[site:name]] Subscriptions Digest for [current-user:name]', array(), array('langcode' => $langcode));
 
     case 'DBODY':    return // SUBSCRIPTIONS_DEFAULT_DIGEST_BODY
 t('| Greetings, [current-user:name].
@@ -76,21 +79,10 @@ t('| Greetings, [current-user:name].
 | Your subscriptions on [site:name]
 | notify you of the following changes since the previous digest:
 |
-[subs:nodes]!SEPARATOR
-!FOOTER', array('!SEPARATOR' => subscriptions_mail_template_raw('SEP', $langcode), '!FOOTER' => subscriptions_mail_template_raw('FOOT', $langcode)), array('langcode' => $langcode));
-
-    case 'DITEM':    return // SUBSCRIPTIONS_DEFAULT_DIGEST_ITEM_BODY
-t('{{[user:name]!=?:| Author: [user:name]
-}}| Title: [node:title]
-{{[subs:is-new]==0?:[node:summary]
-}}| Link: [node:url]
-| Direct unsubscribe link ([subs:type]):
-| [subs:unsubscribe-url]
-{{[subs:comments:count]>0?:[subs:comments]}}', array(), array('langcode' => $langcode));
-
-    case 'DITEMCMT': return // SUBSCRIPTIONS_DEFAULT_DIGEST_ITEM_BODY_COMMENT
-t('| Comment: [comment:title]
-', array(), array('langcode' => $langcode));
+{{[subs:items:count]#!SEPARATOR #1 of [subs:items:count] {{[subs:items:index:#0:subs:is-new]?(new):}}{{[subs:items:index:#0:subs:is-updated]?(updated):}}{{[subs:items:index:#0:subs:is-old]?(commented):}}
+[subs:items:index:#0:formatted]
+}}!SEPARATOR
+!FOOTER', array('!SEPARATOR' => subscriptions_mail_template_raw('SEPD', $langcode), '!FOOTER' => subscriptions_mail_template_raw('FOOT', $langcode)), array('langcode' => $langcode));
 
   }
   return NULL;

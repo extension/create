@@ -18,6 +18,12 @@
  */
 
 /**
+ * The path of Subscriptions's main configuration page.
+ */
+define('SUBSCRIPTIONS_CONFIG_PATH', 'admin/config/system/subscriptions');
+define('SUBSCRIPTIONS_CONFIG_PATH_LEVEL', count(explode('/', SUBSCRIPTIONS_CONFIG_PATH)));
+
+/**
  * Implements hook_init().
  *
  * @ingroup hooks
@@ -25,8 +31,7 @@
  */
 function subscriptions_init() {
   define('SUBSCRIPTIONS_UNAVAILABLE', '<span class="error" title="' . t('(unavailable to regular users)') . '">&curren;</span>');
-  $router_item = menu_get_item();
-  if (isset($router_item['map']) && $router_item['map'][0] == 's' && $router_item['map'][1] == 'del') {
+  if (arg(0) == 's' && arg(1) == 'del') {
     $router_item = menu_get_item('subscriptions/rem/' . substr($_GET['q'], 6));
     if (isset($router_item) && $router_item['access']) {
       menu_set_item($_GET['q'], $router_item);
@@ -43,7 +48,7 @@ function subscriptions_init() {
  * @ingroup menu
  */
 function subscriptions_menu() {
-  $items['admin/config/subscriptions'] = array(
+  $items[SUBSCRIPTIONS_CONFIG_PATH] = array(
     'title' => 'Subscriptions',
     'description' => 'Site and user default settings for Subscriptions.',
     'page callback' => 'drupal_get_form',
@@ -51,26 +56,26 @@ function subscriptions_menu() {
     'page arguments' => array('subscriptions_settings_form'),
     'access arguments' => array('administer site configuration'),
   );
-  $items['admin/config/subscriptions/settings'] = array(
+  $items[SUBSCRIPTIONS_CONFIG_PATH . '/settings'] = array(
     'title' => 'Site settings',
     'weight' => -10,
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
-  $items['admin/config/subscriptions/userdefaults'] = array(
+  $items[SUBSCRIPTIONS_CONFIG_PATH . '/userdefaults'] = array(
     'title' => 'User defaults',
     'weight' => -5,
     'file' => 'subscriptions.admin.inc',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('subscriptions_page_user_overview', 5),
+    'page arguments' => array('subscriptions_page_user_overview', SUBSCRIPTIONS_CONFIG_PATH_LEVEL + 2),
     'type' => MENU_LOCAL_TASK,
     'access arguments' => array('administer site configuration'),
-    'weight' => -100,
   );
-  $items['admin/config/subscriptions/userdefaults/settings'] = array(
+  $items[SUBSCRIPTIONS_CONFIG_PATH . '/userdefaults/settings'] = array(
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'title' => 'Overview',
+    'weight' => -100,
   );
-  $items['admin/config/subscriptions/intervals'] = array(
+  $items[SUBSCRIPTIONS_CONFIG_PATH . '/intervals'] = array(
     'title' => 'Interval',
     'page callback' => 'drupal_get_form',
     'file' => 'subscriptions.admin.inc',
@@ -152,12 +157,12 @@ function subscriptions_menu() {
     if ($stype == 'node') {
       continue;  // not in site settings
     }
-    $items['admin/config/subscriptions/userdefaults/' . $stype] = array(
+    $items[SUBSCRIPTIONS_CONFIG_PATH . '/userdefaults/' . $stype] = array(
       'title' => $data['title'],
       'type' => MENU_LOCAL_TASK,
       'file' => 'subscriptions.admin.inc',
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('subscriptions_page_form', 5, $stype),
+      'page arguments' => array('subscriptions_page_form', SUBSCRIPTIONS_CONFIG_PATH_LEVEL + 2, $stype),
       'access arguments' => array('administer site configuration'),
       'weight' => $weight,
     );
@@ -252,7 +257,7 @@ function subscriptions_permission() {
  *
  * Set up the Subscriptions defaults for the new user.
  *
- * @param array|null $edit
+ * @param array $edit
  * @param object $account
  * @param null $category
  *
@@ -715,7 +720,7 @@ function _subscriptions_cmp_by_weight(array $a, array $b) {
  *
  * @param string $name
  * @param object|int|null $account
- *    NULL/0 (for site default), a user object, or a uid.
+ *    NULL/0 (for site default), a user object, a uid (if >0) or a -rid (if <0).
  *
  * @return
  */
@@ -757,9 +762,18 @@ function _subscriptions_get_setting($name, $account) {
       // hooks, or they may have been created on another multi-site (#351753).
       // Let's add the missing records, as if the user were being created just
       // now, with the expected hook_user() invocations:
-      $account = user_load($uid);
-      subscriptions_user_insert(NULL, $account, NULL);
-      return _subscriptions_get_setting($name, $account);
+      if ($uid > 0) {
+        $account = user_load($uid);
+        subscriptions_user_insert(array(), $account, NULL);
+      }
+      else {
+        db_insert('subscriptions_user')
+          ->fields(array(
+            'uid' => $uid,
+          ))
+          ->execute();
+      }
+      return _subscriptions_get_setting($name, $uid);
     }
     $defaults[$uid]['uses_defaults'] = FALSE;
     foreach ($defaults[$uid] as $key => $value) {

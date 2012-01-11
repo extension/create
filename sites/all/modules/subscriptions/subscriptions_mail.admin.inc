@@ -112,7 +112,7 @@ function _subscriptions_mail_form_subscriptions_settings_form_alter(array &$form
  */
 function _subscriptions_mail_submit_subscriptions_settings_form(array $form, array &$form_state) {
   if ($form_state['values']['op'] == $form_state['values']['purge_queue']) {
-    drupal_goto('admin/config/subscriptions/purge-queue', array('query' => drupal_get_destination()));
+    drupal_goto(SUBSCRIPTIONS_CONFIG_PATH . '/purge-queue', array('query' => drupal_get_destination()));
   }
 }
 

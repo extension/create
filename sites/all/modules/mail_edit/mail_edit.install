@@ -7,6 +7,8 @@
 
 /**
  * Implements hook_schema().
+ *
+ * @return array
  */
 function mail_edit_schema() {
 
@@ -83,8 +85,8 @@ function mail_edit_update_last_removed() {
 }
 
 /**
- * Update the '!tokens' in the stored templates to their corresponding
- * new Drupal 7 '[tokens]'.
+ * Updates the '!tokens' in the stored templates to the new D7 '[tokens]'.
+ *
  * Additionally, in Drupal 7 we no longer e-mail plain text passwords to users,
  * and there is no token for a plain text password in the new token system.
  * Therefore, it also modifies any saved templates using the old '!password'
@@ -92,6 +94,8 @@ function mail_edit_update_last_removed() {
  * they may need to go and modify the wording of their templates.
  * Note: Client modules must implement a similar function to update their
  * tokens!
+ *
+ * @return string|null
  */
 function mail_edit_update_7001() {
   $tokens = array(
@@ -140,4 +144,5 @@ function mail_edit_update_7001() {
     $message .= "\n</table>\n";
     return $message;
   }
+  return NULL;
 }

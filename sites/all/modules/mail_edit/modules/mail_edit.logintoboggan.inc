@@ -18,6 +18,8 @@
 
 /**
  * Implements hook_mailkeys().
+ *
+ * @return array|null
  */
 function logintoboggan_mailkeys() {
   if (module_exists('logintoboggan')) {
@@ -25,17 +27,27 @@ function logintoboggan_mailkeys() {
       'logintoboggan_resend_validation' => t('Resent validation message'),
     );
   }
+  return NULL;
 }
 
 /**
  * Implements hook_mail_edit_text().
+ *
+ * @param string $mailkey
+ * @param string $language
+ *
+ * @return array
  */
-function logintoboggan_mail_edit_text($mailkey, $langcode) {
-  return user_mail_edit_text($mailkey, $langcode);
+function logintoboggan_mail_edit_text($mailkey, $language) {
+  return user_mail_edit_text($mailkey, $language);
 }
 
 /**
  * Implements hook_mail_edit_token_types().
+ *
+ * @param string $mailkey
+ *
+ * @return array
  */
 function logintoboggan_mail_edit_token_types($mailkey) {
   return user_mail_edit_token_types($mailkey);

@@ -13,10 +13,11 @@
  * @return array
  */
 function subscriptions_mail_menu() {
-  $items['admin/config/subscriptions/purge-queue'] = array(
+  $items[SUBSCRIPTIONS_CONFIG_PATH . '/purge-queue'] = array(
     'file' => 'subscriptions_mail.admin.inc',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('_subscriptions_mail_purge_queue_form'),
+    'access callback' => 'user_access',
     'access arguments' => array('administer site configuration'),
     'type' => MENU_CALLBACK,
   );
@@ -106,7 +107,7 @@ function subscriptions_mail_mailkeys() {
       $mailkeys += $result;
     }
   }
-  //$mailkeys['digest'] = t('Digest subscriptions notifications');
+  $mailkeys['digest'] = t('Digest subscriptions notifications');
   return $mailkeys;
 }
 
