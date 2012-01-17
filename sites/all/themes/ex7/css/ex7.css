@@ -26,14 +26,14 @@
 	white-space: normal;
 }
 
-#field-appraisal-values .form-radios > div, .node-optimization_assessment_scorecar-form .form-radios > div{
+#field-appraisal-values .form-radios > div, .node-optimization-form .form-radios > div{
 	width: 50px;
 	float: left;
 
 }
 
 
-.node-optimization_assessment_scorecar-form .form-type-radios .description{
+.node-optimization-form .form-type-radios .description{
 	clear: both;
 	padding-top: 15px;
 }
