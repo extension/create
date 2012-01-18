@@ -35,11 +35,17 @@ class views_handler_argument_comment_user_uid extends views_handler_argument {
 
   function query($group_by = FALSE) {
     $this->ensure_my_table();
-	$subselect = 'SELECT COUNT(*) FROM comment c WHERE c.uid = '.$this->argument.' AND c.nid = node.nid'; //NOT STANDARD CODE
+
+    $nid_alias = $this->query->add_field('node', 'nid');
+
+    $subselect = db_select('comment', 'c');
+    $subselect->addField('c', 'cid');
+    $subselect->condition('c.uid', $this->argument);
+    $subselect->where("c.nid = $nid_alias");
 
     $condition = db_or()
       ->condition("$this->table_alias.uid", $this->argument, '=')
-      ->where("0 < (" . (string) $subselect . ")");
+      ->exists($subselect);
 
     $this->query->add_where(0, $condition);
   }

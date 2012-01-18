@@ -26,11 +26,19 @@
 	white-space: normal;
 }
 
-#field-appraisal-values .form-radios > div{
+#field-appraisal-values .form-radios > div, .node-optimization-form .form-radios > div{
 	width: 50px;
 	float: left;
 
 }
+
+
+.node-optimization-form .form-type-radios .description{
+	clear: both;
+	padding-top: 15px;
+}
+
+
 #field-appraisal-values .form-item-field-appraisal-und-0-appraisal-user{
 	height: 75px;
 }

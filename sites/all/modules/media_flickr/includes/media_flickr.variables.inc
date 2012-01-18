@@ -107,6 +107,7 @@ function media_flickr_variable_default($name = NULL) {
     $defaults = array(
       'width' => 560,
       'height' =>340,
+      'autoplay' => FALSE,
       'preview_uri' => 'flickr://u/56854677@N02/p/5247285379',
       'api_key' => '',
       'api_secret' => '',

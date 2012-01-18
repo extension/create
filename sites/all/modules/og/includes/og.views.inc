@@ -21,10 +21,28 @@ class OgViewsController extends EntityDefaultViewsController {
       'handler' => 'og_handler_argument_group_audience_gid',
     );
 
+    $data['og']['etid'] = array(
+      'title' => t('Entity id'),
+      'help' => t('The numeric id of the entity.'),
+      'field' => array(
+        'handler' => 'views_handler_field_numeric',
+        'click sortable' => TRUE,
+       ),
+      'sort' => array(
+        'handler' => 'views_handler_sort',
+      ),
+      'filter' => array(
+        'handler' => 'views_handler_filter_numeric',
+      ),
+      'argument' => array(
+        'handler' => 'views_handler_argument_numeric',
+      ),
+    );
+
     $data['field_data_group_audience']['user_roles'] = array(
       'group' => t('Group'),
       'title' => t('Group user roles'),
-      'help' => t('Show all the groups a user belongs to in a group.'),
+      'help' => t('Show all the roles a user belongs to in a group.'),
       // This is a dummy field, so point it to a real field that we need - the
       // group ID
       'real field' => 'group_audience_gid',
@@ -67,31 +85,21 @@ class OgMembershipViewsController extends EntityDefaultViewsController {
       'help' => t('Select the state of the group.'),
     );
 
-    return $data;
-  }
-}
-
-/**
- * "Group membership" entity Views definitions.
- */
-class OgMembershipTypeViewsController extends EntityDefaultViewsController {
-
-  /**
-   * Override views_data().
-   */
-  public function views_data() {
-    $data = parent::views_data();
-
-    $data['og_membership']['og_membership_type_rel'] = array(
-      'group' => t('Organic groups membership'),
-      'title' => t('Organic groups membership type'),
-      'help' => t('Add information on group membership that belong to the Organic groups membership entity.'),
-      'relationship' => array(
-        'handler' => 'views_handler_relationship',
-        'label' => t('group membership type'),
-        'base' => 'og_membership_type',
-        'base field' => 'name',
-        'relationship field' => 'name',
+    $data['og_membership']['etid'] = array(
+      'title' => t('Entity id'),
+      'help' => t('The numeric id of the entity.'),
+      'field' => array(
+        'handler' => 'views_handler_field_numeric',
+        'click sortable' => TRUE,
+       ),
+      'sort' => array(
+        'handler' => 'views_handler_sort',
+      ),
+      'filter' => array(
+        'handler' => 'views_handler_filter_numeric',
+      ),
+      'argument' => array(
+        'handler' => 'views_handler_argument_numeric',
       ),
     );
 
@@ -149,8 +157,12 @@ function og_views_data_alter(&$data) {
   }
 
   // Override group audience - "gid" (group ID) field argument.
-  $data['field_data_group_audience']['group_audience_gid']['argument']['handler'] = 'og_handler_argument_group_audience_gid';
-  $data['field_data_group_audience']['group_audience_gid']['field']['handler'] = 'views_handler_field_numeric';
+  $data['og_membership']['group']['argument']['handler'] = 'og_handler_argument_group_audience_gid';
+
+  // TODO: Remove field-data-group-audience completely form Views and use
+  // group membership entity instead.
+  unset($data['field_data_group_audience']['group_audience_gid']['argument']);
+  unset($data['field_data_group_audience']['group_audience_gid']['field']);
 
   // Override group and group membership - "state" filter and add a field.
   foreach (array('og', 'og_membership') as $type) {

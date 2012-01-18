@@ -74,7 +74,7 @@ function panels_schema_3() {
       ),
       'layout' => array(
         'type' => 'varchar',
-        'length' => '32',
+        'length' => '255',
         'default' => '',
       ),
       'layout_settings' => array(
@@ -320,3 +320,22 @@ function panels_schema_3() {
   return $schema;
 }
 
+/**
+ * Implements hook_update_N().
+ * Change panels_display.layout to match the size of panels_layout.name.
+ */
+function panels_update_7300() {
+  // Clear the schema cache so the change is picked up.
+  cache_clear_all('schema', 'cache');
+
+  // Load the schema.
+  $schema = panels_schema();
+  $table = 'panels_display';
+  $field = 'layout';
+  $spec = $schema[$table]['fields'][$field];
+
+  // Re-define the column.
+  db_change_field($table, $field, $field, $spec);
+
+  return t('Changed the panels_display.layout field to the correct size.');
+}

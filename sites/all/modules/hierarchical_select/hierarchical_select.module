@@ -62,7 +62,7 @@ function hierarchical_select_menu() {
     'title'            => 'Export',
     'access arguments' => array('administer site configuration'),
     'page callback'    => 'drupal_get_form',
-    'page arguments'   => array('hierarchical_select_admin_export', 4),
+    'page arguments'   => array('hierarchical_select_admin_export', 5),
     'type'             => MENU_LOCAL_TASK,
     'file'             => 'hierarchical_select.admin.inc',
   );
@@ -70,7 +70,7 @@ function hierarchical_select_menu() {
     'title'            => 'Import',
     'access arguments' => array('administer site configuration'),
     'page callback'    => 'drupal_get_form',
-    'page arguments'   => array('hierarchical_select_admin_import', 4),
+    'page arguments'   => array('hierarchical_select_admin_import', 5),
     'type'             => MENU_LOCAL_TASK,
     'file'             => 'hierarchical_select.admin.inc',
   );
@@ -118,6 +118,10 @@ function hierarchical_select_element_info() {
     ),
     '#default_value' => -1,
   );
+  $types['hierarchical_select_item_separator'] = array(
+    '#theme' => 'hierarchical_select_item_separator',
+  );
+
   return $types;
 }
 
@@ -146,18 +150,9 @@ function hierarchical_select_requirements($phase) {
         $path_errors[] = t('!module', array('!module' => $module_info['name']));
       }
     }
-    $weight_errors = array();
-    foreach (module_implements('hierarchical_select_root_level') as $module) {
-      $weight = db_query("SELECT weight FROM {system} WHERE name = :name", array(':name' => $module))->fetchField();
-      if (!($hierarchical_select_weight > $weight)) {
-        $filename = db_query("SELECT filename FROM {system} WHERE type = :type AND name = :name", array(':type' => 'module', ':name' => $module))->fetchField();
-        $module_info = drupal_parse_info_file(dirname($filename) . "/$module.info");
-        $weight_errors[] = t('!module (!weight)', array('!module' => $module_info['name'], '!weight' => $weight));
-      }
-    }
 
-    if ($up_to_date && !count($path_errors) && !count($weight_errors)) {
-      $value = t('All updates installed. Implementation modules are installed correctly.');
+    if ($up_to_date && !count($path_errors)) {
+      $value = t('All updates installed. HS API implementation modules correctly installed.');
       $description = '';
       $severity = REQUIREMENT_OK;
     }
@@ -170,15 +165,6 @@ function hierarchical_select_requirements($phase) {
         installed in either the <code>sites/all/modules</code> directory or a
         <code>sites/yoursite.com/modules</code> directory"
       ) . ':' . theme('item_list', array('items' => $path_errors));
-      $severity = REQUIREMENT_ERROR;
-    }
-    elseif ($weight_errors) {
-      $value = t('Module weight incorrectly configured!');
-      $description = t(
-        'The weight of the Hierarchical Select module (!weight) is not
-        strictly higher than the weight of the following modules',
-        array('!weight' => $hierarchical_select_weight)
-      ) . ':' . theme('item_list', array('items' => $weight_errors));
       $severity = REQUIREMENT_ERROR;
     }
     else {
@@ -224,6 +210,10 @@ function hierarchical_select_theme() {
     ),
     'hierarchical_select_select' => array(
       'file'      => 'includes/theme.inc',
+      'render element' => 'element',
+    ),
+    'hierarchical_select_item_separator' => array(
+      'file'           => 'includes/theme.inc',
       'render element' => 'element',
     ),
     'hierarchical_select_special_option' => array(
@@ -343,7 +333,7 @@ function hierarchical_select_ajax($form, $form_state) {
       'output'  => $output, 
       // 'cache'   => $cache,
   );
-  $new_settings = _hs_new_setting_ajax();
+  $new_settings = _hs_new_setting_ajax(FALSE);
   foreach ($new_settings as $new_setting) {
     $commands[] = array(
       'command'  => 'hierarchicalSelectSettingsUpdate',
@@ -358,7 +348,7 @@ function _hs_process_determine_hsid($element, &$form_state) {
   // Determine the HSID to use: either the existing one that is received, or
   // generate a new one based on the last HSID used (which is
   // stored in form state storage).
-  if (!isset($element['#value']['hsid'])) {
+  if (!isset($element['#value']) || !is_array($element['#value']) || !array_key_exists('hsid', $element['#value'])) {
     if (!isset($form_state['storage']['hs']['last_hsid'])) {
       $form_state['storage']['hs']['last_hsid'] = -1;
     }
@@ -398,21 +388,27 @@ function _hs_process_attach_css_js($element, $hsid, &$form_state, $complete_form
 
   if (!isset($form_state['storage']['hs']['js_settings_sent'])) {
     $form_state['storage']['hs']['js_settings_sent'] = array();
-  }  
+  }
+
+  // Form was submitted; this is a newly loaded page, thus ensure that all JS
+  // settings are resent.
+  if ($form_state['process_input'] === TRUE) {
+    $form_state['storage']['hs']['js_settings_sent'] = array();
+  }
 
   if (!isset($form_state['storage']['hs']['js_settings_sent'][$hsid])) {
     $config = _hierarchical_select_inherit_default_config($element['#config']);
     $settings =  array(
        'HierarchicalSelect' => array(
          'settings' => array(
-           $hsid => array(
+           "hs-$hsid" => array(
              'animationDelay'   => ($config['animation_delay'] == 0) ? (int) variable_get('hierarchical_select_animation_delay', 400) : $config['animation_delay'],
-             'cacheId'          => $config['module'] . '_' . implode('_', (is_array($config['params'])) ? $config['params'] : array()),
+             'cacheId'          => $config['module'] . '_' . md5(serialize($config['params'])),
              'renderFlatSelect' => (isset($config['render_flat_select'])) ? (int) $config['render_flat_select'] : 0,
              'createNewItems'   => (isset($config['editability']['status'])) ? (int) $config['editability']['status'] : 0,
              'createNewLevels'  => (isset($config['editability']['allow_new_levels'])) ? (int) $config['editability']['allow_new_levels'] : 0,
              'resizable'        => (isset($config['resizable'])) ? (int) $config['resizable'] : 0,
-             'ajax_path'        => 'hierarchical_select_ajax/' . implode('/', $element['#array_parents']) . '/' . $complete_form['form_build_id']['#value'],
+             'ajax_url'         => url('hierarchical_select_ajax/' . implode('/', $element['#array_parents']) . '/' . $complete_form['form_build_id']['#value']),
           ),
          ),
        )
@@ -425,7 +421,7 @@ function _hs_process_attach_css_js($element, $hsid, &$form_state, $complete_form
       );
     }
     else {
-      $element['#attached']['_hs_new_setting_ajax'][] = array($hsid, $settings['HierarchicalSelect']['settings'][$hsid]);
+      $element['#attached']['_hs_new_setting_ajax'][] = array($hsid, $settings['HierarchicalSelect']['settings']["hs-$hsid"]);
     }
 
     $form_state['storage']['hs']['js_settings_sent'][$hsid] = TRUE;
@@ -434,7 +430,7 @@ function _hs_process_attach_css_js($element, $hsid, &$form_state, $complete_form
   return $element;
 }
 
-function _hs_new_setting_ajax($hsid = FALSE, $settings) {
+function _hs_new_setting_ajax($hsid = FALSE, $settings = NULL) {
   static $hs_settings = array();
 
   if ($hsid !== FALSE) {
@@ -445,7 +441,7 @@ function _hs_new_setting_ajax($hsid = FALSE, $settings) {
 }
 
 // Basic config validation and diagnostics.
-function _hs_process_developer_mode_log_diagnostics($element) {
+function _hs_process_developer_mode_log_diagnostics(&$element) {
   if (HS_DEVELOPER_MODE) {
     $config = $element['#config'];
     $diagnostics = array();
@@ -470,7 +466,10 @@ function _hs_process_developer_mode_log_diagnostics($element) {
       $diagnostics_string = print_r($diagnostics, TRUE);
       $message = "Config diagnostics (config id: $config_id): $diagnostics_string";
       _hierarchical_select_log($message);
+      $title = $element['#title'];
+      $element = array();
       $element['#type'] = 'item';
+      $element['#title'] = $title;
       $element['#markup'] = '<p><span style="color:red;">Fix the indicated errors in the #config property first!</span><br />' . nl2br($message) . '</p>';
       return FALSE;
     }
@@ -508,7 +507,7 @@ function _hs_process_developer_mode_send_log_js($element, $hsid) {
     $settings = array(
       'HierarchicalSelect' => array(
         'initialLog' => array(
-          $hsid => $log,
+          "hs-$hsid" => $log,
         ),
       ),
     );
@@ -555,7 +554,7 @@ function _hs_process_exclusive_lineages($element, $hs_selection, $db_selection) 
   return array($element, $hs_selection, $db_selection);
 }
 
-function _hs_process_render_create_new_item($element) {
+function _hs_process_render_create_new_item($element, $hierarchy) {
   $creating_new_item = FALSE;
   if (isset($element['#value']['hierarchical_select']['selects'])) {
     foreach ($element['#value']['hierarchical_select']['selects'] as $depth => $value) {
@@ -564,12 +563,18 @@ function _hs_process_render_create_new_item($element) {
 
         // We want to override the select in which the "create_new_item"
         // option was selected and hide all selects after that, if they exist.
-        for ($i = $depth; $i < count($hierarchy->lineage); $i++) {
-          unset($element['hierarchical_select']['selects'][$i]);
+        // If depth == 0, then that means all selects should be hidden.
+        if ($depth == 0) {
+          unset($element['hierarchical_select']['selects']);
+        }
+        else {
+          for ($i = $depth; $i < count($hierarchy->lineage); $i++) {
+            unset($element['hierarchical_select']['selects'][$i]);
+          }
         }
 
         $element['hierarchical_select']['create_new_item'] = array(
-          '#prefix' => '<div class="' . str_replace('_', '-', $value) . '">',
+          '#prefix' => '<div class="create-new-item">',
           '#suffix' => '</div>',
         );
 
@@ -583,7 +588,7 @@ function _hs_process_render_create_new_item($element) {
           '#default_value' => t('new @item', array('@item' => $item_type)),
           '#attributes' => array(
             'title' => t('new @item', array('@item' => $item_type)),
-            'class' => 'create-new-item-input'
+            'class' => array('create-new-item-input'),
           ),
           // Prevent the textfield from being wrapped in a div. This
           // simplifies the CSS and JS code.
@@ -770,7 +775,7 @@ function form_hierarchical_select_process($element, &$form_state, $complete_form
   // When the special "create_new_item" value is passed in a level, replace
   // that level with an inline modal form to create a new item, and hide all
   // subsequent selects.
-  list($element, $creating_new_item) = _hs_process_render_create_new_item($element);
+  list($element, $creating_new_item) = _hs_process_render_create_new_item($element, $hierarchy);
 
   // Render the dropbox, if enabled.
   // Automatically hides the "Add" button when creating a new item.
@@ -1029,7 +1034,7 @@ function _hierarchical_select_process_calculate_selections(&$element, $hsid, $fo
     }
   }
   else {
-    $op = (isset($form_state['input']['op'])) ? $form_state['input']['op'] : NULL;
+    $op = (isset($form_state['input']['op']) && isset($form_state['input']['hsid']) && $form_state['input']['hsid'] == $hsid) ? $form_state['input']['op'] : NULL;
     if ($dropbox && $op == t('Add')) {
       $hs_selection = _hierarchical_select_process_get_hs_selection($element);
       $db_selection = _hierarchical_select_process_get_db_selection($element, $hsid, $form_state);
@@ -1045,10 +1050,6 @@ function _hierarchical_select_process_calculate_selections(&$element, $hsid, $fo
     else if ($op == t('Create')) {
       // This code handles both the creation of a new item in an existing
       // level and the creation of an item that also creates a new level.
-
-      // TODO: http://drupal.org/node/253868
-      // TODO: http://drupal.org/node/253869
-
       $label = trim($element['#value']['hierarchical_select']['create_new_item']['input']);
       $selects = isset($element['#value']['hierarchical_select']['selects']) ? $element['#value']['hierarchical_select']['selects'] : array();
       $depth = count($selects);
@@ -1970,7 +1971,8 @@ function _hierarchical_select_hierarchy_enforce_deepest($lineage, $module, $para
   $parent = end($lineage); // The last item in the lineage is the deepest one.
   $children = module_invoke($module, 'hierarchical_select_children', $parent, $params);
   while (count($children)) {
-    $first_child = reset(array_keys($children));
+    $keys = array_keys($children);
+    $first_child = $keys[0];
     $lineage[] = $first_child;
     $parent = $first_child;
     $children = module_invoke($module, 'hierarchical_select_children', $parent, $params);
@@ -2092,28 +2094,32 @@ function _hierarchical_select_dropbox_reconstruct_lineages_save_lineage_enabled(
 
   // Keep on trying as long as at least one lineage has been extended.
   $at_least_one = TRUE;
-  for ($i = 0; $at_least_one; $i++) {
+  for ($level = 0; $at_least_one; $level++) {
     $at_least_one = FALSE;
     $num = count($lineages);
 
-    // Try to improve every lineage. Make sure we don't iterate over
+    // Try to extend every lineage. Make sure we don't iterate over
     // possibly new lineages.
     for ($id = 0; $id < $num; $id++) {
-      $children = module_invoke($module, 'hierarchical_select_children', $lineages[$id][$i]['value'], $params);
+      // Only try to extend a lineage if it has an item at the current level.
+      if (!isset($lineages[$id][$level])) {
+        continue;
+      }
+      $children = module_invoke($module, 'hierarchical_select_children', $lineages[$id][$level]['value'], $params);
 
       $child_added_to_lineage = FALSE;
       foreach (array_keys($children) as $child) {
         if (in_array($child, $selection)) {
           if (!$child_added_to_lineage) {
             // Add the child to the lineage.
-            $lineages[$id][$i + 1] = array('value' => $child, 'label' => $children[$child]);
+            $lineages[$id][$level + 1] = array('value' => $child, 'label' => $children[$child]);
             $child_added_to_lineage = TRUE;
             $at_least_one = TRUE;
           }
           else {
             // Create new lineage based on current one and add the child.
             $lineage = $lineages[$id];
-            $lineage[$i + 1] = array('value' => $child, 'label' => $children[$child]);
+            $lineage[$level + 1] = array('value' => $child, 'label' => $children[$child]);
 
             // Add the new lineage to the set of lineages
             $lineages[] = $lineage;

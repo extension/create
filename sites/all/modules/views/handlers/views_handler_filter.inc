@@ -47,12 +47,6 @@ class views_handler_filter extends views_handler {
       $this->options['expose']['operator_id'] = $options['expose']['operator_id'] = $options['expose']['operator'];
     }
 
-    // Compatibility: Set use_operator to true if the old way of using
-    // the operator is set and use_operator is NULL (was never set).
-    if (!empty($options['exposed']) && !empty($options['expose']['operator_id']) && !isset($options['expose']['use_operator'])) {
-      $this->options['expose']['use_operator'] = TRUE;
-    }
-
     // If there are relationships in the view, allow empty should be true
     // so that we can do IS NULL checks on items. Not all filters respect
     // allow empty, but string and numeric do and that covers enough.
@@ -235,7 +229,7 @@ class views_handler_filter extends views_handler {
       '#attributes' => array('class' => array('js-only')),
     );
     $form['expose_button']['checkbox']['checkbox'] = array(
-      '#title' => t('Expose this filter to visitors, to allow them to change it.'),
+      '#title' => t('Expose this filter to visitors, to allow them to change it'),
       '#type' => 'checkbox',
     );
 
@@ -280,6 +274,12 @@ class views_handler_filter extends views_handler {
         '#type' => 'checkbox',
         '#title' => t('Required'),
         '#default_value' => $this->options['expose']['required'],
+      );
+    }
+    else {
+      $form['expose']['required'] = array(
+        '#type' => 'value',
+        '#value' => TRUE,
       );
     }
     $form['expose']['label'] = array(
@@ -459,6 +459,10 @@ class views_handler_filter extends views_handler {
       $any_label = variable_get('views_exposed_filter_any_label', 'new_any') == 'old_any' ? t('<Any>') : t('- Any -');
       $form['#options'] = array('All' => $any_label) + $form['#options'];
       $form['#default_value'] = 'All';
+    }
+
+    if (!empty($this->options['expose']['required'])) {
+      $form['#required'] = TRUE;
     }
   }
 

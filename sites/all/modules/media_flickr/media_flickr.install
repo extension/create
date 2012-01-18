@@ -47,3 +47,16 @@ function media_flickr_update_7002() {
  */
 function media_flickr_update_7004() {
 }
+
+/**
+ * Register new style presets for photosets.
+ */
+function media_flickr_update_7005() {
+}
+
+/**
+ * Register new style presets for photosets based on Image styles.
+ */
+function media_flickr_update_7006() {
+}
+

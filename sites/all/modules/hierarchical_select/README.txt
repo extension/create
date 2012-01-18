@@ -15,11 +15,7 @@ and levels through Hierarchical Select!
 
 Integrates with
 ---------------
-* Forum (Drupal core)
-* Menu (Drupal core)
 * Taxonomy (Drupal core)
-* Content Taxonomy (http://drupal.org/project/content_taxonomy)
-* Views
 
 
 Installation
@@ -29,19 +25,23 @@ Installation
 folder, since that will cause problems and is bad practice in general. If
 "sites/all/modules" doesn't exist yet, just create it.
 
-2) Enable the module.
+2) Enable the Hierarchical Select and Hierarchical Select Taxonomy modules.
 
 3) If you want to use it for one or more of your vocabularies, go to
-admin/content/taxonomy and click the "edit" link for a vocabulary. Now scroll
-down and you'll find a whole range of Hierarchical Select settings. All
-settings are explained there as well.
+admin/structure/types and click the "manage fields" link for a content type on
+which you're using a Term reference field. Click the "edit" link for this Term
+reference field and then go to the "widget type" tab in the upper right corner.
+There, you can choose the "Hierarchical Select" widget type, and when you do,
+the entire Hierarchical Select configuration UI will appear: here you'll find
+a whole range of Hierarchical Select settings. All settings are explained
+there as well!
 
 
 Troubleshooting
 ---------------
 If you ever have problems, make sure to go through these steps:
 
-1) Go to admin/logs/status (i.e. the Status Report). Ensure that the status
+1) Go to admin/reports/status (i.e. the Status Report). Ensure that the status
    of the Hierarchical Select module is ok.
 
 2) Ensure that the page isn't being served from your browser's cache. Use
@@ -58,7 +58,7 @@ If you ever have problems, make sure to go through these steps:
    Note: you may have to repeat this for every configuration in which the
    vocabulary with terms that have multiple parents are being used. E.g. if
    such a vocabulary is called "A", then go to 
-      admin/settings/hierarchical_select/configs
+      admin/config/content/hierarchical_select/configs
    and edit all configuration that have "A" in the "Hierarchy" column.
 
 In case of problems, don't forget to try a hard refresh in your browser!
@@ -98,39 +98,6 @@ Limitations
   See the following issues:
   * http://drupal.org/node/1023762#comment-4054386
   * http://drupal.org/node/976394#comment-4054456
-
-
-Maximum scalability
--------------------
-hs_taxonomy takes advantage of the taxonomy_override_selector variable to
-improve scalability: the whole tree is no longer loaded by Drupal core.
-While the hs_book, hs_menu and hs_subscriptions modules override existing form
-items, those form items are *still* being generated. This can cause scalability
-issues.
-If you want to fix this, you *will* have to modify the original modules (so
-that includes Drupal core modules). Simply move the changes from the
-hook_form_alter() implementations into the corresponding form definitions.
-
-
-Hierarchical Select Taxonomy: using the [save-lineage-termpath] token
----------------------------------------------------------------------
-When you're using the Token module, and likely the Pathauto module, and you've
-configured your Hierarchical Select to save the lineage, you may want to show
-the saved lineage (or the first lineage in case you've also enabled the
-dropbox) in your URL. That's possible through the [save-lineage-termpath]
-token (and other similar tokens). However, by default it uses the separator
-you've configured Pathauto to use (if you aren't using Pathauto then it will
-default to a dash). You can override this by setting the hs_taxonomy_separator
-variable. Also, when you're using Pathauto and it seems to be stripping the
-separator you've configured, then you may want to configure that character in
-Pathauto's Punctuation settings to "No action (do not replace)".
-
-
-Using the dropbox in Views exposed filters
-------------------------------------------
-This can be very tricky, due to a combination of the respective limitations of
-Taxonomy and Views exposed filters.
-See http://drupal.org/node/346033.
 
 
 Rendering hierarchy lineages when viewing content
@@ -210,6 +177,10 @@ Sponsors
    Merge, http://merge.nl.
 * Views 2 support:
    Merge, http://merge.nl.
+* Initial Drupal 7 port + folow-up fixes:
+   PingV, http://pingv.com.
+* Port of "save lineage" functionality to Drupal 7:
+   Bancard Data Service
 
 
 Author

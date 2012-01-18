@@ -1,0 +1,207 @@
+<?php
+
+require_once (dirname(__FILE__) . '/media_update.admin.inc');
+
+/**
+ * Implements hook_media_update_params().
+ * 
+ * Base implementation of hook_media_update_params to return values for
+ * media_internet module and allow for updates of existing media.
+ */
+function media_update_media_update_params($schema) {
+  // Handle standard media_internet functionality
+  if (function_exists('media_internet_get_providers')) {
+    $internet_provider = media_internet_get_providers();
+    foreach ($internet_provider as $provider) {
+      // TODO: Seriously, can this be the only way? Seems SO fragile.
+      if ($provider['title'] == $schema) {
+        return array(
+          'form' => 'media_internet_add',
+          'field' => 'embed_code',
+          'type' => 'field',
+        );
+      }
+    }
+  }
+
+  // Default to standard file upload.
+  return array();
+}
+
+/**
+ * Given a schema, return the relevant fields for updating a particular media
+ * item.
+ * @param string $schema
+ *  The stream type for determining the appropriate update params.
+ */
+function media_update_get_update_params($schema = 'public') {
+  $handlers = module_invoke_all('media_update_params', $schema);
+  // Standard types (public/private) are handled here as the default.
+  if (!isset($handlers['form'])) {
+    $handlers = array(
+      'form' => 'media_add_upload',
+      'field' => 'upload',
+      'type' => 'file',
+    );
+  }
+  return $handlers;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ * 
+ *  Adds the original "add" fields for the appropriate media allowing files to 
+ *  be replaced during update.
+ */
+function media_update_form_media_edit_alter(&$form, &$form_state) {
+  // Determine the existing schema, and use it to determine appropriate update
+  // function and params.
+  $schema = file_uri_scheme($form['preview']['#file']->uri);
+  $handlers = media_update_get_update_params($schema);
+  if (isset($handlers['form'])) {
+    // Call the original add form so that we add the schema-specific fields.
+    $form = $handlers['form']($form, $form_state);
+    // If we don't have a defined validate function, add a default validate function.
+    if (!isset($handlers['validate']) && function_exists($handlers['form'] . '_validate')) {
+      $form_state['update_validate'] = $handlers['form'] . '_validate';
+    }
+    // If we don't have a defined submit function, add a default submit function.
+    if (!isset($handlers['submit']) && function_exists($handlers['form'] . '_submit')) {
+      $form_state['update_submit'] = $handlers['form'] . '_submit';
+    }
+    // Pull the relevant field and type for "update" recognition.
+    $form_state['update_field'] = $handlers['field'];
+    $form_state['update_type'] = $handlers['type'];
+    unset($form['submit']);
+  }
+
+
+  // Using the previous function for upload
+  // NOTE: This funciton saves the file permanently prematurely.
+  // NOTE: Commenting this out for now, redoing the logic in media_update_submit.
+  // $form['actions']['submit']['#submit'][] = 'media_add_upload_submit';
+  $form['actions']['submit']['#validate'][] = 'media_update_validate';
+  if (!isset($form['actions']['submit']['#submit'])) {
+    $form['actions']['submit']['#submit'] = array('media_edit_submit');
+  }
+  array_unshift($form['actions']['submit']['#submit'], 'media_update_presubmit');
+}
+
+/**
+ * Provides validation based on hook_media_update_params.
+ * 
+ * Checks to ensure that an update is actually occurring, stores the existing
+ * file, then performs a validation based on our validation params.
+ */
+function media_update_validate($form, &$form_state) {
+  if (isset($form_state['update_field']) && _media_update_should_validate($form_state)) {
+    _media_update_original_file($form_state['file']);
+    $form_state['update_validate']($form, $form_state);
+  }
+}
+
+/**
+ * Implements hook_file_presave().
+ * 
+ * Switches our media file's fid value so that all relevant hooks in file_save
+ * are executed with the original (rather than the new) file fid.
+ */
+function media_update_file_presave(&$file) {
+  $original_file = _media_update_original_file();
+  // By checking if our original file exists, we ensure that we only swap the
+  // fid when we're doing a file update.
+  if (!empty($original_file) && (!isset($file->fid) || ($original_file->fid != $file->fid))) {
+    // Let's try just swapping the file fid and see what happens. :-)
+    $file->fid = $original_file->fid;
+  }
+}
+
+/**
+ * Helper function to provide a static cache of our original file so that it 
+ * can be referenced outside of the form context (aka in file_presave). 
+ * 
+ * @param object $original_file
+ *  A file object to store temporarily.
+ */
+function _media_update_original_file($original_file = NULL, $reset = FALSE) {
+  static $file;
+  if (!empty($original_file) || $reset) {
+    $file = $original_file;
+  }
+  return $file;
+}
+
+/**
+ * Helper function to determine if our validation function should or should not
+ * be run.
+ */
+function _media_update_should_validate(&$form_state) {
+  $field = $form_state['update_field'];
+  $type = $form_state['update_type'];
+  $form_state['file_updated'] = FALSE;
+  // If our update is just a field update, check to ensure the field is populated.
+  if ($type == 'field') {
+    $form_state['file_updated'] = !empty($form_state['values'][$field]);
+  }
+  // If we're doing a file update, check the file superglobal for content and errors.
+  else if ($type == 'file') {
+    if (isset($_FILES['files']['name'][$field]) && (UPLOAD_ERR_OK == $_FILES['files']['error'][$field])) {
+      $form_state['file_updated'] = TRUE;
+    }
+  }
+  return $form_state['file_updated'];
+}
+
+/**
+ * Provides submit handling based on hook_media_update_params.
+ * 
+ * Checks to ensure that an update is actually occurring then performs a 
+ * form submission based on our validation params.
+ */
+function media_update_presubmit($form, &$form_state) {
+  if (isset($form_state['update_field']) && $form_state['file_updated']) {
+    $field = $form_state['update_field'];
+    if (isset($form_state['values'][$field])) {
+      $media_update_settings = media_update_get_settings();
+      $original_file = $form_state['file'];
+      // We have to update the fid of the file object for file-based uploads,
+      // but this entity isn't an object in other scenarios. 
+      if (isset($form_state['values'][$field]) && is_object($form_state['values'][$field]) && $form_state['update_type'] == 'file') {
+        $form_state['values'][$field]->fid = $original_file->fid;
+        if ($media_update_settings['replace']) {
+          // @todo: Find a better way to handle replacement than file delete/insert
+          // as this could potential create a race condition in extreme
+          // edge cases.
+          if ($original_file->filename == $form_state['values'][$field]->filename) {
+            file_unmanaged_delete($original_file->uri);
+          }
+        }
+      }
+      // @todo: Find a better way to handle this.
+      // We're doing this because both the edit form and the add form pass an
+      // argument. The edit form passes a file object while the add form needs
+      // a params array. The array holds little of value to our submit, but
+      // the incorrect object type causes chaos.
+      $arg0 = $form_state['build_info']['args'][0];
+      $form_state['build_info']['args'][0] = array();
+
+      // Call the original add submit handler.
+      $form_state['update_submit']($form, $form_state);
+      _media_update_original_file(NULL, TRUE);
+
+      // Potentially 2 file saves happen per file upload, but we want to ensure
+      // that any upload logic occurs as well as any update logic.
+      $form_state['file'] = file_load($original_file->fid);
+
+      // We're done with our submit handler, so reset the args element.
+      $form_state['build_info']['args'][0] = $arg0;
+    }
+  }
+}
+
+/**
+ * Helper function to return settings for the media update module.
+ */
+function media_update_get_settings() {
+  return variable_get('media_update', array('replace' => 0));
+}

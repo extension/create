@@ -24,6 +24,12 @@ function _views_theme_functions($hook, $view, $display = NULL) {
     $themes[] = $hook . '__' . $view->name . '__' . $display->id;
     $themes[] = $hook . '__' . $display->id;
     $themes[] = $hook . '__' . preg_replace('/[^a-z0-9]/', '_', strtolower($view->tag));
+
+    // Add theme suggestions foreach single tag.
+    foreach (drupal_explode_tags($view->tag) as $tag) {
+      $themes[] = $hook . '__' . preg_replace('/[^a-z0-9]/', '_', strtolower($tag));
+    }
+
     if ($display->id != $display->display_plugin) {
       $themes[] = $hook . '__' . $view->name . '__' . $display->display_plugin;
       $themes[] = $hook . '__' . $display->display_plugin;
@@ -42,7 +48,7 @@ function template_preprocess_views_view(&$vars) {
 
   $view = $vars['view'];
 
-  $vars['rows']       = !empty($view->result) || $view->style_plugin->even_empty() ? $view->style_plugin->render($view->result) : '';
+  $vars['rows']       = (!empty($view->result) || $view->style_plugin->even_empty()) ? $view->style_plugin->render($view->result) : '';
 
   $vars['css_name']   = drupal_clean_css_identifier($view->name);
   $vars['name']       = $view->name;
@@ -94,15 +100,6 @@ function template_preprocess_views_view(&$vars) {
   // processed by contextual_preprocess() they will appear in the $title_suffix
   // variable (which we will then render in views-view.tpl.php).
   views_add_contextual_links($vars['view_array'], 'view', $view, $view->current_display);
-  // If a display handles where to put the contextual links for themselves let it
-  // does it but by default render the links in the view ouput.
-  $vars['admin_links'] = '';
-  if (!empty($vars['view_array']['#views_contextual_links_info'])) {
-    $location = $vars['view_array']['#views_contextual_links_info']['views_ui'];
-    if ($location == 'view') {
-      $vars['admin_links'] = drupal_render($vars['view_array']['#contextual_links']['views_ui']);
-    }
-  }
 
   // Attachments are always updated with the outer view, never by themselves,
   // so they do not have dom ids.
@@ -127,7 +124,7 @@ function template_preprocess_views_view(&$vars) {
       'views' => array(
         'ajax_path' => url('views/ajax'),
         'ajaxViews' => array(
-          array(
+          'views_dom_id:' . $vars['dom_id'] => array(
             'view_name' => $view->name,
             'view_display_id' => $view->current_display,
             'view_args' => check_plain(implode('/', $view->args)),
@@ -147,6 +144,33 @@ function template_preprocess_views_view(&$vars) {
     drupal_add_js($settings, 'setting');
     views_add_js('ajax_view');
   }
+
+  // If form fields were found in the View, reformat the View output as a form.
+  if (views_view_has_form_elements($view)) {
+    $output = !empty($vars['rows']) ? $vars['rows'] : $vars['empty'];
+    $form = drupal_get_form(views_form_id($view), $view, $output);
+    // The form is requesting that all non-essential views elements be hidden,
+    // usually because the rendered step is not a view result.
+    if ($form['show_view_elements']['#value'] == FALSE) {
+      $vars['header'] = '';
+      $vars['exposed'] = '';
+      $vars['pager'] = '';
+      $vars['footer'] = '';
+      $vars['more'] = '';
+      $vars['feed_icon'] = '';
+    }
+    $vars['rows'] = $form;
+  }
+}
+
+/**
+ * Process function to render certain elements into the view.
+ */
+function template_process_views_view(&$vars) {
+  if (is_array($vars['rows'])) {
+    $vars['rows'] = drupal_render($vars['rows']);
+  }
+
   // Flatten the classes to a string for the template file.
   $vars['classes'] = implode(' ', $vars['classes_array']);
 }
@@ -255,7 +279,7 @@ function template_preprocess_views_view_fields(&$vars) {
         if ($object->element_label_type) {
           $class = '';
           if ($object->handler->options['element_default_classes']) {
-            $class = 'views-label-' . $object->class;
+            $class = 'views-label views-label-' . $object->class;
           }
 
           $element_label_class = $object->handler->element_label_classes($view->row_index);
@@ -321,20 +345,35 @@ function template_preprocess_views_view_summary(&$vars) {
   if (!empty($view->exposed_raw_input)) {
     $url_options['query'] = $view->exposed_raw_input;
   }
+
+  $active_urls = drupal_map_assoc(array(
+    url($_GET['q'], array('alias' => TRUE)), // force system path
+    url($_GET['q']), // could be an alias
+  ));
+
+  // Collect all arguments foreach row, to be able to alter them for example by the validator.
+  // This is not done per single argument value, because this could cause performance problems.
+  $row_args = array();
+
+  foreach ($vars['rows'] as $id => $row) {
+    $row_args[$id] = $argument->summary_argument($row);
+  }
+  $argument->process_summary_arguments($row_args);
+
   foreach ($vars['rows'] as $id => $row) {
     $vars['row_classes'][$id] = '';
 
     $vars['rows'][$id]->link = $argument->summary_name($row);
     $args = $view->args;
-    $args[$argument->position] = $argument->summary_argument($row);
+    $args[$argument->position] = $row_args[$id];
 
     $base_path = NULL;
-    if (!empty($argument->options['style_options']['base_path'])) {
-      $base_path = $argument->options['style_options']['base_path'];
+    if (!empty($argument->options['summary_options']['base_path'])) {
+      $base_path = $argument->options['summary_options']['base_path'];
     }
     $vars['rows'][$id]->url = url($view->get_url($args, $base_path), $url_options);
     $vars['rows'][$id]->count = intval($row->{$argument->count_alias});
-    if ($vars['rows'][$id]->url == base_path() . $_GET['q'] || $vars['rows'][$id]->url == base_path() . drupal_get_path_alias($_GET['q'])) {
+    if (isset($active_urls[$vars['rows'][$id]->url])) {
       $vars['row_classes'][$id] = 'active';
     }
   }
@@ -356,6 +395,19 @@ function template_preprocess_views_view_summary_unformatted(&$vars) {
   }
 
   $count = 0;
+  $active_urls = drupal_map_assoc(array(
+    url($_GET['q'], array('alias' => TRUE)), // force system path
+    url($_GET['q']), // could be an alias
+  ));
+
+  // Collect all arguments foreach row, to be able to alter them for example by the validator.
+  // This is not done per single argument value, because this could cause performance problems.
+  $row_args = array();
+  foreach ($vars['rows'] as $id => $row) {
+    $row_args[$id] = $argument->summary_argument($row);
+  }
+  $argument->process_summary_arguments($row_args);
+
   foreach ($vars['rows'] as $id => $row) {
     // only false on first time:
     if ($count++) {
@@ -363,15 +415,15 @@ function template_preprocess_views_view_summary_unformatted(&$vars) {
     }
     $vars['rows'][$id]->link = $argument->summary_name($row);
     $args = $view->args;
-    $args[$argument->position] = $argument->summary_argument($row);
+    $args[$argument->position] = $row_args[$id];
 
     $base_path = NULL;
-    if (!empty($argument->options['style_options']['base_path'])) {
-      $base_path = $argument->options['style_options']['base_path'];
+    if (!empty($argument->options['summary_options']['base_path'])) {
+      $base_path = $argument->options['summary_options']['base_path'];
     }
     $vars['rows'][$id]->url = url($view->get_url($args, $base_path), $url_options);
     $vars['rows'][$id]->count = intval($row->{$argument->count_alias});
-    if ($vars['rows'][$id]->url == base_path() . $_GET['q'] || $vars['rows'][$id]->url == base_path() . drupal_get_path_alias($_GET['q'])) {
+    if (isset($active_urls[$vars['rows'][$id]->url])) {
       $vars['row_classes'][$id] = 'active';
     }
   }
@@ -515,6 +567,20 @@ function template_preprocess_views_view_table(&$vars) {
         }
 
         $vars['rows'][$num][$column] .= $field_output;
+      }
+    }
+
+    // Remove columns if the option is hide empty column is checked and the field is not empty.
+    if (!empty($options['info'][$field]['empty_column'])) {
+      $empty = TRUE;
+      foreach ($vars['rows'] as $num => $columns) {
+        $empty &= empty($columns[$column]);
+      }
+      if ($empty) {
+        foreach ($vars['rows'] as $num => &$columns) {
+          unset($columns[$column]);
+          unset($vars['header'][$column]);
+        }
       }
     }
   }
@@ -851,6 +917,38 @@ function template_preprocess_views_exposed_form(&$vars) {
   }
   // This includes the submit button.
   $vars['button'] = drupal_render_children($form);
+}
+
+/**
+ * Theme function for a View with form elements: replace the placeholders.
+ */
+function theme_views_form_views_form($variables) {
+  $form = $variables['form'];
+
+  // Placeholders and their substitutions (usually rendered form elements).
+  $search = array();
+  $replace = array();
+
+  // Add in substitutions provided by the form.
+  foreach ($form['#substitutions']['#value'] as $substitution) {
+    $field_name = $substitution['field_name'];
+    $row_id = $substitution['row_id'];
+
+    $search[] = $substitution['placeholder'];
+    $replace[] = isset($form[$field_name][$row_id]) ? drupal_render($form[$field_name][$row_id]) : '';
+  }
+  // Add in substitutions from hook_views_form_substitutions().
+  $substitutions = module_invoke_all('views_form_substitutions');
+  foreach ($substitutions as $placeholder => $substitution) {
+    $search[] = $placeholder;
+    $replace[] = $substitution;
+  }
+
+  // Apply substitutions to the rendered output.
+  $form['output']['#markup'] = str_replace($search, $replace, $form['output']['#markup']);
+
+  // Render and add remaining form fields.
+  return drupal_render_children($form);
 }
 
 function theme_views_mini_pager($vars) {

@@ -27,7 +27,7 @@ function og_example_default_page_manager_handlers() {
     'contexts' => array(),
     'relationships' => array(
       0 => array(
-        'identifier' => 'Group from node',
+        'identifier' => 'OG group from node',
         'keyword' => 'group',
         'name' => 'og_group_from_node',
         'context' => 'argument_entity_id:node_1',
@@ -119,7 +119,7 @@ function og_example_default_page_manager_handlers() {
       'context' => array(
         0 => 'relationship_og_group_from_node_1',
       ),
-      'override_title' => 1,
+      'override_title' => 0,
       'override_title_text' => 'Members',
     );
     $pane->cache = array();

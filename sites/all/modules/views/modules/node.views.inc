@@ -20,7 +20,7 @@ function node_views_data() {
 
   // Define the base group of this table. Fields that don't
   // have a group defined will go into this field by default.
-  $data['node']['table']['group']  = t('Content');
+  $data['node']['table']['group'] = t('Content');
 
   // Advertise this table as a possible base table
   $data['node']['table']['base'] = array(
@@ -32,6 +32,8 @@ function node_views_data() {
       'field' => 'title',
     ),
   );
+  $data['node']['table']['entity type'] = 'node';
+
 
   // For other base tables, explain how we join
   $data['node']['table']['join'] = array(
@@ -196,6 +198,9 @@ function node_views_data() {
     'field' => array(
       'handler' => 'views_handler_field_boolean',
       'click sortable' => TRUE,
+      'output formats' => array(
+        'promoted-notpromoted' => array(t('Promoted'), t('Not promoted')),
+      ),
     ),
     'filter' => array(
       'handler' => 'views_handler_filter_boolean_operator',
@@ -216,7 +221,7 @@ function node_views_data() {
       'handler' => 'views_handler_field_boolean',
       'click sortable' => TRUE,
       'output formats' => array(
-        'sticky' => array('', t('Sticky')),
+        'sticky' => array(t('Sticky'), ''),
       ),
     ),
     'filter' => array(
@@ -230,9 +235,12 @@ function node_views_data() {
     ),
   );
 
-  // links to operate on the node
+  // Define some fields based upon views_handler_field_entity in the entity
+  // table so they can be re-used with other query backends.
+  // @see views_handler_field_entity
 
-  $data['node']['view_node'] = array(
+  $data['node']['view_node']['moved to'] = array('views_entity_node', 'view_node');
+  $data['views_entity_node']['view_node'] = array(
     'field' => array(
       'title' => t('Link'),
       'help' => t('Provide a simple link to the content.'),
@@ -240,7 +248,8 @@ function node_views_data() {
     ),
   );
 
-  $data['node']['edit_node'] = array(
+  $data['node']['edit_node']['moved to'] = array('views_entity_node', 'edit_node');
+  $data['views_entity_node']['edit_node'] = array(
     'field' => array(
       'title' => t('Edit link'),
       'help' => t('Provide a simple link to edit the content.'),
@@ -248,7 +257,8 @@ function node_views_data() {
     ),
   );
 
-  $data['node']['delete_node'] = array(
+  $data['node']['delete_node']['moved to'] = array('views_entity_node', 'delete_node');
+  $data['views_entity_node']['delete_node'] = array(
     'field' => array(
       'title' => t('Delete link'),
       'help' => t('Provide a simple link to delete the content.'),
@@ -377,13 +387,24 @@ function node_views_data() {
 
   // uid field
   $data['node']['uid'] = array(
-    'title' => t('Author'),
-    'help' => t('Relate content to the user who created it.'),
+    'title' => t('Author uid'),
+    'help' => t('The user authoring the content. If you need more fields then the uid add the content: author relationship'),
     'relationship' => array(
+      'title' => t('Author'),
+      'help' => t('Relate content to the user who created it.'),
       'handler' => 'views_handler_relationship',
       'base' => 'users',
       'field' => 'uid',
-      'label' => t('user'),
+      'label' => t('author'),
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_user_name',
+    ),
+    'argument' => array(
+      'handler' => 'views_handler_argument_numeric',
+    ),
+    'field' => array(
+      'handler' => 'views_handler_field_user',
     ),
   );
 
@@ -465,7 +486,7 @@ function node_views_data() {
     'relationship' => array(
       'handler' => 'views_handler_relationship',
       'base' => 'node',
-      'base field' => 'nid',
+      'base field' => 'vid',
       'title' => t('Content'),
       'label' => t('Get the actual content from a content revision.'),
     ),
@@ -508,8 +529,8 @@ function node_views_data() {
   // revision timestamp
   // changed field
   $data['node_revision']['timestamp'] = array(
-    'title' => t('Created date'), // The item it appears as on the UI,
-    'help' => t('The date the content revision was created.'), // The help that appears on the UI,
+    'title' => t('Updated date'), // The item it appears as on the UI,
+    'help' => t('The date the node was last updated.'), // The help that appears on the UI,
     'field' => array(
       'handler' => 'views_handler_field_date',
       'click sortable' => TRUE,
@@ -611,7 +632,6 @@ function node_views_plugins() {
         'help' => t('Display the content with standard node view.'),
         'handler' => 'views_plugin_row_node_view',
         'path' => drupal_get_path('module', 'views') . '/modules/node', // not necessary for most modules
-        'theme' => 'views_view_row_node',
         'base' => array('node'), // only works with 'node' as base.
         'uses options' => TRUE,
         'type' => 'normal',
@@ -645,51 +665,24 @@ function node_views_plugins() {
 }
 
 /**
- * Template helper for theme_views_view_row_node
+ * Implements hook_preprocess_node
  */
-function template_preprocess_views_view_row_node(&$vars) {
-  $options = $vars['options'];
-
-  // Make sure the variables are defined.
-  $vars['node'] = '';
-  $vars['comments'] = '';
-
-  if (!empty($vars['row']->{$vars['field_alias']})) {
-    $nid = $vars['row']->{$vars['field_alias']};
-  }
-  if (!is_numeric($nid)) {
-    return;
-  }
-
-  $row_plugin = $vars['view']->style_plugin->row_plugin;
-  $node = $row_plugin->nodes[$nid];
-
-  if (empty($node)) {
-    return;
-  }
-
-  $node->view = $vars['view'];
-  // Detect which build module should be used.
-  $node->view_mode = (!empty($options['view_mode'])) ? $options['view_mode'] : 'full';
+function node_row_node_view_preprocess_node(&$vars) {
+  $node = $vars['node'];
+  $options = $vars['view']->style_plugin->row_plugin->options;
 
   // Prevent the comment form from showing up if this is not a page display.
-  if ($node->view_mode == 'full' && !$vars['view']->display_handler->has_path()) {
+  if ($vars['view_mode'] == 'full' && !$vars['view']->display_handler->has_path()) {
     $node->comment = FALSE;
   }
 
-  $content = node_view_multiple(array($node->nid => $node), $node->view_mode);
-  $content = $content['nodes'][$node->nid];
   if (!$options['links']) {
-    unset($content['links']);
+    unset($vars['content']['links']);
   }
 
   if (!empty($options['comments']) && user_access('access comments') && $node->comment) {
-    $build = comment_node_page_additions($node);
-    $vars['comments'] = drupal_render($build);
+    $vars['content']['comments'] = comment_node_page_additions($node);
   }
-
-  $vars['node'] = drupal_render($content);
-
 }
 
 /**
@@ -710,6 +703,9 @@ function node_views_analyze($view) {
   // Check for something other than the default display:
   if ($view->base_table == 'node') {
     foreach ($view->display as $id => $display) {
+      if (empty($display->handler)) {
+        continue;
+      }
       if (!$display->handler->is_defaulted('access') || !$display->handler->is_defaulted('filters')) {
         // check for no access control
         $access = $display->handler->get_option('access');

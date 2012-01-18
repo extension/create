@@ -1,4 +1,3 @@
-// $Id: field_group.js,v 1.5.2.12 2011/01/07 09:52:30 stalski Exp $
 
 (function($) {
 
@@ -7,15 +6,68 @@
  */
 Drupal.FieldGroup = Drupal.FieldGroup || {};
 Drupal.FieldGroup.Effects = Drupal.FieldGroup.Effects || {};
+Drupal.FieldGroup.groupWithfocus = null;
+
+Drupal.FieldGroup.setGroupWithfocus = function(element) {
+  element.css({display: 'block'});
+  Drupal.FieldGroup.groupWithfocus = element;
+}
+
+/**
+ * Implements Drupal.FieldGroup.processHook().
+ */
+Drupal.FieldGroup.Effects.processFieldset = {
+  execute: function (context, settings, type) {
+    if (type == 'form') {
+      // Add required fields mark to any fieldsets containing required fields
+      $('fieldset.fieldset', context).once('fieldgroup-effects', function(i) {
+        if ($(this).is('.required-fields') && $(this).find('.form-required').length > 0) {
+          $('legend span.fieldset-legend', $(this)).eq(0).append(' ').append($('.form-required').eq(0).clone());
+        }
+        if ($('.error', $(this)).length) {
+          $('legend span.fieldset-legend', $(this)).eq(0).addClass('error');
+          Drupal.FieldGroup.setGroupWithfocus($(this));
+        }
+      });
+    }
+  }
+}
 
 /**
  * Implements Drupal.FieldGroup.processHook().
  */
 Drupal.FieldGroup.Effects.processAccordion = {
-  execute: function (context, settings) {
-    $('div.field-group-accordion-wrapper', context).accordion({
-      autoHeight: false,
-      active: '.field-group-accordion-active'
+  execute: function (context, settings, type) {
+    $('div.field-group-accordion-wrapper', context).once('fieldgroup-effects', function () {
+      var wrapper = $(this);
+
+      wrapper.accordion({
+        autoHeight: false,
+        active: '.field-group-accordion-active',
+        collapsible: true,
+        changestart: function(event, ui) {
+          if ($(this).hasClass('effect-none')) {
+            ui.options.animated = false;
+          }
+          else {
+            ui.options.animated = 'slide';
+          }
+        }
+      });
+
+      if (type == 'form') {
+        // Add required fields mark to any element containing required fields
+        wrapper.find('div.accordion-item').each(function(i){
+          if ($(this).is('.required-fields') && $(this).find('.form-required').length > 0) {
+            $('h3.ui-accordion-header').eq(i).append(' ').append($('.form-required').eq(0).clone());
+          }
+          if ($('.error', $(this)).length) {
+            $('h3.ui-accordion-header').eq(i).addClass('error');
+            var activeOne = $(this).parent().accordion("activate" , i);
+            $('.ui-accordion-content-active', activeOne).css({height: 'auto', width: 'auto', display: 'block'});
+          }
+        });
+      }
     });
   }
 }
@@ -24,28 +76,70 @@ Drupal.FieldGroup.Effects.processAccordion = {
  * Implements Drupal.FieldGroup.processHook().
  */
 Drupal.FieldGroup.Effects.processHtabs = {
-  execute: function (context, settings) {
+  execute: function (context, settings, type) {
+    if (type == 'form') {
+      // Add required fields mark to any element containing required fields
+      $('fieldset.horizontal-tabs-pane', context).once('fieldgroup-effects', function(i) {
+        if ($(this).is('.required-fields') && $(this).find('.form-required').length > 0) {
+          $(this).data('horizontalTab').link.find('strong:first').after($('.form-required').eq(0).clone()).after(' ');
+        }
+        if ($('.error', $(this)).length) {
+          $(this).data('horizontalTab').link.parent().addClass('error');
+          Drupal.FieldGroup.setGroupWithfocus($(this));
+          $(this).data('horizontalTab').focus();
+        }
+      });
+    }
   }
 }
 
 /**
  * Implements Drupal.FieldGroup.processHook().
- * 
- * TODO clean this up meaning check if this is really 
+ */
+Drupal.FieldGroup.Effects.processTabs = {
+  execute: function (context, settings, type) {
+    if (type == 'form') {
+      // Add required fields mark to any fieldsets containing required fields
+      $('fieldset.vertical-tabs-pane', context).once('fieldgroup-effects', function(i) {
+        if ($(this).is('.required-fields') && $(this).find('.form-required').length > 0) {
+          $(this).data('verticalTab').link.find('strong:first').after($('.form-required').eq(0).clone()).after(' ');
+        }
+        if ($('.error', $(this)).length) {
+          $(this).data('verticalTab').link.parent().addClass('error');
+          Drupal.FieldGroup.setGroupWithfocus($(this));
+          $(this).data('verticalTab').focus();
+        }
+      });
+    }
+  }
+}
+
+/**
+ * Implements Drupal.FieldGroup.processHook().
+ *
+ * TODO clean this up meaning check if this is really
  *      necessary.
  */
 Drupal.FieldGroup.Effects.processDiv = {
-  execute: function (context, settings) {
+  execute: function (context, settings, type) {
 
-    $('div.collapsible', context).each(function() {
+    $('div.collapsible', context).once('fieldgroup-effects', function() {
       var $wrapper = $(this);
 
       // Turn the legend into a clickable link, but retain span.field-group-format-toggler
       // for CSS positioning.
+
       var $toggler = $('span.field-group-format-toggler:first', $wrapper);
       var $link = $('<a class="field-group-format-title" href="#"></a>');
-      $link.prepend($toggler.contents()).appendTo($toggler);
-      
+      $link.prepend($toggler.contents());
+
+      // Add required field markers if needed
+      if ($(this).is('.required-fields') && $(this).find('.form-required').length > 0) {
+        $link.append(' ').append($('.form-required').eq(0).clone());
+      }
+
+      $link.appendTo($toggler);
+
       // .wrapInner() does not retain bound events.
       $link.click(function () {
         var wrapper = $wrapper.get(0);
@@ -64,9 +158,10 @@ Drupal.FieldGroup.Effects.processDiv = {
           }
           wrapper.animating = false;
         }
+        $wrapper.toggleClass('collapsed');
         return false;
       });
-      
+
     });
   }
 };
@@ -79,16 +174,21 @@ Drupal.behaviors.fieldGroup = {
     if (settings.field_group == undefined) {
       return;
     }
-    $('body', context).once('fieldgroup-effects', function () {
-      // Execute all of them.
-      $.each(Drupal.FieldGroup.Effects, function (func) {
-        // We check for a wrapper function in Drupal.field_group as 
-        // alternative for dynamic string function calls.
-        if (settings.field_group[func.toLowerCase().replace("process", "")] != undefined && $.isFunction(this.execute)) {
-          this.execute(context, settings);
-        }
-      });
+
+    // Execute all of them.
+    $.each(Drupal.FieldGroup.Effects, function (func) {
+      // We check for a wrapper function in Drupal.field_group as
+      // alternative for dynamic string function calls.
+      var type = func.toLowerCase().replace("process", "");
+      if (settings.field_group[type] != undefined && $.isFunction(this.execute)) {
+        this.execute(context, settings, settings.field_group[type]);
+      }
     });
+
+    // Fixes css for fieldgroups under vertical tabs.
+    $('.fieldset-wrapper .fieldset > legend').css({display: 'block'});
+    $('.vertical-tabs fieldset.fieldset').addClass('default-fallback');
+
   }
 };
 

@@ -3,11 +3,11 @@ description = Provides an API for accessing media on various internet services
 package = Media
 core = 7.x
 dependencies[] = media
-files[] = media_internet.module
+files[] = includes/MediaBrowserInternet.inc
 
-; Information added by drupal.org packaging script on 2011-07-31
-version = "7.x-2.x-dev"
+; Information added by drupal.org packaging script on 2012-01-17
+version = "7.x-2.0-unstable3+1-dev"
 core = "7.x"
 project = "media"
-datestamp = "1312071919"
+datestamp = "1326760466"
 

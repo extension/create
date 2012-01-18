@@ -22,10 +22,24 @@ function media_flickr_preprocess_media_flickr_photoset(&$variables) {
   $uri = $variables['uri'];
   $wrapper = file_stream_wrapper_get_instance_by_uri($uri);
   $parts = $wrapper->get_parameters();
-  $variables['user_id'] = drupal_encode_path($parts['u']);
-  $variables['set_id'] = drupal_encode_path($parts['s']);
+  if (isset($parts['search'])) {
+    $variables['search'] = $parts['search'];
+  }
+  else {
+    $variables['user_id'] = drupal_encode_path($parts['u']);
+    $variables['set_id'] = drupal_encode_path($parts['s']);
+  }
   $variables['width'] = isset($variables['width']) ? $variables['width'] : media_flickr_variable_get('width');
   $variables['height'] = isset($variables['height']) ? $variables['height'] : media_flickr_variable_get('height');
+  if (isset($variables['search'])) {
+    $variables['flashvars'] = "offsite=true&lang=en-us&page_show_url=%2Fsearch%2Fshow%2F%3Fq%3D{$variables['search']}&page_show_back_url=%2Fsearch%2F%3Fq%3D{$variables['search']}&method=flickr.photos.search&api_params_str=&api_text={$variables['search']}&api_tag_mode=bool&api_media=all&api_sort=relevance&jump_to=&start_index=0";
+  }
+  elseif ($variables['set_id'] == 'photostream') {
+    $variables['flashvars'] = "offsite=true&lang=en-us&page_show_url=%2Fphotos%2F{$variables['user_id']}%2Fshow%2F&page_show_back_url=%2Fphotos%2F{$variables['user_id']}%2F&user_id={$variables['user_id']}&jump_to=";
+  }
+  else {
+    $variables['flashvars'] = "offsite=true&lang=en-us&page_show_url=%2Fphotos%2F{$variables['user_id']}%2Fsets%2F{$variables['set_id']}%2Fshow%2F&page_show_back_url=%2Fphotos%2F{$variables['user_id']}%2Fsets%2F{$variables['set_id']}%2F&set_id={$variables['set_id']}&jump_to=";
+  }
 }
 
 function theme_media_flickr_embed($variables) {
@@ -61,6 +75,10 @@ function theme_media_flickr_embed($variables) {
       if (isset($override['height'])) {
         $height = $override['height'];
       }
+      if (isset($override['thumbnail'])) {
+        unset($variables['photoset']);
+        unset($variables['search']);
+      }
     }
 
     $attributes = array();
@@ -72,9 +90,14 @@ function theme_media_flickr_embed($variables) {
     }
 
     // If this is a photoset, then return the flash object for that.
-    if (!isset($parts['p']) && isset($parts['s'])) {
-      $attributes['uri'] = $uri;
-      return theme('media_flickr_photoset', $attributes);
+    if (!isset($parts['p'])) {
+      if (isset($variables['search']) || (isset($variables['photoset']) && $variables['photoset'])) {
+        $attributes['uri'] = $uri;
+        return theme('media_flickr_photoset', $attributes);
+      }
+      else {
+        $parts['p'] = media_flickr_photoset_photo_id($uri);
+      }
     }
 
     $output = theme('image', array(

@@ -44,16 +44,14 @@ class views_handler_filter_search extends views_handler_filter {
   /**
    * Provide a simple textfield for equality
    */
-  function exposed_form(&$form, &$form_state) {
-    if (isset($this->options['expose']['identifier'])) {
-      $key = $this->options['expose']['identifier'];
-      $form[$key] = array(
-        '#type' => 'textfield',
-        '#size' => 15,
-        '#default_value' => $this->value,
-        '#attributes' => array('title' => t('Enter the terms you wish to search for.')),
-      );
-    }
+  function value_form(&$form, &$form_state) {
+    $form['value'] = array(
+      '#type' => 'textfield',
+      '#size' => 15,
+      '#default_value' => $this->value,
+      '#attributes' => array('title' => t('Enter the terms you wish to search for.')),
+      '#title' => empty($form_state['exposed']) ? t('Value') : '',
+    );
   }
 
   /**
@@ -119,12 +117,7 @@ class views_handler_filter_search extends views_handler_filter {
     else {
       $search_index = $this->ensure_my_table();
 
-      // Stores each condition, so and/or on the filter level will still work.
       $search_condition = db_and();
-      $or = db_or();
-      foreach ($words as $word) {
-        $or->condition("$search_index.word", $word);
-      }
 
       // Create a new join to relate the 'serach_total' table to our current 'search_index' table.
       $join = new views_join;
@@ -132,8 +125,6 @@ class views_handler_filter_search extends views_handler_filter {
       $search_total = $this->query->add_relationship('search_total', $join, $search_index);
 
       $this->search_score = $this->query->add_field('', "SUM($search_index.score * $search_total.count)", 'score', array('aggregate' => TRUE));
-
-      $search_condition->condition($or);
 
       if (empty($this->query->relationships[$this->relationship])) {
         $base_table = $this->query->base_table;
@@ -153,7 +144,17 @@ class views_handler_filter_search extends views_handler_filter {
             $this->search_query->condition_replace_string('d.', "$search_dataset.", $condition);
           }
         }
-        $search_conditions =& $search_condition->conditions() + $conditions;
+        $search_conditions =& $search_condition->conditions();
+        $search_conditions = array_merge($search_conditions, $condition_conditions);
+      }
+      else {
+        // Stores each condition, so and/or on the filter level will still work.
+        $or = db_or();
+        foreach ($words as $word) {
+          $or->condition("$search_index.word", $word);
+        }
+
+        $search_condition->condition($or);
       }
 
       $this->query->add_where($this->options['group'], $search_condition);

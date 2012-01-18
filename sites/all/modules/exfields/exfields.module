@@ -375,7 +375,7 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
 		$element['appraisal_note'] = array( 
 		'#type' => 'textarea', 
 		'#title' => t('Notes'), 
-		'#default_value' => isset($items[$delta]['note']) ? $items[$delta]['note'] : '', 
+		'#default_value' => isset($items[$delta]['appraisal_note']) ? $items[$delta]['appraisal_note'] : '', 
 		);
 		// Separate the timestamp of the date storage to an array of alements needed for the date widget
 		$appraisal_date_value = isset($items[$delta]['appraisal_date']) ? $items[$delta]['appraisal_date'] : format_date(time(), 'custom', 'Y-m-d');
@@ -387,7 +387,7 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
         '#default_value' => $appraisal_date_value,
       	);
 		// Separate the timestamp of the date storage to an array of alements needed for the date widget
-		$improvements_date_value = isset($items[$delta]['appraisal_date']) ? $items[$delta]['appraisal_date'] : '';
+		$improvements_date_value = isset($items[$delta]['improvements_date']) ? $items[$delta]['improvements_date'] : '';
 		$element['improvements_date'] = array(
 		'#title'=>'Date Improvements Were Completed',
         '#type' => 'date_popup',
@@ -479,4 +479,14 @@ function _intToDateArray($timestr) {
   $month = date('n',$timestamp);
   $day = date('j',$timestamp);
   return array('year' => $year, 'month' => $month, 'day' => $day);
+}
+
+/**
+ * Implementation of hook_views_api().
+ */
+function exfields_views_api() {
+    return array(
+        'api' => 3,
+        'path' => drupal_get_path('module', 'exfields'),
+    );
 }

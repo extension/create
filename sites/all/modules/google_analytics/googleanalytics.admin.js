@@ -1,4 +1,3 @@
-// $Id: googleanalytics.admin.js,v 1.1.2.2 2011/01/02 15:35:59 hass Exp $
 (function ($) {
 
 /**
@@ -12,8 +11,14 @@ Drupal.behaviors.trackingSettingsSummary = {
     }
 
     $('fieldset#edit-page-vis-settings', context).drupalSetSummary(function (context) {
-      if (!$('textarea[name="googleanalytics_pages"]', context).val()) {
-        return Drupal.t('Not restricted');
+      var $radio = $('input[name="googleanalytics_visibility_pages"]:checked', context);
+      if ($radio.val() == 0) {
+        if (!$('textarea[name="googleanalytics_pages"]', context).val()) {
+          return Drupal.t('Not restricted');
+        }
+        else {
+          return Drupal.t('All pages with exceptions');
+        }
       }
       else {
         return Drupal.t('Restricted to certain pages');
@@ -26,9 +31,14 @@ Drupal.behaviors.trackingSettingsSummary = {
         vals.push($.trim($(this).next('label').text()));
       });
       if (!vals.length) {
-        vals.push(Drupal.t('Not restricted'));
+        return Drupal.t('Not restricted');
       }
-      return vals.join(', ');
+      else if ($('input[name="googleanalytics_visibility_roles"]:checked', context).val() == 1) {
+        return Drupal.t('Excepted: @roles', {'@roles' : vals.join(', ')});
+      }
+      else {
+        return vals.join(', ');
+      }
     });
 
     $('fieldset#edit-user-vis-settings', context).drupalSetSummary(function (context) {
@@ -46,8 +56,8 @@ Drupal.behaviors.trackingSettingsSummary = {
 
     $('fieldset#edit-linktracking', context).drupalSetSummary(function (context) {
       var vals = [];
-      if ($('input#edit-googleanalytics-trackoutgoing', context).is(':checked')) {
-        vals.push('Outgoing links');
+      if ($('input#edit-googleanalytics-trackoutbound', context).is(':checked')) {
+        vals.push('Outbound links');
       }
       if ($('input#edit-googleanalytics-trackmailto', context).is(':checked')) {
         vals.push('Mailto links');
@@ -73,6 +83,33 @@ Drupal.behaviors.trackingSettingsSummary = {
         return Drupal.t('Not tracked');
       }
       return Drupal.t('@items tracked', {'@items' : vals.join(', ')});
+    });
+
+    $('fieldset#edit-domain-tracking', context).drupalSetSummary(function (context) {
+      var $radio = $('input[name="googleanalytics_domain_mode"]:checked', context);
+      if ($radio.val() == 0) {
+        return Drupal.t('A single domain');
+      }
+      else if ($radio.val() == 1) {
+        return Drupal.t('One domain with multiple subdomains');
+      }
+      else {
+        return Drupal.t('Multiple top-level domains');
+      }
+    });
+
+    $('fieldset#edit-privacy', context).drupalSetSummary(function (context) {
+      var vals = [];
+      if ($('input#edit-googleanalytics-tracker-anonymizeip', context).is(':checked')) {
+        vals.push('Anonymize IP');
+      }
+      if ($('input#edit-googleanalytics-privacy-donottrack', context).is(':checked')) {
+        vals.push('Universal web tracking opt-out');
+      }
+      if (!vals.length) {
+        return Drupal.t('No privacy');
+      }
+      return Drupal.t('@items enabled', {'@items' : vals.join(', ')});
     });
   }
 };
