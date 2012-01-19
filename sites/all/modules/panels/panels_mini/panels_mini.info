@@ -4,9 +4,9 @@ package = "Panels"
 dependencies[] = panels
 core = 7.x
 files[] = plugins/export_ui/panels_mini_ui.class.php
-; Information added by drupal.org packaging script on 2011-11-18
-version = "7.x-3.x-dev"
+; Information added by drupal.org packaging script on 2012-01-18
+version = "7.x-3.0"
 core = "7.x"
 project = "panels"
-datestamp = "1321576437"
+datestamp = "1326917446"
 
