@@ -138,7 +138,7 @@ $structure = array(
       hide($content['comments']);
       hide($content['links']);
       //print render($content['group_audience']);
-	  print '<div class="scorecard_label">Optimization Assessment Scorecard for group: <span>'.$gr->label.'</span></div>';
+	  print '<div class="scorecard_label">Optimization Assessment Scorecard for Group: <span>'.$gr->label.'</span></div>';
 	  $overal_sum = 0;
 	  $overal_num = 0;
 	  foreach($structure as $sections){
@@ -161,7 +161,7 @@ $structure = array(
 		print '<div class="scorecard_section_score">Overal '.$sections['section'].' Score: <span>'.round(($sum/$num), 2).'</span></div>';
 		print '</section>';
 	  }
-	  print '<div class="scorecard_overal_score">Average Overal Optimization Score: <span>'.round(($overal_sum/$overal_num), 2).'</span></div>';
+	  print '<div class="scorecard_overal_score">Average Overall Optimization Score: <span>'.round(($overal_sum/$overal_num), 2).'</span></div>';
 	  
     ?>
   </div>
