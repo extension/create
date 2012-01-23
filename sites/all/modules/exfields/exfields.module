@@ -318,19 +318,19 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
       );
 	  $element['appraisal_unique'] = array( 
 		'#type' => 'radios', 
-		'#description' => t('Does the page fill a unique need, providing information or perspective that is not readily available elsewhere and is the content up-to-date and of current interest to a national audience?<br />
-		1 - Low. Topic is better covered elsewhere, and page doesn\'t contribute to a strong body of content for the CoP and/or may be outdated,or  no longer relevant.<br />
-		2 - Medium. Information is generally known or topic is covered eleswhere, but page provides some modest benefit over other sources, or contributes to providing comprehensive information in the CoP. And/Or appears dated/stale or is of interest only to a small geographic area.<br />
-		3 - High. Page offers a unique perspective, information not widely known, or better explanations than other sources. Timely or "evergreen" content.'), 
+		'#description' => t('Does the page fill a unique need, providing information or perspective that is not readily available elsewhere? Is the content up-to-date and of current interest to a national audience?<br />
+		1 - Low. Topic is better covered elsewhere, and page doesn\'t contribute to a strong body of content for the CoP and/or may be outdated or  no longer relevant.<br />
+		2 - Medium. Information is generally known or topic is covered  elsewhere, but page provides some modest benefit over other sources, or contributes to providing comprehensive information in the CoP. Or content may appear dated/stale or is of interest only to a small geographic area.<br />
+		3 - High. Page offers a unique perspective, information not widely known, or better explanations than other sources. Content is timely or "evergreen."'), 
 		'#title' => t('Unique Content'), 
 		'#default_value' => isset($items[$delta]['appraisal_unique']) ? $items[$delta]['appraisal_unique'] : '1',  
 		'#options' => array( '1' => '1', '2' => '2', '3' => '3'), 
 		);
 	   $element['appraisal_keywords'] = array( 
 		'#type' => 'radios', 
-		'#description' => t('Are Keywords presented effectively? Does the content make use of keywords in Page Titles, Intro Summary Sentences and the Body of Articles and Sub-Headings?<br />
-		1 - Low. Keywords not in Page Titles, Intro summary sentences and body of article and subheadings.<br />
-		2 - Medium. Some Keywords but none in certain areas where they could be present.<br />
+		'#description' => t('Are keywords presented effectively? Does the content make use of keywords in page titles, intro summary sentences, subheadings, and the body of articles?<br />
+		1 - Low. Keywords not used in page titles, intro summary sentences, subheadings, and body of the article.<br />
+		2 - Medium. Some keywords are used but none in certain areas where they could be used effectively.<br />
 		3 - High. No significant problems.'), 
 		'#title' => t('Keyword Usage'), 
 		'#default_value' => isset($items[$delta]['appraisal_keywords']) ? $items[$delta]['appraisal_keywords'] : '1',  
@@ -338,9 +338,9 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
 		);
 		$element['appraisal_organization'] = array( 
 		'#type' => 'radios',
-		'#description' => t('Is the content presented effectively?  is it readable, scannable and of appropriate scope and length? Does it make use of bulleted or numbered lists where appropriate?  Is there appropriate use of bold face type?  Are images used to enhance understanding?<br />
+		'#description' => t('Is the content presented effectively? Is it readable, scannable, and of appropriate scope and length? Does it make use of bulleted or numbered lists where appropriate? Is there appropriate use of boldface type? Are images used to enhance understanding?<br />
 		1 - Low. Numerous minor problems, a few moderate problems, or one major problem that seriously interferes with the content.<br />
-		2 - Medium. Minor to moderate problems(s).<br />
+		2 - Medium. Minor to moderate problem(s).<br />
 		3 - High. No significant problems'), 
 		'#title' => t('Content Organization.'), 
 		'#default_value' => isset($items[$delta]['appraisal_organization']) ? $items[$delta]['appraisal_organization'] : '1', 
@@ -352,7 +352,7 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
 		1 - Low. Poor fit in topic or tone, or lack of links to other CoP content.<br />
 		2 - Medium. Some broken links to other CoP content; lack of tagging; tone or topic needs minor adjustments.<br />
 		3 - High. Fits well in CoP;  good tags;  links to other CoP content.'), 
-		'#title' => t('Links to Complimentary Content'), 
+		'#title' => t('Links to Complementary Content'), 
 		'#default_value' => isset($items[$delta]['appraisal_links']) ? $items[$delta]['appraisal_links'] : '1',  
 		'#options' => array( '1' => '1', '2' => '2', '3' => '3'), 
 		);
@@ -360,7 +360,7 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
 		'#type' => 'radios', 
 		'#description' => t('Does the page provide a clear next step for its current audience, and does it facilitate that step?<br />
 			1- Low. No next steps given.<br />
-			2 - Medium. Next step is implied or vague;  next step depends on a link that is broken; indirect or absent call to action.<br />
+			2 - Medium. Next step is implied or vague; next step depends on a link that is broken; call to action is indirect or absent.<br />
 			3 - High. Next step is clear, specific, and stated explicitly;  effective call to action.  If instructional content, instructions are broken out into clear, logical steps.'), 
 		'#title' => t('Call to Action'), 
 		'#default_value' =>isset($items[$delta]['appraisal_action']) ? $items[$delta]['appraisal_action'] : '1',  
