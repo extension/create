@@ -320,7 +320,7 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
 		'#type' => 'radios', 
 		'#description' => t('Does the page fill a unique need, providing information or perspective that is not readily available elsewhere? Is the content up-to-date and of current interest to a national audience?<br />
 		1 - Low. Topic is better covered elsewhere, and page doesn\'t contribute to a strong body of content for the CoP and/or may be outdated or  no longer relevant.<br />
-		2 - Medium. Information is generally known or topic is covered  elsewhere, but page provides some modest benefit over other sources, or contributes to providing comprehensive information in the CoP. Or content may appear dated/stale or is of interest only to a small geographic area.<br />
+		2 - Medium. Information is generally known or topic is covered  elsewhere, but page provides some modest benefit over other sources or contributes to providing comprehensive information in the CoP. Or content may be dated/stale or is of interest only to a small geographic area.<br />
 		3 - High. Page offers a unique perspective, information not widely known, or better explanations than other sources. Content is timely or "evergreen."'), 
 		'#title' => t('Unique Content'), 
 		'#default_value' => isset($items[$delta]['appraisal_unique']) ? $items[$delta]['appraisal_unique'] : '1',  
@@ -329,7 +329,7 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
 	   $element['appraisal_keywords'] = array( 
 		'#type' => 'radios', 
 		'#description' => t('Are keywords presented effectively? Does the content make use of keywords in page titles, intro summary sentences, subheadings, and the body of articles?<br />
-		1 - Low. Keywords not used in page titles, intro summary sentences, subheadings, and body of the article.<br />
+		1 - Low. Keywords are not used in page titles, intro summary sentences, subheadings, and body of the article.<br />
 		2 - Medium. Some keywords are used but none in certain areas where they could be used effectively.<br />
 		3 - High. No significant problems.'), 
 		'#title' => t('Keyword Usage'), 
@@ -342,7 +342,7 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
 		1 - Low. Numerous minor problems, a few moderate problems, or one major problem that seriously interferes with the content.<br />
 		2 - Medium. Minor to moderate problem(s).<br />
 		3 - High. No significant problems'), 
-		'#title' => t('Content Organization.'), 
+		'#title' => t('Content Organization'), 
 		'#default_value' => isset($items[$delta]['appraisal_organization']) ? $items[$delta]['appraisal_organization'] : '1', 
 		'#options' => array( '1' => '1', '2' => '2', '3' => '3'),
 		);
