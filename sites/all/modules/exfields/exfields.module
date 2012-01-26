@@ -383,7 +383,7 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
 		'#title'=>'Appraisal Date',
         '#type' => 'date_popup',
 		'#date_type' => DATE_DATETIME,
-		'#date_format' => variable_get('date_format_short', 'm/d/Y'),
+		'#date_format' => 'm/d/Y',
         '#default_value' => $appraisal_date_value,
       	);
 		// Separate the timestamp of the date storage to an array of alements needed for the date widget
@@ -391,8 +391,8 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
 		$element['improvements_date'] = array(
 		'#title'=>'Date Improvements Were Completed',
         '#type' => 'date_popup',
-		'#date_type' => DATE_DATETIME,
-		'#date_format' => variable_get('date_format_short', 'm/d/Y'),
+		'#date_type' => DATE_FORMAT_DATE,
+		'#date_format' => 'm/d/Y',
         '#default_value' => $improvements_date_value,
       	);
 	  
