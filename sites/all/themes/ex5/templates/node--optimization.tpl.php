@@ -108,95 +108,8 @@ $structure = array(
 
 
  $gr = og_load($content['group_audience']['#items'][0]['gid']);
- 
- 
- //$fld = field_info_instance('node', 'field_animations_ranking', 'optimization');
- 
- 
- //dsm($fld);
+
 ?>
-
-
-
-<fieldset class="search-advanced collapsible collapsed form-wrapper" id="edit-advanced"><legend><span class="fieldset-legend">Advanced search</span></legend><div class="fieldset-wrapper"><div class="criterion"><div class="form-item form-type-textfield form-item-or">
-  <label for="edit-or">Containing any of the words </label>
- <input type="text" id="edit-or" name="or" value="" size="30" maxlength="255" class="form-text" />
-</div>
-<div class="form-item form-type-textfield form-item-phrase">
-  <label for="edit-phrase">Containing the phrase </label>
- <input type="text" id="edit-phrase" name="phrase" value="" size="30" maxlength="255" class="form-text" />
-</div>
-<div class="form-item form-type-textfield form-item-negative">
-
-  <label for="edit-negative">Containing none of the words </label>
- <input type="text" id="edit-negative" name="negative" value="" size="30" maxlength="255" class="form-text" />
-</div>
-</div><div class="criterion"><div class="form-item form-type-checkboxes form-item-type">
-  <label for="edit-type">Only of the type(s) </label>
- <div id="edit-type" class="form-checkboxes"><div class="form-item form-type-checkbox form-item-type-article">
- <input type="checkbox" id="edit-type-article" name="type[article]" value="article" class="form-checkbox" />  <label class="option" for="edit-type-article">Article </label>
-
-</div>
-<div class="form-item form-type-checkbox form-item-type-page">
- <input type="checkbox" id="edit-type-page" name="type[page]" value="page" class="form-checkbox" />  <label class="option" for="edit-type-page">Basic page </label>
-
-</div>
-<div class="form-item form-type-checkbox form-item-type-faq">
- <input type="checkbox" id="edit-type-faq" name="type[faq]" value="faq" class="form-checkbox" />  <label class="option" for="edit-type-faq">FAQ </label>
-
-</div>
-<div class="form-item form-type-checkbox form-item-type-feed-items">
- <input type="checkbox" id="edit-type-feed-items" name="type[feed_items]" value="feed_items" class="form-checkbox" />  <label class="option" for="edit-type-feed-items">Feed Items </label>
-
-</div>
-<div class="form-item form-type-checkbox form-item-type-feeds">
- <input type="checkbox" id="edit-type-feeds" name="type[feeds]" value="feeds" class="form-checkbox" />  <label class="option" for="edit-type-feeds">Feeds </label>
-
-</div>
-<div class="form-item form-type-checkbox form-item-type-forum">
- <input type="checkbox" id="edit-type-forum" name="type[forum]" value="forum" class="form-checkbox" />  <label class="option" for="edit-type-forum">Forum topic </label>
-
-</div>
-<div class="form-item form-type-checkbox form-item-type-group">
-
- <input type="checkbox" id="edit-type-group" name="type[group]" value="group" class="form-checkbox" />  <label class="option" for="edit-type-group">Group </label>
-
-</div>
-<div class="form-item form-type-checkbox form-item-type-cop-document">
- <input type="checkbox" id="edit-type-cop-document" name="type[cop_document]" value="cop_document" class="form-checkbox" />  <label class="option" for="edit-type-cop-document">Group Admin Document </label>
-
-</div>
-<div class="form-item form-type-checkbox form-item-type-event">
- <input type="checkbox" id="edit-type-event" name="type[event]" value="event" class="form-checkbox" />  <label class="option" for="edit-type-event">Group Event </label>
-
-</div>
-<div class="form-item form-type-checkbox form-item-type-blog">
- <input type="checkbox" id="edit-type-blog" name="type[blog]" value="blog" class="form-checkbox" />  <label class="option" for="edit-type-blog">Group News </label>
-
-</div>
-<div class="form-item form-type-checkbox form-item-type-help-resource">
- <input type="checkbox" id="edit-type-help-resource" name="type[help_resource]" value="help_resource" class="form-checkbox" />  <label class="option" for="edit-type-help-resource">Help resource </label>
-
-</div>
-<div class="form-item form-type-checkbox form-item-type-news">
-
- <input type="checkbox" id="edit-type-news" name="type[news]" value="news" class="form-checkbox" />  <label class="option" for="edit-type-news">News </label>
-
-</div>
-<div class="form-item form-type-checkbox form-item-type-optimization">
- <input type="checkbox" id="edit-type-optimization" name="type[optimization]" value="optimization" class="form-checkbox" />  <label class="option" for="edit-type-optimization">Optimization Assessment Scorecard </label>
-
-</div>
-<div class="form-item form-type-checkbox form-item-type-public-article">
- <input type="checkbox" id="edit-type-public-article" name="type[public_article]" value="public_article" class="form-checkbox" />  <label class="option" for="edit-type-public-article">eXtension Admin Document </label>
-
-</div>
-</div>
-</div>
-</div><div class="action"><input type="submit" id="edit-submit--2" name="op" value="Advanced search" class="form-submit" /></div></div></fieldset>
-
-
-
 
 <article id="article-<?php print $node->nid; ?>" class="<?php print $classes; ?> clearfix" role="article"<?php print $attributes; ?>>
 
@@ -221,41 +134,71 @@ $structure = array(
 
   <div class="content"<?php print $content_attributes; ?>>
     <?php
+	
+	  $results = _node_optimization_calculate_rating($structure, $content);
+	 // echo '<pre>';
+	 // print_r($results);
+	 // echo '</pre>';
       // We hide the comments and links now so that we can render them later.
       hide($content['comments']);
       hide($content['links']);
       //print render($content['group_audience']);
 	  print '<div class="scorecard_label">Optimization Assessment Scorecard for Group: <span>'.$gr->label.'</span></div>';
-	  $overal_sum = 0;
-	  $overal_num = 0;
+	  ?>
+	  <div class="scorecard_results">
+	  	<div class="scorecard_overall">
+	  		<div class="scorecard_overall_average_label">Average</div>
+			<div class="scorecard_overall_label">Overall</div>
+			<div class="scorecard_overall_score_label">Optimization Score</div>
+			<div class="scorecard_overall_scale_container" style="width: 182px;">
+				<div class="scorecard_overall_scale_value" style="width: <?php print(floor($results['overall']*182/5)); ?>px;"></div>
+			</div>
+			<div class="scorecard_overall_score">
+			<?php print $results['overall']; ?>
+			</div>
+	  	</div>
+		<div class="scorecard_details">
+			<?php
+			foreach($results['elements'] AS $element => $value){
+				?>
+				<div class="scorecard_element">
+					<div class="scorecard_element_average_label">Average</div>
+					<div class="scorecard_element_label"><?php print $element; ?></div>
+					<div class="scorecard_element_score_label">Optimization Score</div>
+					<div class="scorecard_element_scale_container" style="width: 104px;">
+						<div class="scorecard_element_scale_value" style="width: <?php print(floor($value*104/5)); ?>px;"></div>
+					</div>
+					<div class="scorecard_element_score">
+					<?php print $value; ?>
+					</div>
+				</div>
+				<?php
+			}
+			
+			?>
+		</div>
+	  
+	  </div>
+	  <?php
+	  
 	  foreach($structure as $sections){
-		$sum = 0;
-		$num = 0;
 	  	print '<section>
 		<h4>'.$sections['section'].'</h4>';
 		foreach($sections['elements'] as $element){
 			$fld = field_info_instance('node', $element['ranking'], 'optimization');
 			print '<div class="scorecard_field">';
 			print '
-			
+			<div style="font-size: 18px; width: auto; float: left; font-weight: bold;">'.$content[$element['ranking']]['#items'][0]['value'].'</div>
 			<fieldset class="collapsible collapsed">
-			
-			
 				<legend>';
-			print '<span class="scorecard_score fieldset-legend">'.$content[$element['ranking']]['#title'].$content[$element['ranking']]['#items'][0]['value'].'			</span></legend>';
-			print ''.$fld['description'].'
+			print '<span class="scorecard_score fieldset-legend">'.$content[$element['ranking']]['#title'].'			</span></legend>';
+			print '<div class="fieldset-wrapper">'.$fld['description'].'</div>
 			</fieldset>';
 			print '<div class="scorecard_note">'.$content[$element['note']]['#items'][0]['safe_value'].'</div>';
 			print '</div>';
-			$sum += $content[$element['ranking']]['#items'][0]['value'];
-			$num++;
-			$overal_sum += $content[$element['ranking']]['#items'][0]['value'];
-			$overal_num ++;
 		}
-		print '<div class="scorecard_section_score">Overal '.$sections['section'].' Score: <span>'.round(($sum/$num), 2).'</span></div>';
 		print '</section>';
 	  }
-	  print '<div class="scorecard_overal_score">Average Overall Optimization Score: <span>'.round(($overal_sum/$overal_num), 2).'</span></div>';
 	  
     ?>
   </div>
@@ -265,3 +208,23 @@ $structure = array(
   <?php print render($content['comments']); ?>
 
 </article>
+<?php
+
+function _node_optimization_calculate_rating($structure, $content){
+	$result = array();
+	$overall_sum = 0;
+	$overall_num = 0;
+	foreach($structure AS $sections){
+		$sum = 0;
+		$num = 0;
+		foreach($sections['elements'] AS $element){
+			$sum += $content[$element['ranking']]['#items'][0]['value'];
+			$num++;
+			$overall_sum += $content[$element['ranking']]['#items'][0]['value'];
+			$overall_num ++;
+		}
+		$result['elements'][$sections['section']] = round(($sum/$num), 2);
+	}
+	$result['overall'] = round(($overall_sum/$overall_num), 2);
+	return $result;
+}

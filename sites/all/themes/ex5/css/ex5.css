@@ -554,6 +554,86 @@ article .field-name-field-image img{
 	margin: 15px 0 0;
 	font-size: 16px;
 }
+
+
+.scorecard_results{
+	border-top: 1px dotted #ccc;
+	height: 280px;
+	margin-top: 10px;
+	padding-top: 15px;
+}
+.scorecard_overall{
+	float: left;
+	width: 286px;
+	height: 300px;
+}
+.scorecard_details{
+	float: left;
+	width: 312px;
+}
+
+.scorecard_overall_average_label, .scorecard_overall_score_label{
+	font-size: 14px;
+}
+.scorecard_overall_score_label{
+	line-height: 12px;
+}
+.scorecard_overall_label{
+	font-size: 34px;
+	font-weight: bold;
+	line-height: 34px;
+}
+.scorecard_overall_scale_container{
+	height: 27px;
+	margin: 15px 0;
+	background-color: #E6E6E6;
+	border: #333 solid 1px;
+}
+.scorecard_overall_scale_value{
+	background-color: #FBB03B;
+	height: 27px;
+	position: relative;
+	border-right: #333 solid 1px;
+}
+.scorecard_overall_score{
+	font-size: 54px;
+	font-weight: bold;
+	color: #6B82A5;
+}
+.scorecard_element{
+	width: 156px;
+	height: 144px;
+	float: left;
+}
+.scorecard_element_average_label, .scorecard_element_score_label{
+	font-size: 12px;
+}
+.scorecard_element_score_label{
+	line-height: 14px;
+}
+.scorecard_element_label{
+	font-size: 16px;
+	font-weight: bold;
+	line-height: 17px;
+}
+.scorecard_element_scale_container{
+	height: 15px;
+	margin: 15px 0;
+	background-color: #E6E6E6;
+	border: #333 solid 1px;
+}
+.scorecard_element_scale_value{
+	background-color: #FBB03B;
+	height: 15px;
+	position: relative;
+	border-right: #333 solid 1px;
+}
+.scorecard_element_score{
+	font-size: 30px;
+	font-weight: bold;
+	color: #6B82A5;
+}
+
 .node-optimization section .scorecard_field{
 	margin: 15px 0 6px;
 }
@@ -569,25 +649,7 @@ article .field-name-field-image img{
 	width: 200px;
 	font-weight: bold;
 }
-.scorecard_score{
-	color: #6B82A5;
-	font-size: 14px;
-}
 
-.scorecard_section_score{
-	margin-top: 40px;
-	font-size: 18px;
-}
-.scorecard_section_score span, .scorecard_overal_score span{
-	color: #6B82A5;
-	font-weight: bold;
-}
-.scorecard_overal_score{
-	font-size: 24px;
-	border-top: 1px dotted #ccc;
-	margin: 30px 0;
-	padding: 8px 0;
-}
 
 /* Taking care of the space under the title
 -----------------------------------------------------------------------------*/
