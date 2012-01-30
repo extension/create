@@ -191,7 +191,7 @@ function media_internet_add_submit($form, &$form_state) {
   }
 
   if (!$file->fid) {
-    form_set_error('url', 'Unknown error: unable to add file, please check URL / Embed code and try again ' . $embed_code);
+    form_set_error('url', t('The file %file could not be saved. An unknown error has occurred.', array('%file' => $embed_code)));
     return;
   }
 

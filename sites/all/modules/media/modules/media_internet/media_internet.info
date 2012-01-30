@@ -5,9 +5,9 @@ core = 7.x
 dependencies[] = media
 files[] = includes/MediaBrowserInternet.inc
 
-; Information added by drupal.org packaging script on 2012-01-17
-version = "7.x-2.0-unstable3+1-dev"
+; Information added by drupal.org packaging script on 2012-01-27
+version = "7.x-2.0-unstable3+17-dev"
 core = "7.x"
 project = "media"
-datestamp = "1326760466"
+datestamp = "1327667542"
 

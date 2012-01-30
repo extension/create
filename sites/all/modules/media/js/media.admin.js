@@ -41,7 +41,8 @@ Drupal.behaviors.mediaAdmin = {
     });
 
     $('ul.action-links', context).prepend($('<li></li>').append($launcherLink));
-    if ($('body.page-admin-content-file-thumbnails').length != 0) {
+
+    if ($('.media-display-thumbnails').length) {
       // Implements 'select all/none' for thumbnail view.
       // @TODO: Support grabbing more than one page of thumbnails.
       var allLink = $('<a href="#">' + Drupal.t('all') + '</a>')
@@ -118,4 +119,3 @@ Drupal.behaviors.mediaTypesAdmin = {
 };
 
 })(jQuery);
-
