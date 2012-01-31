@@ -650,6 +650,12 @@ article .field-name-field-image img{
 	font-weight: bold;
 }
 
+.node-optimization .fieldset-wrapper{
+	color: #6B82A5;
+	padding: 4px;
+	margin: 3px;
+}
+
 
 /* Taking care of the space under the title
 -----------------------------------------------------------------------------*/
