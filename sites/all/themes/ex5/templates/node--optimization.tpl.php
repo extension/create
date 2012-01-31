@@ -108,7 +108,7 @@ $structure = array(
 
 
  $gr = og_load($content['group_audience']['#items'][0]['gid']);
-
+	dsm($content);
 ?>
 
 <article id="article-<?php print $node->nid; ?>" class="<?php print $classes; ?> clearfix" role="article"<?php print $attributes; ?>>
@@ -136,9 +136,6 @@ $structure = array(
     <?php
 	
 	  $results = _node_optimization_calculate_rating($structure, $content);
-	 // echo '<pre>';
-	 // print_r($results);
-	 // echo '</pre>';
       // We hide the comments and links now so that we can render them later.
       hide($content['comments']);
       hide($content['links']);
@@ -199,7 +196,14 @@ $structure = array(
 		}
 		print '</section>';
 	  }
-	  
+	  if(isset($content['field_scorecard_summary'])){
+		  print '<section>
+		<h4>Summary</h4>
+			<div class="scorecard_field">';
+		  print $content['field_scorecard_summary']['#items'][0]['safe_value'];
+		  print '</div>
+		  </section>';
+	  }
     ?>
   </div>
 
