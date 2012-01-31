@@ -108,7 +108,6 @@ $structure = array(
 
 
  $gr = og_load($content['group_audience']['#items'][0]['gid']);
-	dsm($content);
 ?>
 
 <article id="article-<?php print $node->nid; ?>" class="<?php print $classes; ?> clearfix" role="article"<?php print $attributes; ?>>
