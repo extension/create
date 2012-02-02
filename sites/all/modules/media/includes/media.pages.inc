@@ -53,11 +53,23 @@ function media_file_page_edit_multiple($files) {
     $file = $files[$fid];
     $title = t('<em>Edit @type</em> @title', array('@type' => $file->type, '@title' => $file->filename));
     $form['multiform'][$key]['#prefix'] = '<h2>' . $title . '</h2>';
+    $form['multiform'][$key]['actions']['#access'] = FALSE;
   }
 
   if (isset($form['buttons']['Delete'])) {
     $form['buttons']['Delete']['#access'] = FALSE;
   }
+
+  // Add a cancel button at the bottom of the form.
+  $form['buttons']['cancel'] = array(
+    '#type' => 'link',
+    '#title' => t('Cancel'),
+    '#href' => isset($_GET['destination']) ? $_GET['destination'] : 'admin/content/file',
+    '#weight' => 50,
+  );
+
+  // Override the page title since each file form sets a title.
+  drupal_set_title(t('Edit multiple files'));
 
   return $form;
 }
@@ -137,7 +149,7 @@ function media_add_upload_validate($form, &$form_state) {
  * Upload a file.
  */
 function media_add_upload_submit($form, &$form_state) {
-  $params = $form_state['build_info']['args'][0];
+  $params = isset($form_state['build_info']['args'][0]) ? $form_state['build_info']['args'][0] : array();
   $file = $form_state['values']['upload'];
 
   // The media browser widget does not use the 'display' field.
@@ -171,6 +183,7 @@ function media_add_upload_submit($form, &$form_state) {
   $file = file_move($file, $destination, FILE_EXISTS_RENAME);
 
   if ($file) {
+    $form_state['file'] = $file;
     drupal_set_message(t('The file @name was uploaded', array('@name' => $file->filename)));
   }
   else {
@@ -178,7 +191,18 @@ function media_add_upload_submit($form, &$form_state) {
     return;
   }
 
-  $form_state['redirect'] = array('media/browser', array('query' => array('render' => 'media-popup', 'fid' => $file->fid)));
+  // Redirect to the file edit page after submission.
+  if (media_access('edit')) {
+    $destination = array('destination' => 'admin/content/file');
+    if (isset($_GET['destination'])) {
+      $destination = drupal_get_destination();
+      unset($_GET['destination']);
+    }
+    $form_state['redirect'] = array('file/' . $file->fid . '/edit', array('query' => $destination));
+  }
+  else {
+    $form_state['redirect'] = 'admin/content/file';
+  }
 }
 
 function media_add_upload_multiple($form, &$form_state, $params = array()) {
@@ -195,7 +219,7 @@ function media_add_upload_multiple($form, &$form_state, $params = array()) {
 
 function media_add_upload_multiple_submit($form, &$form_state) {
   $scheme = variable_get('file_default_scheme', 'public') . '://';
-  $saved_files = array();
+
   // We can't use file_save_upload() because of http://www.jacobsingh.name/content/tight-coupling-no-not
   foreach ($form_state['values']['upload'] as $uploaded_file) {
     if ($uploaded_file['status'] == 'done') {
@@ -212,71 +236,26 @@ function media_add_upload_multiple_submit($form, &$form_state) {
       _media_save_file_permenently($file);
 
       $saved_files[] = $file;
+      $form_state['files'][$file->fid] = $file;
     }
     else {
       // @todo: move this to element validate or something.
       form_set_error('pud', t('The specified file %name could not be uploaded.', array('%name' => $uploaded_file['name'])));
     }
   }
-  // Get a list of fids to pass back.
-  $fids = array();
-  foreach ($saved_files as $file) {
-    $fids[] = $file->fid;
+
+  // Redirect to the file edit page.
+  if (media_access('edit') && module_exists('multiform')) {
+    $destination = array('destination' => 'admin/content/file');
+    if (isset($_GET['destination'])) {
+      $destination = drupal_get_destination();
+      unset($_GET['destination']);
+    }
+    $form_state['redirect'] = array('admin/content/file/edit-multiple/' . implode(' ', array_keys($form_state['files'])), array('query' => $destination));
   }
-  $form_state['redirect'] = array('media/browser', array('query' => array('render' => 'media-popup', 'fid' => $fids)));
-}
-
-function media_add_remote($form, &$form_state) {
-  // Totally prototyping code to show designs.
-  $form['sources'] = array(
-    '#type' => 'vertical_tabs',
-    '#title' => 'Sources',
-  );
-
-  $form['sources']['paste'] = array(
-    '#type' => 'fieldset',
-    '#title' => 'Paste URL or embed code',
-  );
-
-
-  $providers = '';
-  $providers .= '<img style="height:50px; margin:20px" src="http://www.macuser.com/2008/10/09/top_youtube_logo_31_Dec_06.jpg">';
-  $providers .= '<img style="height:50px; margin:20px" src="http://jasonhilldesign.com/FlikrLogo.jpg">';
-  $form['sources']['paste']['code'] = array(
-    '#type' => 'textarea',
-    '#title' => t('URL or embed code'),
-    '#description' => t('The following providers are supported: <br/>' . $providers),
-  );
-
-  $form['sources']['youtube'] = array(
-    '#type' => 'fieldset',
-    '#title' => 'YouTube',
-    '#description' => t(''),
-    '#attributes' => array('style' => 'height: 300px; overflow:auto'),
-  );
-
-  $form['sources']['flikr'] = array(
-    '#type' => 'fieldset',
-    '#title' => 'Flikr',
-  );
-
-  $box = '<div style="width:100px; height:100px; border:1px solid blue; padding:10px; float:left; margin:5px;"> Video </div>';
-  $boxes = '';
-  for ($i = 0; $i < 10; $i++) {
-    $boxes .= $box;
+  else {
+    $form_state['redirect'] = 'admin/content/file';
   }
-  $form['sources']['youtube']['stupid'] = array(
-    '#markup' => $boxes,
-  );
-
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Import'),
-    '#attributes' => array('style' => 'float:right'),
-    '#suffix' => '<br style="clear:both" />',
-  );
-
-  return $form;
 }
 
 /**

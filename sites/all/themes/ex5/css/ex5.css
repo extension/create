@@ -762,6 +762,7 @@ article .comment > footer{
 	margin-top: 45px;
 	width: 400px;
 	float: none;
+	clear: both;
 }
 
 .group-filters .views-exposed-form .views-exposed-widget > label{

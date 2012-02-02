@@ -215,7 +215,43 @@ function media_menu() {
     'type' => MENU_CALLBACK,
   );
 
+  // @todo Move this to file_entity
+  $items['file/add'] = array(
+    'title' => 'Add file',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('media_add_upload'),
+    'access arguments' => array('administer files'),
+    'file' => 'includes/media.pages.inc',
+  );
+  if (module_exists('plupload') && module_exists('multiform')) {
+    $items['file/add']['page arguments'] = array('media_add_upload_multiple');
+  }
+  $items['file/add/upload'] = array(
+    'title' => 'Upload',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+
   return $items;
+}
+
+/**
+ * Implements hook_menu_local_tasks_alter().
+ *
+ * @todo Move this to file_entity
+ */
+function media_menu_local_tasks_alter(&$data, $router_item, $root_path) {
+  // Add action link to 'file/add' on 'admin/content/file' page.
+  if ($root_path == 'admin/content/file') {
+    $item = menu_get_item('file/add');
+    if ($item['access']) {
+      $data['actions']['output'][] = array(
+        '#theme' => 'menu_local_action',
+        '#link' => $item,
+        '#weight' => -10,
+      );
+    }
+  }
 }
 
 /**
@@ -428,7 +464,13 @@ function media_file_operation_edit_multiple($fids) {
   // The thumbnail browser returns TRUE/FALSE for each item, so use array keys.
   $fids = array_keys(array_filter($fids));
   // Note that we add a destination here to prevent normal form redirects.
-  drupal_goto('admin/content/file/edit-multiple/' . implode(' ', $fids), array('query' => drupal_get_destination()));
+  if (count($fids) > 1) {
+    drupal_goto('admin/content/file/edit-multiple/' . implode(' ', $fids), array('query' => drupal_get_destination()));
+  }
+  else {
+    $fid = current($fids);
+    drupal_goto('file/' . current($fids) . '/edit', array('query' => drupal_get_destination()));
+  }
 }
 
 /**
@@ -503,6 +545,23 @@ function media_form_file_entity_edit_alter(&$form, &$form_state) {
     $form['actions']['cancel']['#attributes']['class'][] = 'button';
     $form['actions']['cancel']['#attributes']['class'][] = 'button-no';
     $form['actions']['cancel']['#attributes']['class'][] = 'ctools-close-modal';
+  }
+}
+
+function media_form_alter(&$form, &$form_state, $form_id) {
+  if (current_path() == 'media/browser' && $form_id != 'views_exposed_form') {
+    $form['#submit'][] = 'media_browser_form_submit';
+  }
+}
+
+function media_browser_form_submit($form, &$form_state) {
+  if (!empty($form_state['file'])) {
+    $file = $form_state['file'];
+    $form_state['redirect'] = array('media/browser', array('query' => array('render' => 'media-popup', 'fid' => $file->fid)));
+  }
+  if (!empty($form_state['files'])) {
+    $files = $form_state['files'];
+    $form_state['redirect'] = array('media/browser', array('query' => array('render' => 'media-popup', 'fid' => $file->fid)));
   }
 }
 
@@ -851,7 +910,7 @@ function media_element_process(&$element, &$form_state, $form) {
   );
   // @todo Figure out how to update the preview image after the Edit modal is closed.
   $element['edit'] = array(
-    '#markup' => ctools_modal_text_button(t('Edit media'), 'media/' . $fid . '/edit/nojs', '', 'button edit ctools-modal-media-edit-modal-style'),
+    '#markup' => ctools_modal_text_button(t('Edit media'), 'media/' . $fid . '/edit/nojs', '', 'button edit ctools-modal-media-file-edit'),
     '#weight' => 20,
     '#access' => media_access('edit'),
   );
