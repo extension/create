@@ -277,7 +277,21 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
        $element['contribution_role'] = array(
 	  		'#title'=>'Role',
 	  		 '#type' => 'select',
-			 '#options' => array('' => '','author' => 'author', 'publisher' => 'publisher', 'unknown' => 'unknown', 'initiator' => 'initiator', 'terminator' => 'terminator', 'validator' => 'validator', 'editor' => 'editor', 'graphical designer' => 'graphical designer', 'technical implementor' => 'technical implementor', 'educational validator' => 'educational validator', 'script writer' => 'script writer', 'instructional designer' => 'instructional designer', 'subject matter expert' => 'subject matter expert', ),
+			 '#options' => array('' => '',
+			 		'author' => 'Primary Author',
+					'contributing author' => 'Contributing Author',
+					'reviewer' => 'Reviewer',
+					'subject matter editor' => 'Subject Matter Editor',
+					'graphical designer' => 'Graphical Designer',
+					'project manager' => 'Project Manager',
+					'script writer' => 'Script Writer',
+					'instructional designer' => 'Instructional Designer',
+					'copyeditor' => 'Copyeditor',
+					'application developer' => 'Application Developer',
+					'photographer' => 'Photographer',
+					'videographer' => 'Videographer',
+					'publisher' => 'Publisher', 
+					),
 			 '#default_value' => isset($items[$delta]['contribution_role']) ? $items[$delta]['contribution_role'] : NULL,
 	  	);
 		$element['contribution_author'] = array(
