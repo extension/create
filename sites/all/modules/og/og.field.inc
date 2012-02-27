@@ -235,9 +235,11 @@ function og_field_widget_form(&$form, &$form_state, $field, $instance, $langcode
       if ($opt_group) {
         // Show "My groups" and "Other groups".
         if ($my_groups = array_diff_key($audience['content groups'], $excludes)) {
+			asort($my_groups);
           $options += array(t('My groups') => $my_groups);
         }
         if ($other_groups = array_diff_key($audience['other groups'], $excludes)) {
+			asort($other_groups);
           $options += array(t('Other groups') => $other_groups);
         }
       }

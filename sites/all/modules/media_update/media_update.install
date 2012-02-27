@@ -1,0 +1,25 @@
+<?php
+/**
+ * @file
+ * Install file for the media_update module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function mediau_update_uninstall() {
+  variable_del('media_update');
+  variable_del('media_update_replace_same');
+  variable_del('media_update_replace_different');
+}
+
+/**
+ * Converts the old variable settings to the new settings format.
+ */
+function media_update_update_7100() {
+  $media_update_settings = variable_get('media_update', array('replace' => 0));
+  if (isset($media_update_settings['media_update']) && $media_update_settings['media_update']) {
+    variable_set('media_update_replace_same', 1);
+  }
+  variable_del('media_update');
+}

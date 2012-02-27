@@ -69,7 +69,6 @@ class panels_layouts_ui extends ctools_export_ui {
     else {
       $content_types = ctools_content_get_available_types();
 
-      $display->cache_key = $cache_key;
       panels_cache_clear('display', $cache_key);
       $cache = new stdClass();
 

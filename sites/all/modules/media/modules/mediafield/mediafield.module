@@ -19,6 +19,8 @@ function mediafield_field_info() {
       ),
       'default_widget' => 'media_generic',
       'default_formatter' => 'media_large',
+      'property_type' => 'field_item_file',
+      'property_callbacks' => array('entity_metadata_field_file_callback'),
     ),
   );
 }
@@ -49,6 +51,7 @@ function mediafield_field_instance_settings_form($field, $instance) {
     // By making this field required, we prevent a potential security issue
     // that would allow files of any type to be uploaded.
     '#required' => TRUE,
+    '#maxlength' => 255,
   );
 
   return $form;

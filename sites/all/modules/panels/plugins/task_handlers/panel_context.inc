@@ -674,6 +674,13 @@ function panels_panel_context_edit_content($form, &$form_state) {
   return $form;
 }
 
+/**
+ * Validate changes to the panel content form.
+ */
+function panels_panel_context_edit_content_validate(&$form, &$form_state) {
+  panels_edit_display_form_validate($form, $form_state);
+}
+
 function panels_panel_context_edit_content_submit(&$form, &$form_state) {
   panels_edit_display_form_submit($form, $form_state);
   $handler = &$form_state['handler'];
@@ -829,8 +836,6 @@ function panels_panel_context_get_addressable($task, $subtask_name, $handler, $a
   $display->context = $contexts;
   $display->args = $arguments;
   $display->css_id = $handler->conf['css_id'];
-  $task_name = page_manager_make_task_name($handler->task, $handler->subtask);
-
   $display->cache_key = 'panel_context:' . $task->name . ':' . $handler->name;
 
   $renderer = panels_get_renderer($handler->conf['pipeline'], $display);

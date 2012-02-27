@@ -1,5 +1,5 @@
 <?php
-
+drupal_add_js('misc/collapse.js');
 $structure = array(
 
 	array( 	'section'=> 'Characteristics', 
@@ -108,7 +108,6 @@ $structure = array(
 
 
  $gr = og_load($content['group_audience']['#items'][0]['gid']);
- 
 ?>
 
 <article id="article-<?php print $node->nid; ?>" class="<?php print $classes; ?> clearfix" role="article"<?php print $attributes; ?>>
@@ -134,35 +133,76 @@ $structure = array(
 
   <div class="content"<?php print $content_attributes; ?>>
     <?php
+	
+	  $results = _node_optimization_calculate_rating($structure, $content);
       // We hide the comments and links now so that we can render them later.
       hide($content['comments']);
       hide($content['links']);
       //print render($content['group_audience']);
-	  print '<div class="scorecard_label">Optimization Assessment Scorecard for group: <span>'.$gr->label.'</span></div>';
-	  $overal_sum = 0;
-	  $overal_num = 0;
+	  print '<div class="scorecard_label">Optimization Assessment Scorecard for Group: <span>'.$gr->label.'</span></div>';
+	  ?>
+	  <div class="scorecard_results">
+	  	<div class="scorecard_overall">
+	  		<div class="scorecard_overall_average_label">Average</div>
+			<div class="scorecard_overall_label">Overall</div>
+			<div class="scorecard_overall_score_label">Optimization Score</div>
+			<div class="scorecard_overall_scale_container" style="width: 182px;">
+				<div class="scorecard_overall_scale_value" style="width: <?php print(floor($results['overall']*182/5)); ?>px;"></div>
+			</div>
+			<div class="scorecard_overall_score">
+			<?php print $results['overall']; ?>
+			</div>
+	  	</div>
+		<div class="scorecard_details">
+			<?php
+			foreach($results['elements'] AS $element => $value){
+				?>
+				<div class="scorecard_element">
+					<div class="scorecard_element_average_label">Average</div>
+					<div class="scorecard_element_label"><?php print $element; ?></div>
+					<div class="scorecard_element_score_label">Optimization Score</div>
+					<div class="scorecard_element_scale_container" style="width: 104px;">
+						<div class="scorecard_element_scale_value" style="width: <?php print(floor($value*104/5)); ?>px;"></div>
+					</div>
+					<div class="scorecard_element_score">
+					<?php print $value; ?>
+					</div>
+				</div>
+				<?php
+			}
+			
+			?>
+		</div>
+	  
+	  </div>
+	  <?php
+	  
 	  foreach($structure as $sections){
-		$sum = 0;
-		$num = 0;
 	  	print '<section>
 		<h4>'.$sections['section'].'</h4>';
 		foreach($sections['elements'] as $element){
+			$fld = field_info_instance('node', $element['ranking'], 'optimization');
 			print '<div class="scorecard_field">';
-			print '	<div class="scorecard_ranking">'.$content[$element['ranking']]['#title'];
-			print ': <span class="scorecard_score">'.$content[$element['ranking']]['#items'][0]['value'].'			</span>
-			</div>';
+			print '
+			<div style="font-size: 18px; width: auto; float: left; font-weight: bold;">'.$content[$element['ranking']]['#items'][0]['value'].'</div>
+			<fieldset class="collapsible collapsed">
+				<legend>';
+			print '<span class="scorecard_score fieldset-legend">'.$content[$element['ranking']]['#title'].'			</span></legend>';
+			print '<div class="fieldset-wrapper">'.$fld['description'].'</div>
+			</fieldset>';
 			print '<div class="scorecard_note">'.$content[$element['note']]['#items'][0]['safe_value'].'</div>';
 			print '</div>';
-			$sum += $content[$element['ranking']]['#items'][0]['value'];
-			$num++;
-			$overal_sum += $content[$element['ranking']]['#items'][0]['value'];
-			$overal_num ++;
 		}
-		print '<div class="scorecard_section_score">Overal '.$sections['section'].' Score: <span>'.round(($sum/$num), 2).'</span></div>';
 		print '</section>';
 	  }
-	  print '<div class="scorecard_overal_score">Average Overal Optimization Score: <span>'.round(($overal_sum/$overal_num), 2).'</span></div>';
-	  
+	  if(isset($content['field_scorecard_summary'])){
+		  print '<section>
+		<h4>Summary</h4>
+			<div class="scorecard_field">';
+		  print $content['field_scorecard_summary']['#items'][0]['safe_value'];
+		  print '</div>
+		  </section>';
+	  }
     ?>
   </div>
 
@@ -171,3 +211,23 @@ $structure = array(
   <?php print render($content['comments']); ?>
 
 </article>
+<?php
+
+function _node_optimization_calculate_rating($structure, $content){
+	$result = array();
+	$overall_sum = 0;
+	$overall_num = 0;
+	foreach($structure AS $sections){
+		$sum = 0;
+		$num = 0;
+		foreach($sections['elements'] AS $element){
+			$sum += $content[$element['ranking']]['#items'][0]['value'];
+			$num++;
+			$overall_sum += $content[$element['ranking']]['#items'][0]['value'];
+			$overall_num ++;
+		}
+		$result['elements'][$sections['section']] = round(($sum/$num), 2);
+	}
+	$result['overall'] = round(($overall_sum/$overall_num), 2);
+	return $result;
+}
