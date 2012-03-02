@@ -179,6 +179,7 @@ function exworkflow_form_submit($form, &$form_state) {
   
   $workflow_list = exworkflow_get_workflow_states();
   $workflow_event_list = exworkflow_get_workflow_events();
+  $workflow_state_to_event_mapping = exworkflow_state_to_event_mapping();
   
   // Receive workflow form input
   if($workflow_list[$form_state['values']['wf_state']] == 'Published') {
@@ -190,7 +191,7 @@ function exworkflow_form_submit($form, &$form_state) {
   else {
     $node_status = 'draft';
     $draft_status = $workflow_list[$form_state['values']['wf_state']];
-    $event_status = $workflow_event_list[$form_state['values']['wf_state']];
+    $event_status = $workflow_event_list[$workflow_state_to_event_mapping[$form_state['values']['wf_state']]];
     $publish_fields = array();
   }
   // record workflow  
@@ -696,7 +697,7 @@ function exworkflow_change_state($node_obj, $node_status_text, $draft_status_tex
     
     $workflow_id = $node_workflow->nwid;
     // if the current state falls within the workflow states (ie. not an unpublished event)
-    if ($draft_status_number != null && $draft_status_number <= 5) {
+    if ($draft_status_number != null && $draft_status_number <= 6) {
       // if a review event occured, we need to increase the number of reviews for the review count
       if($workflow_list[$draft_status_number] == 'Reviewed') {
         $review_count = $node_workflow->review_count + 1;
@@ -774,9 +775,24 @@ function exworkflow_get_workflow_states() {
   return array(
     1 => t('Draft'), 
     2 => t('Ready for Review'),
-    3 => t('Reviewed'),
-    4 => t('Copy Edited'),
+    3 => t('Under Review'),
+    // this is a new state, hence the inconsitency in counting these numbers, the order here matters b/c it's used as an ordered drop-down
+    6 => t('Ready for Copy Edit'),
+    4 => t('Ready for Publish'),
     5 => t('Published'),
+  );
+}
+
+// WARNING: DO NOT CHANGE THESE VALUES, 
+// THEY ARE USED IN THE DATABASE TABLES
+function exworkflow_state_to_event_mapping() {
+  return array(
+  1 => 1,
+  2 => 2,
+  3 => 3,
+  4 => 4,
+  5 => 5,
+  6 => 9,  
   );
 }
 
@@ -787,11 +803,12 @@ function exworkflow_get_workflow_events() {
   1 => 'moved back to draft',
   2 => 'marked ready for review',
   3 => 'reviewed',
-  4 => 'copy edited',
+  4 => 'marked ready for publish',
   5 => 'published',
   6 => 'unpublished',
   7 => 'made inactive',
   8 => 'activated',
+  9 => 'marked ready for copy edit',
   );
 }
 
@@ -801,8 +818,9 @@ function exworkflow_search_workflow_states() {
   return array(
     1 => t('draft'), 
     2 => t('ready for review'),
-    3 => t('reviewed'),
-    4 => t('copy edited'),
+    3 => t('under review'),
+    4 => t('ready for publish'),
     5 => t('published'),
+    6 => t('ready for copy edit'),
   );
 }

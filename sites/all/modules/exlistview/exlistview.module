@@ -44,20 +44,28 @@ function exlistview_menu() {
     'weight' => 2,
   );
   
-  $items['listviews/reviewed'] = array(
-    'title' => 'Reviewed Content',
+  $items['listviews/content under review'] = array(
+    'title' => 'Content Under Review',
     'description' => 'List view of reviewed content',
     'page callback' => 'exlistview_show',
     'access callback' => 'menu_permissions',
     'weight' => 3,
   );
   
-  $items['listviews/copy edited'] = array(
-    'title' => 'Copy Edited Content',
-    'description' => 'List view of copy edited content',
+  $items['listviews/ready for copy edit'] = array(
+    'title' => 'Ready for Copy Edit Content',
+    'description' => 'List view of copy edit ready content',
     'page callback' => 'exlistview_show',
     'access callback' => 'menu_permissions',
     'weight' => 4,
+  );
+  
+  $items['listviews/ready for publish'] = array(
+    'title' => 'Ready for Publish Content',
+    'description' => 'List view of ready for publish content',
+    'page callback' => 'exlistview_show',
+    'access callback' => 'menu_permissions',
+    'weight' => 5,
   );
   
   $items['listviews/published'] = array(
@@ -65,7 +73,7 @@ function exlistview_menu() {
     'description' => 'List view of published content',
     'page callback' => 'exlistview_show',
     'access callback' => 'menu_permissions',
-    'weight' => 5,
+    'weight' => 6,
   );
   
   $items['listviews/inactive'] = array(
@@ -73,7 +81,7 @@ function exlistview_menu() {
     'description' => 'List view of inactive content',
     'page callback' => 'exlistview_show',
     'access callback' => 'menu_permissions',
-    'weight' => 6,
+    'weight' => 7,
   );
   
   return $items;
@@ -99,10 +107,13 @@ function exlistview_show() {
       case 'ready for review':
           $workflow_state = 2;
           break;
-      case 'reviewed':
+      case 'content under review':
           $workflow_state = 3;
           break;
-      case 'copy edited':
+      case 'ready for copy edit':
+          $workflow_state = 6;
+          break;
+      case 'ready for publish':
           $workflow_state = 4;
           break;
       case 'published':
