@@ -646,7 +646,7 @@ function exworkflow_change_state($node_obj, $node_status_text, $draft_status_tex
   if($node_workflow == false) {   
     // handle review counts if no node workflow was found
     // if a review event occured, we need to set the number of reviews
-    if($draft_status_number != null && $workflow_list[$draft_status_number] == 'Reviewed') { 
+    if($draft_status_number != null && $workflow_list[$draft_status_number] == 'Under Review') { 
       $review_count = 1; 
     }
     else { 
@@ -699,7 +699,7 @@ function exworkflow_change_state($node_obj, $node_status_text, $draft_status_tex
     // if the current state falls within the workflow states (ie. not an unpublished event)
     if ($draft_status_number != null && $draft_status_number <= 6) {
       // if a review event occured, we need to increase the number of reviews for the review count
-      if($workflow_list[$draft_status_number] == 'Reviewed') {
+      if($workflow_list[$draft_status_number] == 'Under Review') {
         $review_count = $node_workflow->review_count + 1;
       }
       // if the node has been moved to ready for review or draft which come before the review 
