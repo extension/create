@@ -1,0 +1,166 @@
+<?php
+
+/**
+ * Implements hook_filter_info_alter().
+ *
+ * Alter media filter callback in order it to be handled by this module
+ *
+ * @see media_filter_invalidate_caches()
+ */
+
+function exmedia_filter_info_alter(&$info){
+	$info['media_filter']['process callback'] = 'exmedia_filter';
+}
+
+
+/**
+ * Filter callback for media markup filter.
+ *
+ * @TODO check for security probably pass text through filter_xss
+ * @return unknown_type
+ */
+
+function exmedia_filter($text) {
+  $text = ' ' . $text . ' ';
+  $text = preg_replace_callback("/\[\[.*?\]\]/s", 'exmedia_token_to_markup', $text);
+
+  return $text;
+}
+
+/**
+ * Replace callback to convert tag into markup
+ * @param string $match
+ * Takes a match of tag code
+ * @param boolean $wysiwyg
+ *   Set to TRUE if called from within the WYSIWYG text area editor.
+ * @return
+ * Return the replaced markup
+ */
+function exmedia_token_to_markup($match, $wysiwyg = FALSE) {
+  $settings = array();
+  $match = str_replace("[[", "", $match);
+  $match = str_replace("]]", "", $match);
+  $tag = $match[0];
+
+  try {
+    if (!is_string($tag)) {
+      throw new Exception('Unable to find matching tag');
+    }
+
+    $tag_info = drupal_json_decode($tag);
+
+    if (!isset($tag_info['fid'])) {
+      throw new Exception('No file Id');
+    }
+    if (!isset($tag_info['view_mode'])) {
+      // Should we log or throw an exception here instead?
+      // Do we need to validate the view mode for fields API?
+      $tag_info['view_mode'] = media_variable_get('wysiwyg_default_view_mode');
+    }
+    $file = file_load($tag_info['fid']);
+    if (!$file) {
+      throw new Exception('Could not load media object');
+    }
+
+    // Track the fid of this file in the {media_filter_usage} table.
+    media_filter_track_usage($file->fid);
+
+    $attributes = is_array($tag_info['attributes']) ? $tag_info['attributes'] : array();
+    $attribute_whitelist = media_variable_get('wysiwyg_allowed_attributes');
+    $settings['attributes'] = array_intersect_key($attributes, array_flip($attribute_whitelist));
+
+    // Many media formatters will want to apply width and height independently
+    // of the style attribute or the corresponding HTML attributes, so pull
+    // these two out into top-level settings. Different WYSIWYG editors have
+    // different behavior with respect to whether they store user-specified
+    // dimensions in the HTML attributes or the style attribute, so check both.
+    // Per http://www.w3.org/TR/html5/the-map-element.html#attr-dim-width, the
+    // HTML attributes are merely hints: CSS takes precedence.
+    if (isset($settings['attributes']['style'])) {
+      $css_properties = media_parse_css_declarations($settings['attributes']['style']);
+      foreach (array('width', 'height') as $dimension) {
+        if (isset($css_properties[$dimension]) && substr($css_properties[$dimension], -2) == 'px') {
+          $settings[$dimension] = substr($css_properties[$dimension], 0, -2);
+        }
+        elseif (isset($settings['attributes'][$dimension])) {
+          $settings[$dimension] = $settings['attributes'][$dimension];
+        }
+      }
+    }
+
+    if ($wysiwyg) {
+      $settings['wysiwyg'] = $wysiwyg;
+    }
+  }
+  catch (Exception $e) {
+    watchdog('media', 'Unable to render media from %tag. Error: %error', array('%tag' => $tag, '%error' => $e->getMessage()));
+    return '';
+  }
+
+  if ($wysiwyg) {
+    $element = media_get_file_without_label($file, $tag_info['view_mode'], $settings);
+  }
+  else {
+    // Display the field elements.
+	//dsm($settings);
+    $element = array();
+	
+	
+
+	
+	
+   // $div = '<div class="media-container"';
+   // if(isset($settings['attributes']['width'])){
+	//	$div .= ' style="width: '.$settings['attributes']['width'].'px"';
+	//}
+    //$div .= '>';
+ 
+	$element['content']['#prefix'] = $div;
+    $element['content']['file'] = media_get_file_without_label($file, $tag_info['view_mode'], $settings);
+    field_attach_prepare_view('file', array($file->fid => $file), $tag_info['view_mode']);
+    entity_prepare_view('file', array($file->fid => $file));
+    $element['content'] += field_attach_view('file', $file, $tag_info['view_mode']);
+    $element['content']['#suffix'] = '</div>';
+  }
+  $file = media_get_file_without_label($file, $tag_info['view_mode'], $settings);
+  $output = drupal_render( $file );
+  
+ 
+  
+  if(isset($element['content']['field_image__caption'])){
+	  
+	   	$pass = array('element' => $output, 
+						'caption' => $element['content']['field_image__caption']['#items'][0]['value'],
+						'width' => $element['content']['file']['#attributes']['width'] );
+  
+  
+		if(preg_match('/media-image-left/', $tag_info['attributes']['class'])){
+			$pass['allignment'] = ' left';
+		}elseif(preg_match('/media-image-right/', $tag_info['attributes']['class'])){
+			$pass['allignment'] = ' right';
+		}else{
+			$pass['allignment'] = '';
+		}
+	  
+	  
+	  	//dsm($tag_info);
+	 	 return theme('exmedia_bordercaption', $pass);
+  }
+  
+  
+  //dsm($element);
+  
+  return $output;
+}
+
+
+/**
+ * Implements hook_theme().
+*/
+function exmedia_theme() {
+  return array(
+    'exmedia_bordercaption' => array(
+      'template' => 'exmedia_bordercaption'
+     )
+  );
+}

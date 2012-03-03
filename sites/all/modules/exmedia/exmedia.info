@@ -1,0 +1,8 @@
+name = eXtension Media
+description = Provides specifics for eXtension media handling
+version = VERSION
+core = 7.x
+package = eXtension
+files[] = exmedia.module
+files[] = exmedia_bordercaption.tpl.php
+dependencies[] = media
