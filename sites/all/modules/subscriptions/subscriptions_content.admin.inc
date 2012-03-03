@@ -165,25 +165,31 @@ function _subscriptions_content_node_form(array $form, $uid) {
     $subscriptions[$s['nid']][$s['author_uid']] = $s;
   }
 
-  // check whether we've commented:
-  $nids = array_keys($subscriptions);
-  $select = db_select('subscriptions', 's')
-    ->fields('s', array('value'))
-    ->condition('s.module', 'node')
-    ->condition('s.field', 'nid')
-    ->condition('s.recipient_uid', $uid);
-  $result = db_select('comment', 'c')
-    ->fields('c')
-    ->condition('c.nid', $select, 'IN')
-    ->condition('c.uid', $uid)
-    ->groupBy('c.nid')
-    ->execute();
-  foreach ($result as $c) {
-    if (isset($subscriptions[$c->nid])) {
-      foreach ($subscriptions[$c->nid] as $author_uid => $subscription) {
-        $subscriptions[$c->nid][$author_uid]['commented'] = TRUE;
+  if (module_exists('comment')) {
+    // check whether we've commented:
+    $nids = array_keys($subscriptions);
+    $select = db_select('subscriptions', 's')
+      ->fields('s', array('value'))
+      ->condition('s.module', 'node')
+      ->condition('s.field', 'nid')
+      ->condition('s.recipient_uid', $uid);
+    $result = db_select('comment', 'c')
+      ->fields('c')
+      ->condition('c.nid', $select, 'IN')
+      ->condition('c.uid', $uid)
+      ->groupBy('c.nid')
+      ->execute();
+    foreach ($result as $c) {
+      if (isset($subscriptions[$c->nid])) {
+        foreach ($subscriptions[$c->nid] as $author_uid => $subscription) {
+          $subscriptions[$c->nid][$author_uid]['commented'] = TRUE;
+        }
       }
     }
+    $fields = t('@latest_activity, @authored, @commented');
+  }
+  else {
+    $fields = t('@latest_activity, @authored');
   }
 
   $form[0] = array(
@@ -208,7 +214,7 @@ function _subscriptions_content_node_form(array $form, $uid) {
           continue;
         }
       }
-      $subscription['extra_info'] = t('@latest_activity, @authored, @commented', array(
+      $subscription['extra_info'] = $tr($fields, array(
         '@latest_activity' => format_interval(time() - $subscription['latest_activity']),
         '@authored' => ($subscription['uid'] == $uid ? $tr('Yes') : $tr('No')),
         '@commented' => (!empty($subscription['commented']) ? $tr('Yes') : $tr('No')),
@@ -219,7 +225,7 @@ function _subscriptions_content_node_form(array $form, $uid) {
   unset($form[0]['author']);
 
   if (count(element_children($form[0]))) {
-    $form[0]['extra_info']['#title'] = t('Latest activity, authored, commented');
+    $form[0]['extra_info']['#title'] = $tr($fields, array('@latest_activity' => 'Latest activity', '@authored' => 'authored', '@commented' => 'commented'));
     $form[0]['defaults'] = array(
       '#type' => 'value',
       '#value' => $defaults,

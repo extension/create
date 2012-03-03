@@ -177,7 +177,7 @@ function subscriptions_mail_schema_alter(array &$schema) {
  * @param $modules
  */
 function subscriptions_mail_modules_installed($modules) {
-  if (array_search('mail_edit', $modules) !== FALSE) {
+  if (array_search('mail_edit', $modules) !== FALSE && array_search('subscriptions_mail', $modules) === FALSE) {
     module_load_install('subscriptions_mail');
     _subscriptions_mail_extend_mail_edit();
   }

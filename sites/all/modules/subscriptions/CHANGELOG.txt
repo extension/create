@@ -5,6 +5,19 @@ CHANGELOG for Subscriptions 1.x for Drupal 7
 subscriptions 7.x-1.x-dev:
 
 
+subscriptions 7.x-1.0-beta3 (2012-02-14):
+  - #1438302: Disallow updating Subscriptions Mail (especially from D6!) if Mail Editor or Token are missing.
+  - #1438302 by Dmitriy.trt: Fix errors about missing tables on upgrade from D6.
+  - Fix crash when trying to preview a template and there is no suitable content.
+  - #1438432: Fix unincluded subscriptions_add_form() and _del_form().
+  - Add a note to the template page when running without comment.module.
+  - #1431850: Fix crash when previewing a template when running without comment.module.
+  - Hide references to comments from the Pages/Threads page when running without comment.module.
+  - #1431864: Fix exception on Pages/Threads page when running without comment.module.
+  - Avoid possible error when installing Mail Editor and Subscriptions Mail at the same time.
+  - #1422880 by DamienMcKenna: Allow other modules to alter the node options.
+
+
 subscriptions 7.x-1.0-beta2 (2012-01-07):
   - Fix minor string error.
   - #1378692: Fix direct unsubscribe link not working.
@@ -12,7 +25,6 @@ subscriptions 7.x-1.0-beta2 (2012-01-07):
   - Move the 'Overview' subtab into the first position on the 'User defaults' tab.
   - #1369146: Fix the [Purge the queue] button.
   - #1367768: Avoid passing an inacceptable NULL to an array parameter.
-
 
 subscriptions 7.x-1.0-beta1 (2011-12-11):
   - #1253846: Move the configuration pages to admin/config/system/subscriptions.

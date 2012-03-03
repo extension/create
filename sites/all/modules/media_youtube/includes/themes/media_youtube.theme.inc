@@ -15,27 +15,19 @@ function media_youtube_preprocess_media_youtube_video(&$variables) {
   $wrapper = file_stream_wrapper_get_instance_by_uri($uri);
   $parts = $wrapper->get_parameters();
   $variables['video_id'] = check_plain($parts['v']);
+  $variables['query'] = array();
 
-  $variables['width'] = isset($variables['width']) ? $variables['width'] : media_youtube_variable_get('width');
-  $variables['height'] = isset($variables['height']) ? $variables['height'] : media_youtube_variable_get('height');
-  $variables['autoplay'] = isset($variables['autoplay']) ? $variables['autoplay'] : media_youtube_variable_get('autoplay');
-  $variables['related'] = isset($variables['related']) ? $variables['related'] : 1;
-  $variables['fullscreen'] = isset($variables['fullscreen']) ? $variables['fullscreen'] : media_youtube_variable_get('fullscreen');
-  $variables['autoplay'] = $variables['autoplay'] ? 1 : 0;
+  // @see http://code.google.com/apis/youtube/player_parameters.html
+  foreach (array('width', 'height', 'autoplay', 'related', 'hd', 'showsearch', 'modestbranding', 'showinfo', 'version', 'theme', 'fullscreen', 'wmode', 'chromeless') as $option) {
+    // Set the option, either from the options array, or from the default value.
+    $variables[$option] = isset($variables[$option]) ? $variables[$option] : (isset($variables['options'][$option]) ? $variables['options'][$option] : media_youtube_variable_get($option));
+  }
+
+  // We have to set fullscreen in the url query and as a parameter to the flash.
+  $variables['fs'] = $variables['fullscreen'];
   $variables['fullscreen'] = $variables['fullscreen'] ? 'true' : 'false';
 
   $variables['wrapper_id'] = 'media_youtube_' . $variables['video_id'] . '_' . $variables['id'];
-
-  // For users with JavaScript, these object and embed tags will be replaced
-  // by an iframe, so that we can support users without Flash.
-  $variables['output'] = <<<OUTPUT
-    <object width="{$variables['width']}" height="{$variables['height']}">
-      <param name="movie" value="http://www.youtube.com/v/{$variables['video_id']}"></param>
-      <param name="allowFullScreen" value="{$variables['fullscreen']}"></param>
-      <param name="wmode" value="transparent" />
-      <embed src="http://www.youtube.com/v/{$variables['video_id']}" type="application/x-shockwave-flash" width="{$variables['width']}" height="{$variables['height']}" allowfullscreen="{$variables['fullscreen']}"></embed>
-    </object>
-OUTPUT;
 
   // Pass the settings to replace the object tag with an iframe.
   $settings = array(
@@ -49,18 +41,70 @@ OUTPUT;
       ),
     ),
   );
-  if ($variables['autoplay']) {
-    $settings['media_youtube'][$variables['wrapper_id']]['options'] = array(
-      'autoplay' => $variables['autoplay'],
-    );
+
+  // Set the version of the youtube api player.
+  if ($variables['version']) {
+    $variables['query']['version'] = $variables['version'];
+    // Note that the fs variable defaults to 1 with the AS3 player.
+    if (!$variables['fs']) {
+      $variables['query']['fs'] = 0;
+    }
   }
-  if ($variables['related'] === 0) {
-    $settings['media_youtube'][$variables['wrapper_id']]['options']['rel'] = $variables['related'];
+  else if ($variables['fs']) {
+    // Note that the fs variable defaults to 0 with the AS2 player.
+    $variables['query']['fs'] = 1;
   }
+
+  // These options default to 0.
+  foreach (array('modestbranding', 'autoplay', 'hd') as $variable) {
+    if ($variables[$variable]) {
+      $variables['query'][$variable] = 1;
+    }
+  }
+  // These options default to 1.
+  foreach (array('showsearch', 'showinfo') as $variable) {
+    if (!$variables[$variable]) {
+      $variables['query'][$variable] = 0;
+    }
+  }
+  if (!$variables['related']) {
+    $variables['query']['rel'] = 0;
+  }
+  if ($variables['theme'] != 'dark') {
+    $variables['query']['theme'] = $variables['theme'];
+  }
+
+  // Ensure that we pass the required query variables to the Iframe settings.
+  if (!empty($variables['query'])) {
+    $settings['media_youtube'][$variables['wrapper_id']]['options'] = $variables['query'];
+  }
+
   drupal_add_js($settings, 'setting');
   drupal_add_js(drupal_get_path('module', 'media_youtube') . '/js/media_youtube.js');
   drupal_add_css(drupal_get_path('module', 'media_youtube') . '/css/media_youtube.css');
   drupal_add_js(drupal_get_path('module', 'media_youtube') . '/js/flash_detect_min.js');
+
+  // The chromeless player requires a different url.
+  if ($variables['chromeless']) {
+    $variables['url_api'] = 'apiplayer';
+    $variables['query']['video_id'] = $variables['video_id'];
+  }
+  else {
+    $variables['url_api'] = 'v/' . $variables['video_id'];
+  }
+
+  $variables['url'] = url('http://www.youtube.com/' . $variables['url_api'], array('query' => $variables['query'], 'external' => TRUE, 'https' => TRUE));
+
+  // For users with JavaScript, these object and embed tags will be replaced
+  // by an iframe, so that we can support users without Flash.
+  $variables['output'] = <<<OUTPUT
+    <object width="{$variables['width']}" height="{$variables['height']}">
+      <param name="movie" value="{$variables['url']}"></param>
+      <param name="allowFullScreen" value="{$variables['fullscreen']}"></param>
+      <param name="wmode" value="{$variables['wmode']}" />
+      <embed src="{$variables['url']}" type="application/x-shockwave-flash" width="{$variables['width']}" height="{$variables['height']}" allowfullscreen="{$variables['fullscreen']}" wmode="{$variables['wmode']}"></embed>
+    </object>
+OUTPUT;
 }
 
 function theme_media_youtube_field_formatter_styles($variables) {

@@ -61,10 +61,7 @@ function mediafield_field_instance_settings_form($field, $instance) {
  * Implements hook_field_is_empty().
  */
 function mediafield_field_is_empty($item, $field) {
-  if (!is_array($item) || (empty($item['fid']))) {
-    return TRUE;
-  }
-  return FALSE;
+  return empty($item['fid']);
 }
 
 /**
@@ -134,7 +131,9 @@ function mediafield_field_formatter_view($entity_type, $entity, $field, $instanc
 
   $files = array();
   foreach ($items as $delta => $item) {
-    $files[$item['fid']] = $item['file'];
+    if (!empty($item['file'])) {
+      $files[$item['fid']] = $item['file'];
+    }
   }
 
   if (!empty($files)) {
@@ -146,26 +145,30 @@ function mediafield_field_formatter_view($entity_type, $entity, $field, $instanc
 
 /**
  * Implements hook_field_prepare_view().
- *
- * @todo Get resolution on http://drupal.org/node/879034 regarding using this
- *   hook to load referenced entities.
  */
 function mediafield_field_prepare_view($entity_type, $entities, $field, $instances, $langcode, &$items) {
-  // Collect all file ids that need loading.
+  // Collect all file IDs that need loading.
   $fids = array();
   foreach ($entities as $id => $entity) {
+    // Load the files from the files table.
     foreach ($items[$id] as $delta => $item) {
-      if (is_array($item) && !empty($item['fid'])) {
-        $fids[$item['fid']] = $item['fid'];
+      if (!empty($item['fid'])) {
+        $fids[] = $item['fid'];
       }
     }
   }
 
-  // Load the files and add the loaded file entity to the item data.
-  $files = file_load_multiple(array_values($fids));
+  // Load the file entities.
+  $files = file_load_multiple($fids);
+
+  // Add the loaded file entities to the field item array.
   foreach ($entities as $id => $entity) {
     foreach ($items[$id] as $delta => $item) {
-      if (is_array($item) && !empty($item['fid'])) {
+      // If the file does not exist, mark the entire item as empty.
+      if (empty($files[$item['fid']])) {
+        unset($items[$id][$delta]);
+      }
+      else {
         $items[$id][$delta]['file'] = $files[$item['fid']];
       }
     }
@@ -316,6 +319,5 @@ function mediafield_field_update_instance($instance, $prior_instance) {
 function mediafield_views_api() {
   return array(
     'api' => 3,
-    'path' => drupal_get_path('module', 'media'),
   );
 }

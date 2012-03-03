@@ -78,7 +78,7 @@ function media_browser($selected = NULL) {
     // We need to get a submit and cancel button on each tab. If the plugin
     // is not returning a form element we need to add a submit button.
     // This is a fairly broad assumption.
-    if (empty($plugin_output[$key]['#form']) && ! empty($plugin_output[$key]['#markup'])) {
+    if (empty($plugin_output[$key]['#form']) && !empty($plugin_output[$key]['#markup'])) {
       $plugin_output[$key]['#markup'] .= '<div class="form-actions form-wrapper">';
       $plugin_output[$key]['#markup'] .= l(t('Submit'), '', array(
         'attributes' => array('class' => array('button', 'button-yes', 'fake-submit', $key))

@@ -115,12 +115,14 @@ function subscriptions_menu() {
     $items['subscriptions/add/' . $stype] = array(
       'title' => 'Add subscription',
       'type' => MENU_CALLBACK,
+      'file' => 'subscriptions.admin.inc',
       'page callback' => 'drupal_get_form',
       'page arguments' => array('subscriptions_add_form', $stype),
       'access arguments' => array($data['access']),
     );
     $items['subscriptions/del/' . $stype] = array(
       'type' => MENU_CALLBACK,
+      'file' => 'subscriptions.admin.inc',
       'page callback' => 'drupal_get_form',
       'page arguments' => array('subscriptions_del_form', $stype),
       'access arguments' => array($data['access']),

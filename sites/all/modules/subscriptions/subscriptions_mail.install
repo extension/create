@@ -46,6 +46,29 @@ function subscriptions_mail_uninstall() {
   variable_del('subscriptions_watchstats');
 }
 
+function subscriptions_mail_requirements($phase) {
+  $requirements = array();
+  if ($phase == 'update') {
+    if (!module_exists('mail_edit')) {
+      $requirements[] = array(
+        'title' => t('Mail Editor'),
+        'value' => t('Missing'),
+        'description' => t('@Subscriptions_Mail requires the !Mail_Editor module to be installed.', array('@Subscriptions_Mail' => 'Subscriptions Mail', '!Mail_Editor' => l('Mail Editor', 'http://drupal.org/project/mail_edit', array('external' => TRUE)))),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }
+    if (!module_exists('token')) {
+      $requirements[] = array(
+        'title' => t('Token'),
+        'value' => t('Missing'),
+        'description' => t('@Subscriptions_Mail requires the !Token module to be installed.', array('@Subscriptions_Mail' => 'Subscriptions Mail', '!Token' => l('Token', 'http://drupal.org/project/token', array('external' => TRUE)))),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }
+  }
+  return $requirements;
+}
+
 /**
  * Database update function 7000: Extend the {mail_edit} table.
  */

@@ -68,8 +68,9 @@ function media_youtube_theme($existing, $type, $theme, $path) {
       'file' => 'media_youtube.theme.inc',
       'path' => $path . '/includes/themes',
     ),
+    // Note that all the variables after options are now deprecated.
     'media_youtube_video' => array(
-      'variables' => array('uri' => NULL, 'width' => NULL, 'height' => NULL, 'autoplay' => NULL, 'fullscreen' => NULL, 'related' => NULL),
+      'variables' => array('uri' => NULL, 'options' => array(), 'width' => NULL, 'height' => NULL, 'autoplay' => NULL, 'fullscreen' => NULL, 'related' => NULL),
       'file' => 'media_youtube.theme.inc',
       'path' => $path . '/includes/themes',
       'template' => 'media-youtube-video',

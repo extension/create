@@ -12,7 +12,7 @@ class MediaBrowserView extends MediaBrowserPlugin {
     }
 
     return array(
-      '#markup' => $view->preview($display_id) . '<div class="form-actions form-wrapper"></div>',
+      '#markup' => $view->preview($display_id),
     );
   }
 }

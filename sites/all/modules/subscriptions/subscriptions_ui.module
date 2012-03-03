@@ -140,6 +140,10 @@ function subscriptions_ui_node_form($form, &$form_state, $node, $account = NULL)
 
   $show_node_info = variable_get('node_submitted_' . $node->type, 1);
   $node_options = module_invoke_all('subscriptions', 'node_options', $account, $node);
+
+  // Allow other modules to alter the node options.
+  drupal_alter('subscriptions_node_options', $node_options);
+
   if (!$node_options || !user_access('subscribe to content', $account)) {
     return array();
   }

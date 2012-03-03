@@ -105,7 +105,7 @@ function _subscriptions_mail_mail_edit_form_extra(array &$form, array &$form_sta
     ));
     if (isset($template['subscriptions_comment_body'])) {
       $form['mail']['subscriptions_comment_body'] = array(
-        '#title'         => t('Comment'),
+        '#title'         => module_exists('comment') ? t('Comment') : t('@Comment (unused because @Comment module is disabled on this site)', array('@Comment' => t('Comment'))),
         '#type'          => 'textarea',
         '#default_value' => $template['subscriptions_comment_body'],
         '#rows'          => 5,
@@ -230,14 +230,16 @@ function _subscriptions_mail_preview_form(array $values) {
       $access = module_invoke_all('subscriptions', 'access', $load_function, $queue_item['load_args'], $node);
       $allow = !empty($access) && array_search(FALSE, $access) === FALSE;
       if ($allow) {
-        // Load and add all comments for this node.
-        $cids = comment_get_thread($node, COMMENT_MODE_FLAT, 5);
         $node->_subscriptions_comments = array();
-        if (!empty($cids)) {
-          foreach (comment_load_multiple($cids) as $comment) {
-            // Fake every other comment as new.
-            $comment->_subscriptions_is_new = $comment->cid%2;
-            $node->_subscriptions_comments[] = $comment;
+        if (module_exists('comment')) {
+          // Load and add all comments for this node.
+          $cids = comment_get_thread($node, COMMENT_MODE_FLAT, 5);
+          if (!empty($cids)) {
+            foreach (comment_load_multiple($cids) as $comment) {
+              // Fake every other comment as new.
+              $comment->_subscriptions_is_new = $comment->cid%2;
+              $node->_subscriptions_comments[] = $comment;
+            }
           }
         }
 
@@ -272,6 +274,13 @@ function _subscriptions_mail_preview_form(array $values) {
   if ($is_digest) {
     $data = $digest_data;
   }
+  if (empty($data)) {
+    $form['note'] = array(
+      '#markup' => '<span class="error">' . t('No displayable content found!') . '</span>',
+    );
+    return $form;
+  }
+
   $subject = mail_edit_format($values['subject'], $data, array('language' => $language));
   $body = $values['body'];
   if ($preview_mode == 'html-rendered-nl') {

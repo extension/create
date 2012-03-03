@@ -277,6 +277,10 @@ function subscriptions_update_7001() {
  * new Drupal 7 '[tokens]'.
  */
 function subscriptions_update_7002() {
+  if (!db_table_exists('mail_edit')) {
+    return;
+  }
+
   $tokens = array(
     '!site'                    => '[site:name]',
 
