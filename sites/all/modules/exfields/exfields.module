@@ -8,7 +8,7 @@
  
 /**
  * Implements hook_help().
- */
+ */ 
 function exfields_help($path, $arg) {
   switch ($path) {
     case 'admin/help#exfields':
@@ -209,9 +209,10 @@ function exfields_field_formatter_view($object_type, $object, $field, $instance,
   $element = array();
   
   if($display['type']=='contributionformat') {
+	  $_exfields_roles_array = _exfields_roles_array();
       foreach ($items as $delta => $item) {
 	    $output = t('<em>Role:</em> @role<br /><em>Author:</em> @author<br /><em>Date:</em> @date ', 
-						array('@role' =>$item['contribution_role'], '@author' =>$item['contribution_author'], '@date' =>_dateToString($item['contribution_date']) ) );
+						array('@role' =>$_exfields_roles_array[$item['contribution_role']], '@author' =>$item['contribution_author'], '@date' =>_dateToString($item['contribution_date']) ) );
         $element[$delta]['#markup'] = '<p>' . $output . '</p>';
       }
   }
@@ -277,21 +278,7 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
        $element['contribution_role'] = array(
 	  		'#title'=>'Role',
 	  		 '#type' => 'select',
-			 '#options' => array('' => '',
-			 		'author' => 'Primary Author',
-					'contributing author' => 'Contributing Author',
-					'reviewer' => 'Reviewer',
-					'subject matter editor' => 'Subject Matter Editor',
-					'graphical designer' => 'Graphical Designer',
-					'project manager' => 'Project Manager',
-					'script writer' => 'Script Writer',
-					'instructional designer' => 'Instructional Designer',
-					'copyeditor' => 'Copyeditor',
-					'application developer' => 'Application Developer',
-					'photographer' => 'Photographer',
-					'videographer' => 'Videographer',
-					'publisher' => 'Publisher', 
-					),
+			 '#options' => _exfields_roles_array(),
 			 '#default_value' => isset($items[$delta]['contribution_role']) ? $items[$delta]['contribution_role'] : NULL,
 	  	);
 		$element['contribution_author'] = array(
@@ -503,4 +490,28 @@ function exfields_views_api() {
         'api' => 3,
         'path' => drupal_get_path('module', 'exfields'),
     );
+}
+
+
+/**
+ * returns array of id=>label association for contributor roles
+ */
+function _exfields_roles_array(){
+ 	return $_exfields_roles_array = array('' => '',
+			 		'author' => 'Primary Author',
+					'editor' => 'Subject Matter Editor',
+					'educational validator' => 'Educational Validator',
+					'graphical designer' => 'Graphical Designer',
+					'initiator' => 'Initiator',					
+					'instructional designer' => 'Instructional Designer',
+					'publisher' => 'Publisher',
+					'script writer' => 'Script Writer',
+					'subject matter expert' => 'Subject Matter Expert',
+					'technical implementor' => 'Technical Implementor',
+					'validator' => 'Reviewer (Validator)',
+					'copyeditor' => 'Copyeditor',
+					'application developer' => 'Application Developer',
+					'photographer' => 'Photographer',
+					'videographer' => 'Videographer',
+					); 
 }
