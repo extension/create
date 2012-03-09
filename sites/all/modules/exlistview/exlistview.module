@@ -624,6 +624,10 @@ function exlistview_block_info() {
   	'info'=> t('My groups events'),
 	'cache' => DRUPAL_NO_CACHE,
   );
+  $blocks['article_contributions'] = array(
+  	'info'=> t('Authored articles'),
+	'cache' => DRUPAL_NO_CACHE,
+  );
   return $blocks;
 }
 
@@ -641,9 +645,42 @@ function exlistview_block_view($delta) {
 	case 'my_groups_events':
 	  $block = _exlistview_my_groups_events();
 	  break;
+	case 'article_contributions':
+	  $block = _exlistview_my_article_contributions();
+	  break;
   }
   return $block;
 }
+
+
+/**
+  * Builds content of the block in user profiles listing contributions of the user.
+  * It is based on the input in the contributions field, rather than on revisions authorship.
+  */
+function _exlistview_my_article_contributions(){
+	$content = '';
+	$roles_array = _exfields_roles_array();
+	$user_data = user_load(arg(1));
+	$query = db_select('node', 'n');
+	$query	->join('field_data_field_contributors', 'c', 'c.entity_id = n.nid');
+	$query	->fields('n', array('nid', 'title'))
+			->fields('c', array('field_contributors_contribution_role'))
+			->orderBy('n.changed')
+			->condition('c.field_contributors_contribution_author', $user_data->name, "=")
+			->groupBy('n.nid')
+			->range(0,23);
+	$records = $query->execute();
+	foreach($records AS $row){
+		$content .= '<a href="/node/'.$row->nid.'">'.$row->title.'</a> ('.$roles_array[$row->field_contributors_contribution_role].')<br />';
+	}
+	if($content != ''){
+		$content .= '<div class="more-link" style="margin-left: 0;">
+		<a href="/authorship/'.$user_data->name.'">more</a>
+		</div>';	
+	}
+	return array('content' => $content);
+}
+
 
 
 //creates string for use in sql statement including id-s of the user's groups

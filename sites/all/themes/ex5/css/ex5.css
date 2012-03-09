@@ -1126,6 +1126,12 @@ article .comment > footer{
 }
 
 
+#user_profile_right_column .pane-content{
+	margin-left: 25px;
+	margin-right: 25px;
+}
+
+
 .contextual-links-wrapper{
 	display: none;
 }

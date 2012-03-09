@@ -269,7 +269,7 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
 	//***********************************************//
 	// widget definitions for the contributions field
 	//***********************************************//
-	
+		global $user;
 	
 	
 		// Separate the timestamp of the date storage to an array of alements needed for the date widget
@@ -284,7 +284,7 @@ function exfields_field_widget_form(&$form, &$form_state, $field, $instance, $la
 		$element['contribution_author'] = array(
 		'#title'=>'Author',
         '#type' => 'textfield',
-        '#default_value' => isset($items[$delta]['contribution_author']) ? $items[$delta]['contribution_author'] : NULL,
+        '#default_value' => isset($items[$delta]['contribution_author']) ? $items[$delta]['contribution_author'] : $user->name,
       	);
 		$element['contribution_date'] = array(
 		'#title'=>'Date',
