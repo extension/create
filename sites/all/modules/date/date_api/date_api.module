@@ -2139,7 +2139,7 @@ function date_limit_format($format, $granularity) {
   // Remove orphaned punctuation at the beginning of the string.
   $format = preg_replace('`^([\-/\.,:\'])`', '', $format);
   // Remove orphaned punctuation at the end of the string.
-  $format = preg_replace('([\-/\.,:\']$)', '', $format);
+  $format = preg_replace('([\-/,:\']$)', '', $format);
   $format = preg_replace('(\\$)', '', $format);
 
   // Trim any whitespace from the result.

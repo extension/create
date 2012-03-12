@@ -120,7 +120,9 @@ function date_repeat_field_permission() {
 function date_repeat_field_show($entity_type = 'node', $entity = NULL) {
   $bundle = date_get_entity_bundle($entity_type, $entity);
   foreach (field_info_fields() as $field_name => $field) {
-    if (in_array($field['type'], array('date', 'datestamp', 'datetime')) && date_is_repeat_field($field)) {
+    if (in_array($field['type'], array('date', 'datestamp', 'datetime'))
+        && in_array($bundle, $field['bundles'][$entity_type])
+        && date_is_repeat_field($field)) {
       return user_access('view date repeats');
     }
   }

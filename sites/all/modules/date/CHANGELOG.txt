@@ -5,9 +5,20 @@ Date Module 7.x
 Version 7.x-2.x-dev
 ===================
 
+- Issue #1392128 by kidrobot, tim.plunkett, willvincent: Fixed Repeats tab shows on nodes with non-repeating dates.
+- Issue #1452882 by coredumperror: Fixed Date Migrate Example doesn't deregister it's migration when disabled.
+- Issue #1452408 by reglogge: Fixed Trailing dots are removed from date formats even if they are needed for the format.
+- Issue #1285260 by Steven Jones: Fixed 'Starting from' display option.
+- Issue #1467244 by bluetegu: Fixed Recurring Sunday errors.
+- Issue #1442718, Empty default values were getting populated by the code that tried to fix default values on hidden fields.
+- Make sure date_handler->placeholders gets initialized even for queries that don't execute so the pager won't throw an exception if the value is missing.
+
 ======================
 Version 7.x-2.2
 ======================
+
+NOTES:
+The iCal templates were removed and moved to the new Date iCal module (http://drupal.org/project/date_ical).
 
 - Issue #1423364 by emptyvoid, Move Date context plugin into its own file.
 - Issue #1447372 by yched, Memory friendlier version of date_repeat_field_bundles().

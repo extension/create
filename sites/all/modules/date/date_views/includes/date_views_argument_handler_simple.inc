@@ -29,6 +29,9 @@ class date_views_argument_handler_simple extends views_handler_argument_date {
       $this->date_handler->local_timezone = date_get_timezone($field['settings']['tz_handling']);
     }
     $this->date_handler->granularity = $this->options['granularity'];
+    // This value needs to be initialized so it exists even if the query doesn't run.
+    $this->date_handler->placeholders = array();
+
     $this->format = $this->date_handler->views_formats($this->date_handler->granularity, 'display');
     $this->sql_format = $this->date_handler->views_formats($this->date_handler->granularity, 'sql');
     // $this->arg_format is the format the parent date handler will use to create a default argument.

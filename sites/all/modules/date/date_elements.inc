@@ -181,7 +181,7 @@ function date_default_value($field, $instance, $langcode) {
   $item[0]['timezone'] = date_get_timezone($field['settings']['tz_handling']);
   $item[0]['timezone_db'] = date_get_timezone_db($field['settings']['tz_handling']);
   $item[0]['date_type'] = $field['type'];
-  if (empty($item[0]['value2'])) {
+  if (!isset($item[0]['value2'])) {
     $item[0]['value2'] = $item[0]['value'];
   }
   return $item;
@@ -236,8 +236,13 @@ function date_default_value_part($item, $field, $instance, $langcode, $part = 'v
  * Process an individual date element.
  */
 function date_combo_element_process($element, &$form_state, $form) {
-
+    
   if (date_hidden_element($element)) {
+    // A hidden value for a new entity that had its end date set to blank
+    // will not get processed later to populate the end date, so set it here.
+    if (isset($element['#value']['value2']) && empty($element['#value']['value2'])) {
+      $element['#value']['value2'] = $element['#value']['value'];
+    }
     return $element;
   }
 

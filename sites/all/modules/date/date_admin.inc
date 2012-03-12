@@ -59,7 +59,7 @@ function date_default_formatter_settings_form($field, $instance, $view_mode, $fo
     '#field_suffix' => $suffix,
     '#default_value' => $settings['multiple_from'],
     '#weight' => 3,
-    '#access' => ($field['cardinality'] === FIELD_CARDINALITY_UNLIMITED) || ($field['cardinality'] > 1),
+    '#access' => ($field['cardinality'] == FIELD_CARDINALITY_UNLIMITED) || ($field['cardinality'] > 1),
   );
 
   list($prefix, $suffix) = explode('@isodate', t('ending with @isodate'));
@@ -70,7 +70,7 @@ function date_default_formatter_settings_form($field, $instance, $view_mode, $fo
     '#field_suffix' => $suffix,
     '#default_value' => $settings['multiple_to'],
     '#weight' => 4,
-    '#access' => ($field['cardinality'] === FIELD_CARDINALITY_UNLIMITED) || ($field['cardinality'] > 1),
+    '#access' => ($field['cardinality'] == FIELD_CARDINALITY_UNLIMITED) || ($field['cardinality'] > 1),
     '#description' => t('Identify specific start and/or end dates in the format YYYY-MM-DDTHH:MM:SS, or leave blank for all available dates.'),
   );
 
