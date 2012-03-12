@@ -671,7 +671,7 @@ function _exlistview_my_article_contributions(){
 			->range(0,23);
 	$records = $query->execute();
 	foreach($records AS $row){
-		$content .= '<a href="/node/'.$row->nid.'">'.$row->title.'</a> ('.$roles_array[$row->field_contributors_contribution_role].')<br />';
+		$content .= '<div class="contribution-article"><a href="/node/'.$row->nid.'">'.$row->title.'</a> ('.$roles_array[$row->field_contributors_contribution_role].')</div>';
 	}
 	if($content != ''){
 		$content .= '<div class="more-link" style="margin-left: 0;">
