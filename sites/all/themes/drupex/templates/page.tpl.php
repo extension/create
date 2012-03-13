@@ -8,37 +8,26 @@ Drupex addition is the #extensionNav div
 */
 ?>
 <div id="page-wrapper"><div id="page">
-  
-      <ul id="extensionNav" class="clearfix">
-             <li class="group"><span>Public sites</span>
-                 <ul>
-                     <li><a href="http://about.extension.org/" title="A starting place for all things eXtension">About.eXtension</a></li>
-                     <li><a href="http://www.extension.org/" title="The eXtension Public Site">Public Site</a></li>
-                     <li><a href="http://search.extension.org/" title="One search for hundereds of Cooperative Extension Sites">Search</a></li>
-                 </ul>
-             </li>
-             <li class="group"><span>Wikis</span>
-                 <ul>
-                     <li><a href="http://create.extension.org/" title="Create">Create</a></li>
-                     <li><a href="http://cop.extension.org/wiki/" title="CoP wiki for content creation">CoP</a></li>
-                     <li><a href="http://collaborate.extension.org/wiki/" title="A wiki for professionals from the land-grant universities to collaborate on topics of interest.">Collaborate</a></li>
-                 </ul>
-             </li>
-             <li class="group"><span>Content Tools and People</span>
-                 <ul>
-                     <li><a href="http://aae.extension.org/" title="Ask an Expert">AaE</a></li>
-                     <li><a href="http://events.extension.org/" title="Events">Events</a></li>
-                     <li><a href="http://faq.extension.org/" title="FAQ">FAQ</a></li>
-                     <li><a href="http://people.extension.org/" title="Manage your eXtension profile, find colleagues, create and join communities.">People</a></li>
-                     <li><a href="http://learn.extension.org/" title="Upcoming Professional Development Sessions and Archived PD Recordings">Learn</a></li>
-                 </ul>
-             </li>
-             <li class="group last"><span>Moodle</span>
-                 <ul>
-                     <li><a href="http://campus.extension.org/" title="Moodle courses developed by eXtension Communities of Practice, as well as Extension professionals throughout the Cooperative Extension System, for use by the general public">Campus</a></li>
-                 </ul>
-             </li>
+  <ul id="extensionNav" class="clearfix">
+    <li class="group"><span>Public sites</span>
+      <ul>
+        <li><a href="http://about.extension.org/" title="A starting place for all things eXtension">About eXtension</a></li>
+        <li><a href="http://campus.extension.org/ " title="Moodle courses developed by eXtension Communities of Practice, as well as Extension professionals throughout the Cooperative Extension System, for use by the general public">Campus</a></li>
+        <li><a href="http://www.extension.org" title="extension.org">eXtension.org</a></li>
+        <li><a href="http://learn.extension.org/" title="Upcoming Professional Development Sessions and Archived PD Recordings">Learn</a></li>
+        <li><a href="http://search.extension.org" title="One search for hundereds of Cooperative Extension Sites">Search</a></li>
       </ul>
+    </li>
+    <li class="group last"><span>Collaboration and Content Tools</span>
+      <ul>
+        <li><a href="http://aae.extension.org" title="Ask an Expert">AaE</a></li>
+        <li><a href="http://collaborate.extension.org/wiki/" title="A wiki for professionals from the land-grant universities to collaborate on topics of interest.">Collaborate</a></li>
+        <li><a href="http://create.extension.org/" title="A collaborative development of resources about the eXtension initiative: news, governance, and projects.">Create</a></li>
+        <li><a href="http://cop.extension.org/events" title="Events">Events</a></li>
+        <li><a href="http://people.extension.org/" title="Manage your eXtension profile, find colleagues, create and join communities.">People</a></li>
+      </ul>
+    </li>
+  </ul>
 
   
   <div id="header"><div class="section clearfix">
