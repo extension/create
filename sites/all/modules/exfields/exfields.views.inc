@@ -44,8 +44,17 @@ function exfields_views_data_alter(&$data) {
       ),
     );
 	
+	
+	//Provide select control for group selection filter
+	
 	$data['og_membership']['group']['filter']['handler'] = 'og_handler_filter_group_audience_gid';
 	
+	// Provide appropriate controlls for authorship fields
+	
+	$data['field_data_field_contributors']['field_contributors_contribution_role']['filter']['handler'] = 'roles_filter_authorship_fields';
+	
+	$data['field_data_field_contributors']['field_contributors_contribution_date']['filter']['handler'] = 'exfields_handler_filter_timestamp';
+	$data['field_data_field_contributors']['field_contributors_contribution_date']['filter']['is date'] = TRUE;
 	
 	
   return $data;
@@ -65,5 +74,17 @@ class og_handler_filter_group_audience_gid extends views_handler_filter_many_to_
         $this->value_options[$group->gid] = $group->label;
       }
     }
+  }
+}
+
+
+/**
+* Filter handler for contribution roles
+*/
+class roles_filter_authorship_fields extends views_handler_filter_many_to_one {
+
+ function get_value_options(){
+	 $this->value_options = _exfields_roles_array();
+	 unset($this->value_options['']);
   }
 }
