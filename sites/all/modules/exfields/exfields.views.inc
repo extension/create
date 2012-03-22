@@ -49,15 +49,18 @@ function exfields_views_data_alter(&$data) {
 	
 	$data['og_membership']['group']['filter']['handler'] = 'og_handler_filter_group_audience_gid';
 	
-	// Provide appropriate controlls for authorship fields
+	// Provides appropriate controlls for authorship fields
 	
+	// contribution role
 	$data['field_data_field_contributors']['field_contributors_contribution_role']['filter']['handler'] = 'roles_filter_authorship_fields';
-	
+	$data['field_data_field_contributors']['field_contributors_contribution_role']['field']['handler'] = 'exfields_roles_handler_field';
+	// contribution date
 	$data['field_data_field_contributors']['field_contributors_contribution_date']['filter']['handler'] = 'exfields_handler_filter_timestamp';
 	$data['field_data_field_contributors']['field_contributors_contribution_date']['filter']['is date'] = TRUE;
+	$data['field_data_field_contributors']['field_contributors_contribution_date']['field']['handler'] = 'views_handler_field_date';
+	$data['field_data_field_contributors']['field_contributors_contribution_date']['field']['is date'] = TRUE;
 	
-	
-  return $data;
+  	return $data;
 }
 
 
@@ -87,4 +90,16 @@ class roles_filter_authorship_fields extends views_handler_filter_many_to_one {
 	 $this->value_options = _exfields_roles_array();
 	 unset($this->value_options['']);
   }
+}
+
+/**
+* Fieod handler for displaying full name of authorship role
+*/
+class exfields_roles_handler_field extends views_handler_field{
+	
+	function render($values) {
+		$roles_options = _exfields_roles_array();
+    	$value = $values->{$this->field_alias};
+     	return check_plain($roles_options[$value]);
+   	}
 }
