@@ -54,11 +54,13 @@ function exfields_views_data_alter(&$data) {
 	// contribution role
 	$data['field_data_field_contributors']['field_contributors_contribution_role']['filter']['handler'] = 'roles_filter_authorship_fields';
 	$data['field_data_field_contributors']['field_contributors_contribution_role']['field']['handler'] = 'exfields_roles_handler_field';
+	$data['field_data_field_contributors']['field_contributors_contribution_role']['field']['click sortable'] = TRUE;
 	// contribution date
 	$data['field_data_field_contributors']['field_contributors_contribution_date']['filter']['handler'] = 'exfields_handler_filter_timestamp';
 	$data['field_data_field_contributors']['field_contributors_contribution_date']['filter']['is date'] = TRUE;
 	$data['field_data_field_contributors']['field_contributors_contribution_date']['field']['handler'] = 'views_handler_field_date';
 	$data['field_data_field_contributors']['field_contributors_contribution_date']['field']['is date'] = TRUE;
+	$data['field_data_field_contributors']['field_contributors_contribution_date']['field']['click sortable'] = TRUE;
 	
   	return $data;
 }
