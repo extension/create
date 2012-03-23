@@ -180,7 +180,8 @@ function hs_taxonomy_form_taxonomy_form_term_alter(&$form, &$form_state) {
   );
 
   // Use Hierarchical Select for selecting the parent term(s).
-  $parent = isset($form['#term']['tid']) ? array_keys(taxonomy_get_parents($form['#term']['tid'])) : array(0);
+  $parent_tid = array_keys(taxonomy_get_parents($form['#term']['tid']));
+  $parent = !empty($parent_tid) ? $parent_tid : array(0);
   $form['relations']['parent'] = array(
     '#type'          => 'hierarchical_select',
     '#title'         => t('Parents'),
