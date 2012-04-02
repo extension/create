@@ -9,7 +9,8 @@ dependencies[] = views
 
 files[] = includes/MediaReadOnlyStreamWrapper.inc
 
-files[] = includes/media.browser.inc
+files[] = includes/MediaBrowserPluginInterface.inc
+files[] = includes/MediaBrowserPlugin.inc
 files[] = includes/MediaBrowserLibrary.inc
 files[] = includes/MediaBrowserUpload.inc
 files[] = includes/MediaBrowserView.inc
@@ -23,9 +24,9 @@ files[] = tests/media.entity.test
 
 testing_api = 2.x
 
-; Information added by drupal.org packaging script on 2012-03-03
-version = "7.x-2.0-unstable3+26-dev"
+; Information added by drupal.org packaging script on 2012-03-30
+version = "7.x-2.0-unstable3+45-dev"
 core = "7.x"
 project = "media"
-datestamp = "1330734137"
+datestamp = "1333067441"
 

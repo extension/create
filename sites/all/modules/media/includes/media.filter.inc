@@ -130,13 +130,17 @@ function media_parse_css_declarations($declarations) {
 }
 
 /**
- * Replace callback to convert tag into markup
+ * Replace callback to convert a media file tag into HTML markup.
+ *
  * @param string $match
- * Takes a match of tag code
+ *   Takes a match of tag code
  * @param boolean $wysiwyg
  *   Set to TRUE if called from within the WYSIWYG text area editor.
  * @return
- * Return the replaced markup
+ *   The HTML markup representation of the tag, or an empty string on failure.
+ *
+ * @see media_get_file_without_label()
+ * @see hook_media_token_to_markup_alter()
  */
 function media_token_to_markup($match, $wysiwyg = FALSE) {
   $settings = array();
@@ -159,10 +163,12 @@ function media_token_to_markup($match, $wysiwyg = FALSE) {
       // Do we need to validate the view mode for fields API?
       $tag_info['view_mode'] = media_variable_get('wysiwyg_default_view_mode');
     }
+
     $file = file_load($tag_info['fid']);
     if (!$file) {
       throw new Exception('Could not load media object');
     }
+    $tag_info['file'] = $file;
 
     // Track the fid of this file in the {media_filter_usage} table.
     media_filter_track_usage($file->fid);
@@ -200,6 +206,7 @@ function media_token_to_markup($match, $wysiwyg = FALSE) {
   }
 
   $element = media_get_file_without_label($file, $tag_info['view_mode'], $settings);
+  drupal_alter('media_token_to_markup', $element, $tag_info, $settings);
   return drupal_render($element);
 }
 
@@ -301,6 +308,9 @@ function media_format_form($form, $form_state, $file) {
     $formats[$view_mode] = drupal_render($element);
   }
 
+  // Add the previews back into the form array so they can be altered.
+  $form['#formats'] = &$formats;
+
   if (!count($formats)) {
     throw new Exception('Unable to continue, no available formats for displaying media.');
     return;
@@ -311,18 +321,16 @@ function media_format_form($form, $form_state, $file) {
     $default_view_mode = key($formats);
   }
 
+  // Add the previews by reference so that they can easily be altered by
+  // changing $form['#formats'].
+  $settings['media']['formatFormFormats'] = &$formats;
+  $form['#attached']['js'][] = array('data' => $settings, 'type' => 'setting');
 
-  // Add JS and settings array of formats.
-  $settings = array();
-  $settings['media'] = array('formatFormFormats' => $formats);
-  drupal_add_js($settings, 'setting');
-
-  drupal_add_library('media', 'media_base');
-  drupal_add_library('system', 'form');
-
-  $path = drupal_get_path('module', 'media');
-  $form['#attached']['js'][] = $path . '/js/media.format_form.js';
-  $form['#attached']['css'][] = $path . '/css/media-format-form.css';
+  // Add the required libraries, JavaScript and CSS for the form.
+  $form['#attached']['library'][] = array('media', 'media_base');
+  $form['#attached']['library'][] = array('system', 'form');
+  $form['#attached']['js'][] = drupal_get_path('module', 'media') . '/js/media.format_form.js';
+  $form['#attached']['css'][] = drupal_get_path('module', 'media') . '/css/media-format-form.css';
 
   $form['heading'] = array(
     '#type' => 'markup',

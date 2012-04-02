@@ -110,8 +110,7 @@ function media_field_widget_settings_form($field, $instance) {
     '#weight' => 2,
   );
 
-  ctools_include('plugins');
-  $plugins = ctools_get_plugins('media', 'browser');
+  $plugins = media_get_browser_plugin_info();
   $form['browser_plugins'] = array(
     '#type' => 'checkboxes',
     '#title' => t('Enabled browser plugins'),
