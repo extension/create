@@ -99,10 +99,8 @@ function exmedia_token_to_markup($match, $wysiwyg = FALSE) {
 
   if ($wysiwyg) {
     $element = media_get_file_without_label($file, $tag_info['view_mode'], $settings);
-  }
-  else {
+  }else{
     // Display the field elements.
-	//dsm($settings);
     $element = array();
 	
 	
@@ -115,7 +113,7 @@ function exmedia_token_to_markup($match, $wysiwyg = FALSE) {
 	//}
     //$div .= '>';
  
-	$element['content']['#prefix'] = $div;
+	$element['content']['#prefix'] = '<div>';
     $element['content']['file'] = media_get_file_without_label($file, $tag_info['view_mode'], $settings);
     field_attach_prepare_view('file', array($file->fid => $file), $tag_info['view_mode']);
     entity_prepare_view('file', array($file->fid => $file));
