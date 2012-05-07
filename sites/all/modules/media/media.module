@@ -579,7 +579,7 @@ function media_browser_form_submit($form, &$form_state) {
   }
   if (!empty($form_state['files'])) {
     $files = $form_state['files'];
-    $form_state['redirect'] = array('media/browser', array('query' => array('render' => 'media-popup', 'fid' => $file->fid)));
+    $form_state['redirect'] = array('media/browser', array('query' => array('render' => 'media-popup', 'fid' => array_keys($files))));
   }
 }
 

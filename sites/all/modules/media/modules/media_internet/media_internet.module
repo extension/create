@@ -90,7 +90,7 @@ function media_internet_add($form, &$form_state = array(), $types = NULL) {
       );
     }
   }
-  $form['proviers'] = array(
+  $form['providers'] = array(
     '#theme' => 'item_list',
     '#title' => t('Supported providers'),
     '#items' => $providers,
