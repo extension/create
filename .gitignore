@@ -9,3 +9,5 @@ sites/*/private
 /sites/all/modules/coder-HEAD
 /sites/default/settings.php
 /import
+/capatross_logs
+
