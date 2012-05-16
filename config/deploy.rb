@@ -10,6 +10,7 @@ set :repository,  "git@github.com:extension/drupal.git"
 set :scm, "git"
 set :user, "pacecar"
 set :localuser, ENV['USER']
+set :ruby, "/usr/local/bin/ruby"
 set :use_sudo, false
 set :keep_releases, 3
 ssh_options[:forward_agent] = true
