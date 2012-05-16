@@ -9,8 +9,6 @@ set :application, "drupal"
 set :repository,  "git@github.com:extension/drupal.git"
 set :scm, "git"
 set :user, "pacecar"
-set :localuser, ENV['USER']
-set :ruby, "/usr/local/bin/ruby"
 set :use_sudo, false
 set :keep_releases, 3
 ssh_options[:forward_agent] = true
@@ -19,7 +17,6 @@ set :port, 24
 
 after "deploy:update_code", "deploy:link_and_copy_configs"
 after "deploy:update_code", "deploy:cleanup"
-after "deploy", 'deploy:notification:email'
 
 
 namespace :deploy do
@@ -35,14 +32,6 @@ namespace :deploy do
     ln -nfs /services/config/#{application}/settings.php #{release_path}/sites/default/settings.php &&
     ln -nfs /services/nfs/drupalfiles/files #{release_path}/sites/default/files
     CMD
-  end
-  
-  # generate an email to notify various users that a new version has been deployed
-  namespace :notification do
-    desc "Generate an email for the deploy"
-    task :email, :roles => [:app] do 
-      run "#{ruby} #{release_path}/config/deploy_notification.rb -r #{release_path} -a #{application} -h #{server} -u #{localuser} -p #{previous_revision} -l #{latest_revision} -b #{branch}"
-    end
   end
 
 end
