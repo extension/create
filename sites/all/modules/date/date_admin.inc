@@ -92,6 +92,24 @@ function date_interval_formatter_settings_form($field, $instance, $view_mode, $f
     '#default_value' => $settings['interval'],
     '#weight' => 0,
   );
+  // Uses the same options used by Views format_interval.
+  $options = array(
+    'raw time ago' => t('Time ago'),
+    'time ago' => t('Time ago (with "ago" appended)'),
+    'raw time hence' => t('Time hence'),
+    'time hence' => t('Time hence (with "hence" appended)'),
+    'raw time span' => t('Time span (future dates have "-" prepended)'),
+    'inverse time span' => t('Time span (past dates have "-" prepended)'),
+    'time span' => t('Time span (with "ago/hence" appended)'),
+  );
+  $form['interval_display'] = array(
+    '#title' => t('Display'),
+    '#description' => t("How to display the time ago or time hence for this field."),
+    '#type' => 'select',
+    '#options' => $options,
+    '#default_value' => $settings['interval_display'],
+    '#weight' => 0,
+  );
   return $form;
 }
 

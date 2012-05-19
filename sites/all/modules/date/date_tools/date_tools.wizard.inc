@@ -105,7 +105,7 @@ function date_tools_wizard_form() {
   );
   $form['calendar'] = array(
     '#type' => 'select',
-    '#default_value' => 1,
+    '#default_value' => module_exists('calendar'),
     '#options' => array(0 => t('No'), 1 => t('Yes')),
     '#title' => t('Create a calendar for this date field'),
     '#access' => module_exists('calendar'),
@@ -115,7 +115,6 @@ function date_tools_wizard_form() {
     '#type' => 'submit',
     '#value' => t('Save'),
   );
-
   return $form;
 }
 
@@ -169,10 +168,6 @@ function date_tools_wizard_build($form_values) {
 
   $field_name = 'field_' . $field_name;
   $base_table = 'node';
-
-  if (!empty($repeat)) {
-    $widget_type .= '_repeat';
-  }
 
   // Create a node type if it doesn't already exist.
   // This makes it possible to add additional date fields to
