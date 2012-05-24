@@ -30,6 +30,9 @@ function ex5_preprocess_comment(&$variables) {
 								:
 									'');
 	$variables['lastname'] = (isset($user_fields->field_last_name['und']['0']['value'])?$user_fields->field_last_name['und']['0']['value']:'');
+	
+	$date = new DateTime( $variables['created']);
+	
 	if($variables['firstname'] == ''){
 		$variables['formatted_user'] = l($user_fields->name, 'user/'.$user_fields->uid);
 	}else{
@@ -40,11 +43,11 @@ function ex5_preprocess_comment(&$variables) {
   		$variables['updated_formatted_date'] = date("F j, Y", $variables['revision_timestamp']);
 		$variables['updated'] = 'Last updated: '.$variables['updated_formatted_date'].' by '.$variables['formatted_user'];
 	}else{
-		//$variables['updated_formatted_date'] = date("F j, Y", $date->getTimestamp());
+		$variables['updated_formatted_date'] = date("F j, Y", $date->getTimestamp());
 		$variables['updated'] = 'Last updated: '.$variables['updated_formatted_date'].' by '.$variables['formatted_user'];
 	}
 	
-	$date = new DateTime( $variables['created']);
+	
 	
 	
 	$variables['datetime'] = format_date($date->getTimestamp(), 'custom', 'c');
