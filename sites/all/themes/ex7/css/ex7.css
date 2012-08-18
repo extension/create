@@ -1,4 +1,11 @@
-
+/* CSS Document */
+/* === COPYRIGHT:
+  Copyright (c) 2012 University of Kentucky
+  Developed with funding for the National eXtension Initiative.
+ === LICENSE:
+  BSD(-compatible)
+  see LICENSE file or view at http://create.extension.org/node/1013
+*/
 
 
 #page .form-item-field-category-pa-und #edit-field-category-pa-und{
@@ -49,4 +56,11 @@
 
 #field-appraisal-values .field-label label{
 	margin: 0 0 0 5px;
+}
+
+#field-grants-contracts-supportin-values .form-item{
+	white-space: normal;
+}
+#field-grants-contracts-supportin-values .form-item label{
+	margin-top: 10px;
 }
