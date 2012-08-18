@@ -450,11 +450,13 @@ ul.primary li a:hover{
 .ui-accordion .ui-accordion-content {
 	margin-bottom: 0;
 }
-.view-og-user-groups .views-row{
+.view-og-user-groups .views-row,
+.view-og-list .views-row{
 	margin: 0;
 }
 .view-og-user-groups .view-footer,
-.pane-og-nodes .more-link{
+.pane-og-nodes .more-link, 
+.view-og-list .view-footer{
 	margin: 5px 10px;
 	padding: 0 0 0 10px;
 	background-image:url(../images/ex5-bullet3.gif);
@@ -467,7 +469,8 @@ ul.primary li a:hover{
 	margin: 15px 0 0 0;
 }
 .view-og-user-groups .view-footer a,
-.pane-og-nodes .more-link a{
+.pane-og-nodes .more-link a,
+.view-og-list .view-footer div a{
 	font-size: 12px;
 	text-decoration:none;
 	color: #4F6786;
@@ -490,7 +493,8 @@ ul.primary li a:hover{
 .region-sidebar-second .block ul li.last{
 	border-bottom: none;
 }
-.region-sidebar-second .block ul li.first{
+.region-sidebar-second .block ul li.first,
+.region-sidebar-second .block ul li.views-row-first{
 	border-top: none;
 }
 .region-sidebar-second .block ul li a{
