@@ -628,6 +628,10 @@ function exlistview_block_info() {
   	'info'=> t('Authored articles'),
 	'cache' => DRUPAL_NO_CACHE,
   );
+  $blocks['my_groups_sidebar'] = array(
+  	'info'=> t('My groups for the sidebar'),
+	'cache' => DRUPAL_NO_CACHE,
+  );
   return $blocks;
 }
 
@@ -647,6 +651,9 @@ function exlistview_block_view($delta) {
 	  break;
 	case 'article_contributions':
 	  $block = _exlistview_my_article_contributions();
+	  break;
+	case 'my_groups_sidebar':
+	  $block = _exlistview_right_sidebar_my_groups();
 	  break;
   }
   return $block;
@@ -683,15 +690,56 @@ function _exlistview_my_article_contributions(){
 
 
 
+
+
+//creates an array of groups currently logged in user is member to
+function _exlistview_my_groups_array(){
+	global $user;
+	$query = db_select('field_data_group_audience', 'a');
+	$query	->join('og', 'g', ' g.gid = a.group_audience_gid');
+	$query->fields('a',array('group_audience_gid'));
+	$query->fields('g',array('label'));
+	$query->condition('bundle', 'user', '=');
+	$query->condition('a.entity_id', $user->uid, '=');
+	$query->orderBy('g.label');
+	$result = $query->execute();
+	return $result;
+}
+
+//Builts block with groups user belongs to for the right sidebar
+function _exlistview_right_sidebar_my_groups(){
+	$content = '<div>
+    <div class="view view-og-list view-id-og_list view-display-id-block_1 view-dom-id-aaa70cbfa61f643a954a4bff39c3a086">
+      <div class="view-content">
+      <div class="item-list">
+	  	<ul>';
+		$result = _exlistview_my_groups_array();
+		$i = true;
+		foreach ($result AS $record){
+			$content .= '<li class="views-row'.($i?' views-row-first':'').'">  
+          		<a href="/node/'.$record->group_audience_gid.'">'.$record->label.'</a>
+			</li>';
+			$i = false;
+		}
+	$content .= '
+      	</ul>
+	  </div>
+	  </div>
+  	  <div class="view-footer">
+       <div><a href="/group-list">All groups</a></div>
+	  </div>
+  
+  
+	  </div>
+	</div>
+';
+	return array('content' => $content);
+}
+
 //creates string for use in sql statement including id-s of the user's groups
 function _exlistview_my_groups_condition(){
-	global $user;
+	$result = _exlistview_my_groups_array();
 	$condition = '0';
-	$query = db_select('field_data_group_audience');
-	$query->fields('field_data_group_audience',array('group_audience_gid'));
-	$query->condition('bundle', 'user', '=');
-	$query->condition('entity_id', $user->uid, '=');
-	$result = $query->execute();
 	foreach ($result AS $record){
 		$condition .= ' OR a.group_audience_gid = '.(int) $record->group_audience_gid;
 	}
@@ -738,6 +786,8 @@ function _exlistview_my_groups_content(){
 	return $content;
 }
 
+
+
 function _exlistview_my_groups_events(){
 	$content = '';
 	$data = array();
@@ -763,6 +813,7 @@ function _exlistview_my_groups_events(){
 	}
 	return array('content' => theme('exlistview_block_events', array('data'=>$data)));
 }
+
 
 /**
   * Implements hook_views_pre_render().
