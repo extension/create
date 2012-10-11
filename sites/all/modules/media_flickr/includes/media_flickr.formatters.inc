@@ -24,6 +24,7 @@ function media_flickr_file_formatter_info() {
     'file types' => array('image', 'video'),
     'default settings' => array(
       'image_style' => '',
+      'link_to_flickr' => FALSE,
     ),
     'view callback' => 'media_flickr_file_formatter_image_view',
     'settings callback' => 'media_flickr_file_formatter_image_settings',
@@ -94,6 +95,17 @@ function media_flickr_file_formatter_image_view($file, $display, $langcode) {
         '#path' => $wrapper->getLocalThumbnailPath(),
       );
     }
+    if ($display['settings']['link_to_flickr']) {
+      $element = array(
+        '#theme' => 'link',
+        '#text' => drupal_render($element),
+        '#path' => media_flickr_original_url($file->uri),
+        '#options' => array(
+          'attributes' => array(),
+          'html' => TRUE,
+        ),
+      );
+    }
     return $element;
   }
 }
@@ -109,6 +121,11 @@ function media_flickr_file_formatter_image_settings($form, &$form_state, $settin
     '#options' => image_style_options(FALSE),
     '#default_value' => $settings['image_style'],
     '#empty_option' => t('None (original image)'),
+  );
+  $element['link_to_flickr'] = array(
+    '#title' => t('Link to Flickr'),
+    '#type' => 'checkbox',
+    '#default_value' => $settings['link_to_flickr'],
   );
   return $element;
 }

@@ -131,8 +131,7 @@ function subscriptions_token_info() {
  *
  * @return array
  */
-function subscriptions_tokens($type, array $tokens, array $data = array(), array $options = array())
-{
+function subscriptions_tokens($type, array $tokens, array $data = array(), array $options = array()) {
   global $user;
 
   $url_options = array('absolute' => TRUE);

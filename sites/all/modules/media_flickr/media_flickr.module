@@ -16,6 +16,17 @@ include_once('includes/media_flickr.styles.inc');
 include_once('includes/media_flickr.formatters.inc');
 
 /**
+ * Implements hook_permission().
+ */
+function media_flickr_permission() {
+  return array(
+    'configure flickr' => array(
+      'title' => t('Configure Media Flickr settings'),
+    ),
+  );
+}
+
+/**
  * Implement hook_menu().
  */
 function media_flickr_menu() {
@@ -31,14 +42,14 @@ function media_flickr_menu() {
     'description' => 'Configure required settings for Media: Flickr.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('media_flickr_settings_form'),
-    'access arguments' => array('administer media'),
+    'access arguments' => array('configure flickr'),
     'file' => 'includes/media_flickr.admin.inc',
   );
   $items['media/add/media_flickr'] = array(
     'title' => 'Add media from Flickr',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('media_flickr_add'),
-    'access arguments' => array('administer media'),
+    'access arguments' => array('configure flickr'),
     'type' => MENU_LOCAL_ACTION,
     'file' => 'includes/media_flickr.admin.inc',
     'weight' => -1,
@@ -159,6 +170,11 @@ function media_flickr_photoset_photo_id($uri, $refresh = FALSE) {
 function media_flickr_photoset_image_url($uri, $width = 0, $height = 0, $refresh = FALSE) {
   module_load_include('inc', 'media_flickr', 'includes/media_flickr.utilities');
   return _media_flickr_photoset_image_url($uri, $width, $height, $refresh);
+}
+
+function media_flickr_original_url($uri, $refresh = FALSE) {
+  module_load_include('inc', 'media_flickr', 'includes/media_flickr.utilities');
+  return _media_flickr_original_url($uri, $refresh);
 }
 
 /**

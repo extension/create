@@ -95,3 +95,10 @@ function subscriptions_content_update_7001() {
   }
 }
 
+  /**
+   * Remove the obsolete subscriptions_generate_full_node variable.
+   */
+function subscriptions_content_update_7002() {
+  variable_del('subscriptions_generate_full_node');
+}
+

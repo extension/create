@@ -45,6 +45,12 @@ function _auto_entitylabel_ant_migrate() {
     user_role_grant_permissions($rid, array('use PHP for label patterns'));
   }
 
+  // Stop migration if no ant_* variables exist.
+  $ant_variables_exist = db_select('variable', 'v')->fields('v', array('name'))->condition('name', 'ant_%', 'LIKE')->execute()->rowCount();
+  if(!$ant_variables_exist) {
+    return;
+  }
+
   $types = node_type_get_types();
   $php_types = array();
   foreach ($types as $key => $value) {

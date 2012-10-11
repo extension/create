@@ -62,6 +62,7 @@ function mail_edit_list_filter(array $languages_selected, $module, array $langua
   $module_list = _mail_edit_module_list(TRUE);
   $options['-enabled'] = t('- Display enabled modules only -');
   $options['-all'] = t('- Display all modules -');
+  _mail_edit_key_registry_rebuild();
   $query = db_select('mail_edit_registry', 'mer')
     ->fields('mer', array('module'))
     ->distinct()
@@ -112,6 +113,7 @@ function mail_edit_list_filtered_form($languages_selected, $module, $display_lan
   _mail_edit_key_registry_rebuild();
 
   $header = _mail_edit_list_get_header($languages_selected, $display_language_names);
+  _mail_edit_key_registry_rebuild();
   $query = db_select('mail_edit_registry', 'mer')->extend('PagerDefault')->limit(50)
     ->fields('mer', array('id', 'module', 'mailkey', 'description'))
     ->orderBy('mer.module')
@@ -217,16 +219,20 @@ function _mail_edit_list_row($template, array $languages, $display_language_name
   $form['description'] = array(
     '#markup' => filter_xss_admin($template->description),
   );
-  $form['operations'] = array(
-    '#markup' => l(($display_language_names ? t('Purge All') : t('Purge')), 'admin/config/system/mail-edit/purge/' . $template->module . '_' . $template->mailkey),
-  );
+  $count = 0;
   foreach ($languages as $lang_code => $lang_name) {
     $variable = array('@language' => $lang_code);
-    if ($display_language_names) {
-      $link_text = t(isset($template->languages[$lang_code]) ? 'Edit @language' : 'Add @language', $variable);
+    if (isset($template->languages[$lang_code])) {
+      $link_text = t($display_language_names ? 'Edit @language' : 'Edit', $variable);
+      $count++;
     }
     else {
-      $link_text = t(isset($template->languages[$lang_code]) ? 'Edit' : 'Add');
+      $link_text = t($display_language_names ? 'Add @language' : 'Add', $variable);
+    }
+    if ($count > 0) {
+      $form['operations'] = array(
+        '#markup' => l(($count > 1 ? t('Purge All') : t('Purge')), 'admin/config/system/mail-edit/purge/' . $template->module . '_' . $template->mailkey),
+      );
     }
     $form[$lang_code] = array(
       '#markup' => l($link_text, 'admin/config/system/mail-edit/' . $template->id . '/' . $lang_code),
@@ -517,7 +523,7 @@ function mail_edit_template_subform($template){
  * @param array $form_state
  */
 function mail_edit_template_form_remove(array $form, array &$form_state) {
-  $form_state['redirect'] = array($_GET['q'] . '/remove');
+  $form_state['redirect'] = array(current_path() . '/remove');
 }
 
 /**
@@ -539,7 +545,7 @@ function mail_edit_template_remove_confirm(array $form, array &$form_state, $id,
     '#type' => 'hidden',
     '#value' => $lang_code,
   );
-  $args = explode('/', $_GET['q']);
+  $args = explode('/', current_path());
   array_pop($args);
   $path = implode('/', $args);
   return confirm_form($form, t('Are you sure you want to remove the %mailkey template?', array('%mailkey' => "$id/$lang_code")), $path, NULL, t('Remove'));
@@ -598,9 +604,16 @@ function mail_edit_template_form_save(array $form, array &$form_state) {
  * Builds the registry of exposed mailkeys, keeps track of which module
  * exposed them.
  *
+ * This function uses the cache system to control when it needs actual
+ * rebuilding. It returns immediately, of the general cache has not been
+ * cleared, so we can call it everytime before reading the registry.
+ *
  * @return void
  */
 function _mail_edit_key_registry_rebuild() {
+  if (cache_get('mail_edit_registry')) {
+    return;
+  }
   // Fetch exposed mailkeys.
   $hook = 'mailkeys';
   _mail_edit_include();
@@ -634,6 +647,7 @@ function _mail_edit_key_registry_rebuild() {
         ->execute();
     }
   }
+  cache_set('mail_edit_registry', TRUE, 'cache', CACHE_TEMPORARY);
 }
 
 /**
@@ -700,6 +714,7 @@ function mail_edit_purge_mailkey_submit(array $form, array &$form_state) {
  * @param array $modules
  */
 function _mail_edit_modules_uninstalled(array $modules) {
+  _mail_edit_key_registry_rebuild();
   $templates = db_select('mail_edit_registry', 'mer')
     ->fields('mer')
     ->condition('mer.module', $modules, 'IN')

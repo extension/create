@@ -88,10 +88,11 @@ function _subscriptions_mail_mail_edit_token_types($mailkey, $options = array())
  */
 function _subscriptions_mail_mail_edit_form_extra(array &$form, array &$form_state, $mailkey, array $template) {
   if ($mailkey == 'digest') {
-    $form['mail']['body']['#description'] = t('The mail body contains a repeat loop that pulls in multiple items that are ready for sending. Recommended tokens: <ul><li>@t1 and @t2,</li> <li>@t3,</li></ul>', array(
+    $form['mail']['body']['#description'] = t('The mail body contains a repeat loop that pulls in multiple items that are ready for sending. Recommended tokens: <ul><li>@t1 and @t2<br />Note: Accessing parts of an item requires casting the item to the correct item type, e.g. @t4.</li> <li>@t3</li></ul>', array(
       '@t1' => '[subs:items]',
       '@t2' => '[subs:manage-url]',
       '@t3' => '[current-user:*]',
+      '@t4' => '[subs:items:index:#0:as-node:title]',
     ));
   }
   else {

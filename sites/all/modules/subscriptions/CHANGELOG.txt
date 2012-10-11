@@ -5,6 +5,44 @@ CHANGELOG for Subscriptions 1.x for Drupal 7
 subscriptions 7.x-1.x-dev:
 
 
+subscriptions 7.x-1.0 (2012-06-22):
+  - Added some information about upgrading to the README.txt file.
+
+
+subscriptions 7.x-1.0-rc1 (2012-06-12):
+  - Tune some strings and remove an obsolete comment (no functional changes).
+  - Tentatively add the slash to hook_coder_ignore().
+  - Tentatively revert 'coder_review_ignore' to 'coder_ignore'.
+  - Fix the hook_coder_review_ignore() usage according to #144172/$1360744.
+  - #1616998: Bring the permissions into a reasonable order.
+  - Work around all Coder Review complaints (no functional changes).
+  - Extract subscriptions_taxonomy.admin.inc from subscriptions_taxonomy.module to reduce the footprint (no functional change).
+  - Fix the styling of the 'Admin information'.
+  - Remove the obsolete subscriptions_generate_full_node variable and configuration option.
+  - #1615340: Add a note to explain how to access parts of digest items in Mail Editor.
+  - #1603644: Restore the 'Subscriptions' menu title and fix the translation issues fixes.
+  - Update README.txt file.
+
+subscriptions 7.x-1.0-beta4 (2012-05-27):
+  - Fix subscriptions_blog_ui.module.
+  - #1572354: Abort subscriptions_mail_update_7000() if the module is disabled.
+  - #1489044: Update the README.txt file.
+  - Fix some minor translation issues.
+  - #1585516: Remove all arg() calls, which caused issues with non-standard paths.
+  - Replace $_GET['q'] with current_path(), for D8.
+  - #1015320: Check for $base_url errors during cron, too.
+  - #1348764: PostgreSQL GROUP BY quirk when creating or saving nodes.
+  - #1338506: Avoid auto-subscribing users that don't have the 'subscribe to content' permission.
+  - Clean up the Mail Editor link.
+  - #1249502: Add a link to the user list for bulk subscribe/unsubscribe.
+  - #1249502: Fix interference of default subscriptions with bulk subscribe/unsubscribe.
+  - #1490034: PostgreSQL GROUP BY quirk, still on Threads/Pages page.
+  - #1485764: PostgreSQL kludge on Threads/Pages page.
+  - #1485546: Fix #markup porting errors.
+  - #1249502: Implement bulk subscribe and unsubscribe.
+  - #1482720: PostgreSQL does not have IF(), use CASE instead.
+  - #1430446 by DamienMcKenna: Add more hook_alter calls.
+
 subscriptions 7.x-1.0-beta3 (2012-02-14):
   - #1438302: Disallow updating Subscriptions Mail (especially from D6!) if Mail Editor or Token are missing.
   - #1438302 by Dmitriy.trt: Fix errors about missing tables on upgrade from D6.
@@ -16,7 +54,6 @@ subscriptions 7.x-1.0-beta3 (2012-02-14):
   - #1431864: Fix exception on Pages/Threads page when running without comment.module.
   - Avoid possible error when installing Mail Editor and Subscriptions Mail at the same time.
   - #1422880 by DamienMcKenna: Allow other modules to alter the node options.
-
 
 subscriptions 7.x-1.0-beta2 (2012-01-07):
   - Fix minor string error.

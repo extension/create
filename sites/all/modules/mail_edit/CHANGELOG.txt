@@ -5,17 +5,36 @@ CHANGELOG.txt for Mail Editor for Drupal 7
 mail_edit 7.x-1.x-dev:
 
 
+mail_edit 7.x-1.0 (2012-06-21):
+  Bug fixed:
+    - Fix the breadcrumb one last time...
+
+
+mail_edit 7.x-1.0-rc1 (2012-06-12):
+  Bugs fixed:
+    - Really set the breadcumb on the template edit page now.
+    - #1606954: Fix timely rebuilding of the registry by using the cache system.
+  Enhancements:
+    - Further improve the 'Purge'/'Purge All' logic.
+    - Display the 'Purge'/'Purge All' operation only for keys that have a custom template.
+
+mail_edit 7.x-1.0-beta3 (2012-05-27):
+  Bugs fixed:
+    - Replace $_GET['q'] with current_path(), for D8.
+    - #1488896 by Les Lim: Fix the previous fix.
+    - #1488896: Work around problems between drupal_html_to_text() and some hosts (see also #234403).
+    - Set the breadcumbs on the template edit page.
+
 mail_edit 7.x-1.0-beta2 (2011-12-05):
-  Bugs:
+  Bugs fixed:
     - Fix passing on the context received from drupal_mail() to mail_edit_format().
     - Fix context evaluation (dynamic text).
     - #1323452: Fix the inability to save templates on PHP 5.3.5.
 
-
 mail_edit 7.x-1.0-beta1 (2011-10-30):
   Enhancements:
     - Change the Subject textfield into a textarea for easier editing.
-  Bugs:
+  Bugs fixed:
     - Tune the text of the Remove button.
     - Fix a notice that was generated when sending a password reset email.
     - Ask for confirmation before removing a template.

@@ -17,14 +17,9 @@ function _subscriptions_mail_form_subscriptions_settings_form_alter(array &$form
   if (variable_get('subscriptions_mail_trash_silently', 0)) {
     drupal_set_message(t('All notification mails are discarded because the %varname variable is set &mdash; see the @filename file for more information.', array('%varname' => 'subscriptions_mail_trash_silently', '@filename' => 'README.txt')), 'error');
   }
+  _subscriptions_mail_check_baseurl(TRUE);
 
-  // check the $base_url (#199039, #226335)
-  $url = url('', array('absolute' => TRUE));
-  if (empty($_POST) && preg_match('!//($|/|localhost/|([0-9]{1,3}\.){3}[0-9]{1,3}/)!', $url)) {
-    drupal_set_message(t('Your installation returns %url as the base URL of the site. This is probably not what you want, and it can usually be fixed by setting the %variable variable in your %file file.', array('%url' => $url, '%variable' => '$base_url', '%file' => 'settings.php')), 'error');
-  }
-
-  $variables = array('!Module' => 'Subscriptions');
+  $variables = array('@Subscriptions' => 'Subscriptions');
   $form['mail_settings'] = array(
       '#type'        => 'fieldset',
       '#title'       => t('Mail settings'),
@@ -35,7 +30,7 @@ function _subscriptions_mail_form_subscriptions_settings_form_alter(array &$form
     '#type'          => 'textfield',
     '#title'         => t('E-mail address'),
     '#default_value' => _subscriptions_mail_site_mail(TRUE),
-    '#description'   => t('A valid e-mail address to be used as the %From and %Reply_To address by the auto-mailer for !Module notifications.  To lessen the likelihood of e-mail being marked as spam, this e-mail address should use the same domain as the website.', $variables + array('%From' => 'From', '%Reply_To' => 'Reply-To')) . '<br />' . t('Clear this field to use the default site e-mail address.'),
+    '#description'   => t('A valid e-mail address to be used as the %From and %Reply_To address by the auto-mailer for @Subscriptions notifications.  To lessen the likelihood of e-mail being marked as spam, this e-mail address should use the same domain as the website.', $variables + array('%From' => 'From', '%Reply_To' => 'Reply-To')) . '<br />' . t('Clear this field to use the default site e-mail address.'),
   );
   $form['mail_settings']['subscriptions_site_mail_name'] = array(
     '#type'          => 'textfield',
@@ -54,11 +49,11 @@ function _subscriptions_mail_form_subscriptions_settings_form_alter(array &$form
     '#type'          => 'textfield',
     '#title'         => t('Maximum percent of cron job time to use'),
     '#default_value' => $cron_percentage,
-    '#description'   => t('Limit the percentage of cron job time that !Module may use. If you have modules with cron jobs that run after !Module, then be sure to leave enough time for them! The default is !value.<br />You can temporarily set this to 0 to suspend processing of the notifications queue.', $variables + array('!value' => 50)),
+    '#description'   => t('Limit the percentage of cron job time that @Subscriptions may use. If you have modules with cron jobs that run after @Subscriptions, then be sure to leave enough time for them! The default is @value.<br />You can temporarily set this to 0 to suspend processing of the notifications queue.', $variables + array('@value' => 50)),
   );
   if (empty($_POST) && $cron_percentage <= 0) {
-    $message = t('!Module cannot send any notifications because its <a href="@link">cron job time</a> is 0!', $variables + array('@link' => '#edit-subscriptions-cron-percent'));
-    drupal_set_message(t('Warning: !message', array('!message' => $message)), 'error');
+    $message = t('@Subscriptions cannot send any notifications because its <a href="@link">cron job time</a> is 0!', $variables + array('@link' => '#edit-subscriptions-cron-percent'));
+    drupal_set_message(filter_xss(t('Warning: !message', array('!message' => $message))), 'error');
     $form['mail_settings']['subscriptions_cron_percent']['#attributes'] = array('class' => array('error'));
   }
   $result = db_query("SELECT COUNT(sqid) AS count, suspended FROM {subscriptions_queue} GROUP BY suspended", array(), array('fetch' => PDO::FETCH_ASSOC));
@@ -98,7 +93,7 @@ function _subscriptions_mail_form_subscriptions_settings_form_alter(array &$form
       '#type'          => 'checkbox',
       '#title'         => t('Append the mailkey to every notification'),
       '#default_value' => variable_get('subscriptions_showmailkeys', 0),
-      '#description'   => t('Appends the key of the !Mail_Editor_template that was used to create each e-mail, to assist with configuration and testing. Default is OFF.', array('!Mail_Editor_template' => l('Mail Editor template', (module_exists('mail_edit') ? 'admin/config/system/mail-edit' : 'http://drupal.org/project/mail_edit')))),
+      '#description'   => t('Appends the key of the <a href="@url">@Mail_Editor template</a> that was used to create each e-mail, to assist with configuration and testing. Default is OFF.', array('@Mail_Editor' => 'Mail Editor', '@url' => url('admin/config/system/mail-edit'))),
     );
   }
   array_unshift($form['#submit'], '_subscriptions_mail_submit_subscriptions_settings_form');

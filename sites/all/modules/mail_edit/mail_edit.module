@@ -195,3 +195,23 @@ function _mail_edit_module_load_include($name_or_ext, $ext = NULL) {
   return $loaded[$key];
 }
 
+/**
+ * Implements hook_menu_breadcrumb_alter().
+ *
+ * Fixes the breadcrumb for the template edit page.
+ *
+ * @param $active_trail
+ * @param $item
+ */
+function mail_edit_menu_breadcrumb_alter(&$active_trail, $item) {
+  if ($item['path'] == 'admin/config/system/mail-edit/%/%') {
+    $active_trail = array($active_trail[0]);
+    foreach ($item['map'] as $i) {
+      $path = (!isset($path) ? $i : $path . '/' . $i);
+      $active_trail[] = menu_get_item($path);
+    }
+    array_pop($active_trail);
+    array_pop($active_trail);
+  }
+}
+

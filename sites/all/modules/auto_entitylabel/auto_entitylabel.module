@@ -164,7 +164,7 @@ function auto_entitylabel_set_title(&$entity, $type) {
   }
 
   // Remove LANGUAGE_NONE from array of languages
-  if ($key = array_search(LANGUAGE_NONE, $title_languages, TRUE)) {
+  if (($key = array_search(LANGUAGE_NONE, $title_languages, TRUE)) && auto_entitylabel_entity_language($type, $entity) !== LANGUAGE_NONE) {
     unset($title_languages[$key]);
   }
 
@@ -190,8 +190,9 @@ function auto_entitylabel_set_title(&$entity, $type) {
   }
 
   // Ensure the generated title isn't too long.
+  $max_length = auto_entitylabel_max_length($type, $settings['title']);
   foreach ($titles as $k => $v) {
-    $title[$k] = drupal_substr($v, 0, 255);
+    $titles[$k] = drupal_substr($v, 0, $max_length);
   }
 
   // Save titles on entity (field)
@@ -207,7 +208,8 @@ function auto_entitylabel_set_title(&$entity, $type) {
   // above is updated, because the title module automatically syncs changes
   // from the "non field title" to the "title field". Without this line we end
   // up getting "%AutoEntityLabel%" as the title.
-  $entity->{$settings['title']} = isset($entity->language) && isset($titles[$entity->language]) ? $titles[$entity->language] : $titles[LANGUAGE_NONE];
+  $entity_language = auto_entitylabel_entity_language($type, $entity);
+  $entity->{$settings['title']} = isset($titles[$entity_language]) ? $titles[$entity_language] : $titles[LANGUAGE_NONE];
 
   // With that flag we ensure we don't apply the title two times to the same
   // node. See auto_entitylabel_is_needed().
@@ -350,4 +352,52 @@ function auto_entitylabel_features_pipe_node_alter(&$pipe, $data, $export) {
       }
     }
   }
+}
+
+/**
+ * Tries to extract the maximum length for the given property from the
+ * respective database schema field.
+ */
+function auto_entitylabel_max_length($entity_type, $property_name) {
+  $wrapper = entity_metadata_wrapper($entity_type);
+
+  // Load schema definition for entity type.
+  $entity_info = $wrapper->entityInfo();
+  $schema_table = $entity_info['base table'];
+  $schema = drupal_get_schema($schema_table);
+
+  // Load schema field for given property name
+  $property = $wrapper->getPropertyInfo($property_name);
+  $schema_field = $property['schema field'];
+
+  // Return 'length' from schema field as maximum length, fall back to 255.
+  return isset($schema['fields'][$schema_field]['length']) ? $schema['fields'][$schema_field]['length'] : 255;
+}
+
+/**
+ * Returns the language code of the given entity.
+ *
+ * Backward compatibility layer to ensure that installations running an older
+ * version of core where entity_language() is not available do not break.
+ *
+ * @param string $entity_type
+ *   An entity type.
+ * @param object $entity
+ *   An entity object.
+ * @param bool $check_language_property
+ *   A boolean if TRUE, will attempt to fetch the language code from
+ *   $entity->language if the entity_language() function failed or does not
+ *   exist. Default is TRUE.
+ */
+function auto_entitylabel_entity_language($entity_type, $entity, $check_language_property = TRUE) {
+  $langcode = NULL;
+
+  if (function_exists('entity_language')) {
+    $langcode = entity_language($entity_type, $entity);
+  }
+  elseif ($check_language_property && !empty($entity->language)) {
+    $langcode = $entity->language;
+  }
+
+  return !empty($langcode) ? $langcode : LANGUAGE_NONE;
 }

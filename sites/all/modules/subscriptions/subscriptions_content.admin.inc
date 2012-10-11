@@ -38,7 +38,7 @@ function _subscriptions_content_form_subscriptions_settings_form_alter(array &$f
     '#title'         => t('Unlisted content types'),
     '#default_value' => variable_get('subscriptions_unlisted_content_types', array()),
     '#options'       => $select,
-    '#description'   => t('Select content types which should be <strong>removed from subscription listings</strong>.<br />The content may still be available for subscribing via different kinds of subscriptions, but subscribing by content type will be unavailable for the selected types.'),
+    '#description'   => t('Select the content types which should be <strong>removed from subscriptions listings</strong>.<br />The content may still be available for subscribing via different kinds of subscriptions, but subscribing by content type will be unavailable for the selected types.'),
     '#multiple'      => TRUE,
   );
   $form['content']['subscriptions_blocked_content_types'] = array(
@@ -46,7 +46,7 @@ function _subscriptions_content_form_subscriptions_settings_form_alter(array &$f
     '#title'         => t('Blocked content types'),
     '#default_value' => variable_get('subscriptions_blocked_content_types', array()),
     '#options'       => $select,
-    '#description'   => t('Select content types which should be <strong>completely unavailable for subscribing</strong>, i.e. content of the selected types will never trigger notifications for regular users.'),
+    '#description'   => t('Select the content types which should be <strong>completely unavailable for subscribing</strong>, i.e. content of the selected types will never trigger notifications for regular users.'),
     '#multiple'      => TRUE,
   );
   $form['content']['subscriptions_blocked_content_types_note'] = array(
@@ -77,7 +77,7 @@ function _subscriptions_content_form_subscriptions_settings_form_alter(array &$f
     '#title'         => t('Static content types'),
     '#default_value' => $statics,
     '#options'       => $select,
-    '#description'   => t('Select content types which do not change nor receive comments and thus should not have the %option option.', array('%option' => t('Subscribe to this page'))),
+    '#description'   => t('Select the content types which do not change nor receive comments and thus should not have the %option option.', array('%option' => t('Subscribe to this page'))),
     '#multiple'      => TRUE,
   );
   $form['content']['static_content']['subscriptions_avoid_empty_subscribe_links'] = array(
@@ -85,13 +85,6 @@ function _subscriptions_content_form_subscriptions_settings_form_alter(array &$f
     '#title'         => t('Avoid empty %Subscribe links', array('%Subscribe' => t('Subscribe'))),
     '#default_value' => $avoid_empty_subscribe_links,
     '#description'   => t('Nodes of %Static_content_types may end up with no %Subscribe options at all. Turn this option on to avoid displaying %Subscribe links in this case. The default is OFF, because this option causes processing overhead for each node view operation.', array('%Static_content_types' => t('Static content types'), '%Subscribe' => t('Subscribe'))),
-  );
-
-  $form['content']['subscriptions_generate_full_node'] = array(
-    '#type'          => 'checkbox',
-    '#title'         => t('Generate the %full_node variable', array('%full_node' => '!full_node')),
-    '#default_value' => variable_get('subscriptions_generate_full_node', 0),
-    '#description'   => t("Generating this variable causes considerable overhead even if it's not used, and <strong>it may even cause errors</strong>, depending on the !content_type! Default is OFF.", array('!content_type' => $tr('content type'))),
   );
 }
 
@@ -142,15 +135,11 @@ function _subscriptions_content_node_form(array $form, $uid) {
       ->leftJoin('node_comment_statistics', 'ncs', 'n.nid = ncs.nid');
     $query
       ->fields('ncs', array('last_comment_timestamp'));
-    $query->addExpression('IF(s.send_comments + s.send_updates = 0,
-                              n.created,
-                              IF(s.send_comments + s.send_updates = 2,
-                                 IF(n.changed > ncs.last_comment_timestamp,
-                                    n.changed,
-                                    ncs.last_comment_timestamp),
-                                 IF(s.send_comments = 1,
-                                    ncs.last_comment_timestamp,
-                                    n.changed)))', 'latest_activity');
+    $query->addExpression('CASE WHEN s.send_comments + s.send_updates = 0 THEN n.created
+                                WHEN s.send_comments + s.send_updates = 2 THEN
+                                     CASE WHEN n.changed > ncs.last_comment_timestamp THEN n.changed ELSE ncs.last_comment_timestamp END
+                                WHEN s.send_comments = 1 THEN ncs.last_comment_timestamp
+                                ELSE n.changed END', 'latest_activity');
   }
   else {
     $query->addExpression('IF(s.send_updates = 0, n.created, n.changed)', 'latest_activity');
@@ -167,14 +156,23 @@ function _subscriptions_content_node_form(array $form, $uid) {
 
   if (module_exists('comment')) {
     // check whether we've commented:
-    $nids = array_keys($subscriptions);
-    $select = db_select('subscriptions', 's')
-      ->fields('s', array('value'))
-      ->condition('s.module', 'node')
-      ->condition('s.field', 'nid')
-      ->condition('s.recipient_uid', $uid);
+    if (db_driver() == 'pgsql') {
+      $select = db_select('subscriptions', 's');
+      $select->addExpression('CAST(s.value AS decimal)', 'value');
+      $select = $select
+        ->condition('s.module', 'node')
+        ->condition('s.field', 'nid')
+        ->condition('s.recipient_uid', $uid);
+    }
+    else {
+      $select = db_select('subscriptions', 's')
+        ->fields('s', array('value'))
+        ->condition('s.module', 'node')
+        ->condition('s.field', 'nid')
+        ->condition('s.recipient_uid', $uid);
+    }
     $result = db_select('comment', 'c')
-      ->fields('c')
+      ->fields('c', array('nid'))
       ->condition('c.nid', $select, 'IN')
       ->condition('c.uid', $uid)
       ->groupBy('c.nid')
@@ -252,35 +250,44 @@ function _subscriptions_content_node_form(array $form, $uid) {
  * @ingroup form
  */
 function _subscriptions_content_type_form(array $form, $uid) {
+  $subscriptions = array();
+  $bulk_op = (empty($_SESSION['subscriptions']['bulk_op']) ? '' : $_SESSION['subscriptions']['bulk_op']);
+  if ($bulk_op) {
+    // No initialization for bulk subscription.
+    $uid = -DRUPAL_AUTHENTICATED_RID;
+  }
+  else {
+    $query = db_select('subscriptions', 's', array('fetch' => PDO::FETCH_ASSOC));
+    $nt_alias = $query->join('node_type', 'nt', 's.value = nt.type');
+    $result = $query
+      ->fields('s', array('value', 'send_interval', 'author_uid', 'send_comments', 'send_updates'))
+      ->fields($nt_alias, array('type', 'name'))
+      ->condition('s.module', 'node')
+      ->condition('s.field', 'type')
+      ->condition('s.recipient_uid', $uid)
+      ->addTag('node_type_access')
+      ->orderBy('s.author_uid')
+      ->execute();
+    foreach ($result as $s) {
+      $subscriptions[$s['value']][$s['author_uid']] = $s;
+    }
+  }
   $unlisteds = variable_get('subscriptions_unlisted_content_types', array());
   /** @var $blockeds array */
   $blockeds = variable_get('subscriptions_blocked_content_types', array());
   $omits = array_merge($unlisteds, $blockeds);
-  $query = db_select('subscriptions', 's', array('fetch' => PDO::FETCH_ASSOC));
-  $nt_alias = $query->join('node_type', 'nt', 's.value = nt.type');
-  $result = $query
-    ->fields('s', array('value', 'send_interval', 'author_uid', 'send_comments', 'send_updates'))
-    ->fields($nt_alias, array('type', 'name'))
-    ->condition('s.module', 'node')
-    ->condition('s.field', 'type')
-    ->condition('s.recipient_uid', $uid)
-    ->addTag('node_type_access')
-    ->orderBy('s.author_uid')
-    ->execute();
-  foreach ($result as $s) {
-    $subscriptions[$s['value']][$s['author_uid']] = $s;
-  }
   $form[0] = array(
     '#theme' => 'subscriptions_form_table',
   );
   $defaults = array();
+  $tr = 't';
   foreach (node_type_get_types() as $type) {
     // add the active subscriptions
     $type_name = check_plain($type->name);
     if (in_array($type->type, $omits)) {
       if (user_access('subscribe to all content types') || user_access('administer site configuration')) {
         if (in_array($type->type, $blockeds)) {
-          $type_name = '<span class="error" title="' . t('This !content_type is blocked. ', array('!content_type' => t('content type'))) . '">' . $type_name . '</span>&nbsp;' . SUBSCRIPTIONS_UNAVAILABLE;
+          $type_name = '<span class="error" title="' . t('This content type is blocked.') . '">' . $type_name . '</span>&nbsp;' . SUBSCRIPTIONS_UNAVAILABLE;
         }
         else {
           $type_name = $type_name . '&nbsp;' . SUBSCRIPTIONS_UNAVAILABLE;

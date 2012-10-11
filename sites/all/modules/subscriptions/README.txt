@@ -16,7 +16,7 @@ Ported to Drupal 6 and continuously enhanced by salvis.
 Doxygen documentation by develCuy, sponsored by www.transit.york.ac.uk.
 Ported to Drupal 7 by salvis.
 
-http://drupalcontrib.org/drupal-6-modules provides on-line developer documentation.
+http://drupalcontrib.org/drupal-7-modules provides on-line developer documentation.
 
 Initial Translations:
 - German:               salvis
@@ -38,12 +38,13 @@ Modules
 
 For standard Subscriptions functionality you need to enable the following modules:
  * Subscriptions UI
- * Subscriptions Mail
+ * Subscriptions Mail (+ Mail Editor + Token)
  * Content Subscriptions
  * Taxonomy Subscriptions (e.g. forums!)
 
-Mail Editor (http://drupal.org/project/mail_edit) allows you to customize the
-notification messages sent by Subscriptions Mail.
+Mail Editor (http://drupal.org/project/mail_edit) and
+Token (http://drupal.org/project/token) are required for sending email
+notification messages using Subscriptions Mail.
 
 SMTP Authentication (http://drupal.org/project/smtp) may be useful for sending
 out emails, if your provider imposes limits on what you can do with PHP mail.
@@ -55,15 +56,32 @@ out emails, if your provider imposes limits on what you can do with PHP mail.
 Upgrading from 6.x-1.x
 ----------------------
 
-Subscriptions D7 is designed to smoothly upgrade a 6.x-1.4 installation.
+Subscriptions D7 is designed to smoothly upgrade a 6.x-1.5 installation.
+Upgrading later D6 versions should work as well.
+
+The proprietary !variables in the D6 Mail Editor have been replaced with the
+core [tokens]. Subscriptions attempts to update your templates, but you must
+review each one to verify that it produces the desired result. The tokens
+as well as other advancements in Drupal and in Mail Editor provide more
+sophisticated functionality. Some of this is displayed by the new default
+templates, so you may want to have a look at these, too.
 
 
 
 
-Upgrading from 5.x-1.x
-----------------------
+Upgrading from 5.x-2.x to 6.x-1.5
+---------------------------------
 
-Subscriptions D6 is designed to smoothly upgrade and convert a 1.x
+Subscriptions 6.x-1.5 is designed to smoothly upgrade and convert a 5.x-2.6
+installation.
+
+
+
+
+Upgrading from 5.x-1.x to 5.x-2.6
+---------------------------------
+
+Subscriptions 5.x-2.6 is designed to smoothly upgrade and convert a 1.9
 installation. If you currently have 1.x installed, we recommend to put
 your site in maintenance mode, remove the 1.x files (if you only move
 them to a different directory under the web root, Drupal will still find
@@ -189,31 +207,17 @@ and not at all in digest mode.
 
 However, as long as you DON'T save the templates, they are automatically
 translated to the recipient's language. Like other user-modifiable strings,
-when you edit and save them, they stop getting localized. For multi-language
-customization, you need to edit the subscriptions_mail.templates.inc file.
+as soon as you edit and save them, they stop getting localized. For
+multi-language customization, you need to edit the
+subscriptions_mail.templates.inc file.
 
-You can use conditional text in the templates. The syntax is
+You can use conditional text and even loops in the templates. The syntax is
+explained in the fieldset on the edit pages. We strongly recommend that you
+start with outputting the token text into a notification before you try to
+use it as a condition or in another complex context.
 
-   {{!varname==value?then_text:else_text}} or
-   {{!varname!=value?then_text:else_text}}
-
-!varname can be the any variable and will be replaced;
-value is a string that doesn't contain a '?';
-then_text is a string that doesn't contain a ':' and
-else_text must not contain '}}'. The exception is: each of then_text and
-else_text can be another conditional expressen (one level of recursion).
-
-Both then_text and else_text can contain newlines and variables.
-
-Example:
-This {{!has_new_comments==1?has:doesn't have any}} new comments.
-
-Undefined variables are replaced by themselves, i.e. they remain as !varname.
-Example:
-{{!sender_name==!sender_name?Sender is undefined:Sender: !sender_name}}
-
-Variables can be defined and empty. Example:
-{{!sender_name==?Sender is empty:Sender is either undefined or non-empty}}
+Digest mail template: Each digest item is formatted using the content type 
+of the item.
 
 Note: All the URL variables are built by calling the url() core function.
 You may be able to influence the return value of url() by setting $base_url
@@ -225,12 +229,10 @@ an issue of Subscriptions.
 
 Attached files
 --------------
-With a conditional expression like
 
-{{!has_files==0?:| Files:
-!files}}
+The default templates add a list of attached files, based on the assumption
+that the files field is named 'field_files'.
 
-you can send links to attached files along with the node in question.
 We like showing the ugly login block only where needed, like on nodes
 that aren't accessible without logging in and also when trying to download
 an attached file through a direct link (if the Download method is Private).
@@ -248,14 +250,12 @@ Unpublished Nodes/Comments
 
 Subscriptions does not send notifications for unpublished nodes/comments
 except to users who have the 'administer nodes' / 'administer comments'
-permissions. The
-   !is_unpublished
-   !comment_is_unpublished
-variables let you mark unpublished nodes/comments, as demonstrated
-in the default templates.
+permissions. The default templates demonstrate how you can distinguish
+and highlight unpublished nodes/comments.
 
 Publishing a node/comment will cause a notification to be sent to all
 subscribers.
+
 
 
 

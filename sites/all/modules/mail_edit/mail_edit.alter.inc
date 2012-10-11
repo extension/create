@@ -24,6 +24,10 @@ function _mail_edit_load($id, $language, $force_always = FALSE) {
     $lang_code = $language->language;
   }
   // Find out if this mail id is in our registry.
+  if (!cache_get('mail_edit_registry')) {
+    _mail_edit_module_load_include('admin.inc');
+    _mail_edit_key_registry_rebuild();
+  }
   $query = db_select('mail_edit_registry', 'mer')
     ->fields('mer')
     ->condition('mer.id', $id);
@@ -85,7 +89,7 @@ function _mail_edit_mail_alter(array &$message) {
   if ($message['module'] == 'user') {
     $options['callback'] = 'user_mail_tokens';
   }
-  $message['subject'] = drupal_html_to_text(mail_edit_format($template['subject'], $data, $options));
+  $message['subject'] = trim(drupal_html_to_text(mail_edit_format($template['subject'], $data, $options)));
   $args = array($template['body'], $data, $options);
   if (isset($message['params']['context']['mail_edit'])) {
     $args[] = $message['params']['context']['mail_edit'];

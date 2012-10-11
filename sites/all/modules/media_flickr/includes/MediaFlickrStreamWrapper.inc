@@ -55,7 +55,7 @@ class MediaFlickrStreamWrapper extends MediaReadOnlyStreamWrapper {
 
   function getLocalThumbnailPath() {
     $parts = $this->get_parameters();
-    $local_path = str_replace('flickr://', 'public://', check_plain($this->uri)) . '.jpg';
+    $local_path = str_replace('flickr://', 'public://media-flickr/', check_plain($this->uri)) . '.jpg';
     if (!file_exists($local_path)) {
       $dirname = drupal_dirname($local_path);
       file_prepare_directory($dirname, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);

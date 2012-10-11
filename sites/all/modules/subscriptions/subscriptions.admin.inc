@@ -32,19 +32,15 @@ function subscriptions_settings_form(array $form, array &$form_state) {
     '#weight' => -20,
     );
   if (module_exists('subscriptions_mail')) {
-    if (module_exists('mail_edit')) {
-      $form['links'][] = array(
-        '#markup' => '<div>' . l($tr('Mail templates'), 'admin/config/system/mail-edit') . '</div>',
-        '#weight' => -10,
-      );
-    }
-    else {
-      $form['links'][] = array(
-        '#markup' => '<div>' . l('Mail Editor', 'http://drupal.org/project/mail_edit') . '</div>',
-        '#weight' => -10,
-      );
-    }
+    $form['links'][] = array(
+      '#markup' => '<div>' . l($tr('Mail templates'), 'admin/config/system/mail-edit') . '</div>',
+      '#weight' => -10,
+    );
   }
+  $form['links'][] = array(
+    '#markup' => '<div>' . l(t('Bulk subscribing/unsubscribing'), 'admin/people') . '</div>',
+    '#weight' => 0,
+  );
   $form['links'][] = array(
     '#markup' => '<div>' . l(t('Run cron manually!'), 'admin/reports/status/run-cron') . '</div>',
     '#weight' => 0,
@@ -178,9 +174,18 @@ function subscriptions_page_form_submit(array $form, array &$form_state) {
   }
   if ($form_values['op'] == $form['submit']['#value']) {
     // If we have rids, then they are >0, but we'll have to store them as
-    // negative numbers below; if we don't have rids, we'll use the negative
-    // uid, so that it will end up as a positive value in the database.
-    $rids = (empty($rid0) ? array(-$form_values['uid']) : $form_values['header']['role']['roles']);
+    // negative numbers below; if we have uids, we use the negative values
+    // so they will end up positive in the database.
+    if ($bulk_op = (empty($_SESSION['subscriptions']['bulk_op']) ? '' : $_SESSION['subscriptions']['bulk_op'])) {
+      $rids = array();
+      foreach (unserialize($form_values['uid']) as $uid) {
+        $rids[] = -$uid;
+      }
+      $form_state['redirect'] = SUBSCRIPTIONS_CONFIG_PATH . '/userdefaults/bulk';
+    }
+    else {
+      $rids = (empty($rid0) ? array(-$form_values['uid']) : $form_values['header']['role']['roles']);
+    }
     $module = $form_values['module'];
     $field = $form_values['field'];
     $access_key = (isset($form_values['access_key']) ? $form_values['access_key'] : $module);
@@ -192,7 +197,7 @@ function subscriptions_page_form_submit(array $form, array &$form_state) {
         $defaults = &$element_values['defaults'];
         foreach ($element_values['checkboxes'] as $value => $bundle) {
           foreach ($bundle as $author_uid => $set_to_enabled) {
-            if ($set_to_enabled && (
+            if ($set_to_enabled && $bulk_op != 'unsub' && (
                 count($rids) > 1 ||
                 !isset($defaults['checkboxes'][$value][$author_uid]) ||
                 $element_values['send_interval'][$value][$author_uid] != $defaults['send_interval'][$value][$author_uid] ||
@@ -207,10 +212,11 @@ function subscriptions_page_form_submit(array $form, array &$form_state) {
               }
               $changed = TRUE;
             }
-            elseif (!$set_to_enabled && (
-                    count($rids) > 1 ||
-                    isset($defaults['checkboxes'][$value][$author_uid]))) {
-              // It was enabled but now it is not. Delete.
+            elseif ($bulk_op == 'unsub' && $set_to_enabled ||
+                    empty($bulk_op) && !$set_to_enabled && (
+                      count($rids) > 1 ||
+                      isset($defaults['checkboxes'][$value][$author_uid]))) {
+              // It was bulk-unsubscribed, or it was enabled but now it is not. Delete.
               foreach ($rids as $rid) {
                 db_delete('subscriptions')
                   ->condition('module', $module)
@@ -231,8 +237,7 @@ function subscriptions_page_form_submit(array $form, array &$form_state) {
     }
   }
   if (!empty($rid0)) {
-    $menu_item = menu_get_item();
-    $subs_type = $menu_item['map'][SUBSCRIPTIONS_CONFIG_PATH_LEVEL + 1];
+    $subs_type = subscriptions_arg(SUBSCRIPTIONS_CONFIG_PATH_LEVEL + 1);
     $form_state['redirect'] = SUBSCRIPTIONS_CONFIG_PATH . '/userdefaults/' . $subs_type;
     if ($rid0 != DRUPAL_AUTHENTICATED_RID) {
       $form_state['redirect'] .= '/' . $rid0;
@@ -260,8 +265,7 @@ function subscriptions_page_form($form, &$form_state, $account, $stype) {
     return NULL;
   }
 
-  $menu_item = menu_get_item();
-  if ($menu_item['map'][0] == 'admin') {
+  if (subscriptions_arg(0) == 'admin') {
     $form['header'] = array(
       '#type'          => 'fieldset',
       '#title'         => t('Admin Information'),
@@ -270,39 +274,52 @@ function subscriptions_page_form($form, &$form_state, $account, $stype) {
       '#collapsed'     => FALSE,
       '#weight'        => -2,
     );
-    $form['header'][] = array(
-      '#markup'        => '<div>' . t('The selected subscriptions will be given to <b>newly created</b> users.') . '</div>',
-    );
+    if (empty($_SESSION['subscriptions']['bulk_op'])) {
+      $form['header'][] = array(
+        '#markup'        => '<div>' . t('The selected subscriptions will be given to <b>newly created</b> users.') . '</div>',
+      );
 
-    $tr = 't';
-    $rid = (isset($menu_item['map'][SUBSCRIPTIONS_CONFIG_PATH_LEVEL + 2]) ? $menu_item['map'][SUBSCRIPTIONS_CONFIG_PATH_LEVEL + 2] : NULL);
-    $form['header']['role'] = array(
-      '#type'        => 'fieldset',
-      '#title'       => $tr('Roles'),
-      '#collapsible' => TRUE,
-      '#collapsed'   => !is_numeric($rid),
-    );
-    $form['header']['role']['header'] = array(
-      '#type'          => 'markup',
-      '#value'         => '<div>' . t('If a user has one or more roles assigned at creation time, then she will receive the additional subscriptions defined for these roles.') . '</div>',
-      '#weight'        => -5,
-    );
-    $rid = (is_numeric($rid) ? $rid : DRUPAL_AUTHENTICATED_RID);
-    $form['header']['role']['roles'] = array(
-      '#type'          => 'select',
-      '#title'         => t('Role(s)'),
-      '#default_value' => array($rid),
-      '#options'       => user_roles(TRUE),
-      '#description'   => t('Select the role to load or role(s) to save.'),
-      '#multiple'      => TRUE,
-    );
-    $form['header']['role']['load'] = array(
-      '#type'          => 'submit',
-      '#value'         => t('Load'),
-    );
+      $tr = 't';
+      $rid = subscriptions_arg(SUBSCRIPTIONS_CONFIG_PATH_LEVEL + 2);
+      $form['header']['role'] = array(
+        '#type'          => 'fieldset',
+        '#title'         => check_plain($tr('Roles')),
+        '#collapsible'   => TRUE,
+        '#collapsed'     => !is_numeric($rid),
+      );
+      $form['header']['role']['header'] = array(
+        '#markup'        => '<div>' . t('If a user has one or more roles assigned at creation time, then she will receive the additional subscriptions defined for these roles.') . '</div>',
+        '#weight'        => -5,
+      );
+      $rid = (is_numeric($rid) ? $rid : DRUPAL_AUTHENTICATED_RID);
+      $form['header']['role']['roles'] = array(
+        '#type'          => 'select',
+        '#title'         => t('Role(s)'),
+        '#default_value' => array($rid),
+        '#options'       => user_roles(TRUE),
+        '#description'   => t('Select the role to load or role(s) to save.'),
+        '#multiple'      => TRUE,
+      );
+      $form['header']['role']['load'] = array(
+        '#type'          => 'submit',
+        '#value'         => t('Load'),
+      );
+    }
+    else {
+      $bulk_op = $_SESSION['subscriptions']['bulk_op'];
+      $variables = _subscriptions_page_user_bulk_variables();
+      $output = $variables['info'] . '<br />';
+      $output .= t('Select the subscriptions to !change and click [@Save] to perform the action for the selected users.', $variables);
+      if ($bulk_op == 'unsub') {
+        $output .= '<br /><strong>' . t('This action cannot be undone!') . '</strong>';
+      }
+      $form['header']['info'] = array(
+        '#markup' => $output,
+      );
+    }
   }
   else {
-    subscriptions_suspended(arg(1), TRUE);
+    subscriptions_suspended(subscriptions_arg(1, 'uid'), TRUE);
     //if (variable_get('subscriptions_hide_overview_page', 0)) {
     //  $dummy_form_state = NULL;
     //  $form = subscriptions_user_suspend_form($dummy_form_state, $account);
@@ -314,8 +331,9 @@ function subscriptions_page_form($form, &$form_state, $account, $stype) {
   }
 
   $uid = (empty($account) ? -DRUPAL_AUTHENTICATED_RID : (is_object($account) ? $account->uid : -$account));
+  $bulk_uids = (empty($_SESSION['subscriptions']['bulk_op']) ? NULL : $_SESSION['subscriptions']['uids']);
   $form['#tree']      = TRUE;
-  $form['uid']        = array('#type' => 'value', '#value' => $uid);
+  $form['uid']        = array('#type' => 'value', '#value' => (isset($bulk_uids) ? $bulk_uids : $uid));
   $form['access_key'] = array('#type' => 'value', '#value' => $stype);
   $form['module']     = array('#type' => 'value', '#value' => $stypes[$stype]['fields'][0]);
   $form['field']      = array('#type' => 'value', '#value' => $stypes[$stype]['fields'][1]);
@@ -330,7 +348,7 @@ function subscriptions_page_form($form, &$form_state, $account, $stype) {
 
   $callback = $stypes[$stype]['page'];
   if (!empty($callback) && function_exists($callback)) {
-    $form = $callback($form, $uid);
+    $form = $callback($form, (isset($bulk_uids) ? 0 : $uid));
     if (is_string($form)) {
       $form = array(
         'message' => array(
@@ -347,7 +365,7 @@ function subscriptions_page_form($form, &$form_state, $account, $stype) {
   //  'title' => t('!name Subscriptions', array('!name' => $user->name)),
   //  'href' => url('subscriptions/feed'),
   //));
-  drupal_set_title(empty($account->name) ? t('Subscriptions') : $account->name);
+  drupal_set_title(check_plain(empty($account->name) ? t('Subscriptions') : $account->name));
   return $form;
 }
 
@@ -374,8 +392,7 @@ function subscriptions_page_user_overview(array $form, array &$form_state, $acco
     }
   }
   // give other modules a chance to add their count(s)
-  $more_counts = module_invoke_all('count_user_subscriptions', $counts, $uid);
-  $counts = array_merge($counts, $more_counts);
+  $counts = module_invoke_all('count_user_subscriptions', $counts, $uid);
 
   $tr = 't';
   $header = array(array('data' => $tr('Type'), 'width' => '20%'), t('Number'));
@@ -390,7 +407,8 @@ function subscriptions_page_user_overview(array $form, array &$form_state, $acco
     if (($has_access || user_access('administer user subscriptions')) && isset($type['fields'])) {
       $rows[] = array(
         ($has_access ? l($tr($type['title']), ($uid < 0 ? SUBSCRIPTIONS_CONFIG_PATH . "/userdefaults/$stype" : "user/$uid/subscriptions/$stype")) : $type['title']),
-        isset($counts[$type['fields'][0]][$type['fields'][1]]) ? $counts[$type['fields'][0]][$type['fields'][1]] : 0,
+        (isset($type['fields'][2]) && isset($counts[$type['fields'][0]][$type['fields'][2]])) ? $counts[$type['fields'][0]][$type['fields'][2]] :
+        (isset($counts[$type['fields'][0]][$type['fields'][1]]) ? $counts[$type['fields'][0]][$type['fields'][1]] : 0),
       );
     }
   }
@@ -436,10 +454,9 @@ function subscriptions_user_suspend_form(array &$form, array &$form_state, $acco
     return;
   }
 
-  $tr = 't';
   $form['suspend'] = array(
     '#type'          => 'fieldset',
-    '#title'         => $tr('Delivery of notifications'),
+    '#title'         => t('Delivery of notifications'),
     '#weight'        => 5,
     '#collapsible'   => TRUE,
     '#collapsed'     => !$suspended,
@@ -448,10 +465,11 @@ function subscriptions_user_suspend_form(array &$form, array &$form_state, $acco
   if ($suspended) {
     $count = db_query("SELECT COUNT(*) FROM {subscriptions_queue} WHERE uid = :uid AND suspended <> 0", array(':uid' => $uid))->fetchField();
   }
+  $tr = 't';
   $options[] = $tr('Yes');
   if ($count > 0) {
     $form['suspend']['queued'] = array(
-      '#value'       => '<div>' . t('You have %count items queued for delivery. (The number of resulting notifications will typically be much smaller.)', array('%count' => $count)) . '</div>',
+      '#markup'      => '<div>' . t('You have %count items queued for delivery. (The number of resulting notifications will typically be much smaller.)', array('%count' => $count)) . '</div>',
     );
     $options[-1] = t('!Yes, but drop the queued items', array('!Yes' => $tr('Yes')));
   }
@@ -459,12 +477,13 @@ function subscriptions_user_suspend_form(array &$form, array &$form_state, $acco
   if (user_access('administer user subscriptions')) {
     $options[2] = t('!No, and alert user to bad email address (administrator option)', array('!No' => $tr('No')));
   }
+  $description = user_access('suspend own subscriptions', $account)
+                 ? t('You can temporarily suspend notifications from being sent, e.g. during a vacation. They will be retained and sent after you reenable notifications.')
+                 : t('Select %Yes to send all queued notifications and resume normal delivery.', array('%Yes' => $tr('Yes')));
   $form['suspend']['state'] = array(
     '#type'          => 'radios',
     '#title'         => t('Receive notifications'),
-    '#description'   => ( user_access('suspend own subscriptions', $account)
-                          ? t('You can temporarily suspend notifications from being sent, e.g. during a vacation. They will be retained and sent after you reenable notifications.')
-                          : t('Select %Yes to send all queued notifications and resume normal delivery.', array('%Yes' => $tr('Yes'))) ),
+    '#description'   => filter_xss($description),
     '#default_value' => ( user_access('administer user subscriptions') ? $suspended : min($suspended, 1) ),
     '#options'       => $options,
   );
@@ -527,7 +546,7 @@ function _subscriptions_suspended_alert($uid, $suspended) {
   switch ($suspended) {
     case 2:
       $msg = t('Your subscriptions have been suspended because your e-mail address did not work anymore!');
-      if (!(arg(0) == 'user' && arg(1) == $uid && arg(2) == 'edit')) {
+      if (!(subscriptions_arg(0) == 'user' && subscriptions_arg(1, 'uid') == $uid && subscriptions_arg(2) == 'edit')) {
         drupal_set_message($msg . '<br />' . t('Please go <a href="@path1">here</a> to update your e-mail address and then <a href="@path2">here</a> to resume delivery of your notifications.', array('@path1' => url("user/$uid/edit"), '@path2' => $path2)), 'error', FALSE);
       }
       else {
@@ -561,7 +580,7 @@ function subscriptions_user_settings_form(array $form, array &$form_state, $acco
   $tr = 't';
   $form['settings'] = array(
     '#type'          => 'fieldset',
-    '#title'         => $tr('Settings'),
+    '#title'         => check_plain($tr('Settings')),
     '#weight'        => 10,
     '#collapsible'   => !empty($account),
     '#collapsed'     => !empty($account),
@@ -569,7 +588,7 @@ function subscriptions_user_settings_form(array $form, array &$form_state, $acco
   if ($uid < 0) {
     $form['settings']['info'] = array(
       '#type'          => 'fieldset',
-      '#title'         => $tr('Admin Information'),
+      '#title'         => t('Admin Information'),
       '#attributes'    => array('class' => array('error')),
       '#collapsible'   => TRUE,
       '#collapsed'     => FALSE,
@@ -592,11 +611,13 @@ function subscriptions_user_settings_form(array $form, array &$form_state, $acco
         )
       ) . '</div>',
     );
+    $description = '<span class="error">' . t("If you hide this page, your users won't be able to change any of these settings. The default is OFF.") . '<br />' . t('Also, you must give your users the %subscribe_to_content permission, so that they have access to the %Pages_Threads page!', array('%subscribe_to_content' => $tr('Subscribe to content'), '%Pages_Threads' => $tr('Pages/Threads'))) . '</span>';
     $form['settings']['info']['hide_overview_page'] = array(
       '#type'          => 'checkbox',
       '#title'         => t('Hide the %Overview page from your users', array('%Overview' => t('Overview'))),
       '#default_value' => variable_get('subscriptions_hide_overview_page', 0),
-      '#description'   => t("If you hide this page, your users won't be able to change any of these settings. The default is OFF.") . '<br />' . t('Also, you must give your users the %subscribe_to_content permission, so that they have access to the %Pages_Threads page!', array('%subscribe_to_content' => $tr('subscribe to content'), '%Pages_Threads' => $tr('Pages/Threads'))),
+      '#description'   => filter_xss($description, array('span', 'br', 'em')),
+      '#prefix'        => '<div style="height: 1ex;">&nbsp;</div>',
     );
   }
   $form['settings']['autosub'] = array(
@@ -665,7 +686,7 @@ function subscriptions_user_settings_form(array $form, array &$form_state, $acco
     '#description'   => t('Sends a notification when an item receives a comment or reply.'),
   );
   $form['settings']['preferences']['description'] = array(
-    '#value'       => t('Any changes you make here will only apply to newly created subscriptions.'),
+    '#markup'        => t('Any changes you make here will only apply to newly created subscriptions.'),
   );
   $form['settings']['visibility'] = array(
     '#type'          => 'fieldset',
@@ -684,7 +705,7 @@ function subscriptions_user_settings_form(array $form, array &$form_state, $acco
     $visibility_options[] = t('Completely inaccessible to the user');
     $form['settings']['visibility']['info'] = array(
       '#type'          => 'fieldset',
-      '#title'         => $tr('Admin Information'),
+      '#title'         => t('Admin Information'),
       '#attributes'    => array('class' => array('error')),
       '#collapsible'   => TRUE,
       '#collapsed'     => FALSE,
@@ -711,8 +732,8 @@ function subscriptions_user_settings_form(array $form, array &$form_state, $acco
     $pref_access = empty($account) || $site_setting >= -1;
     $control_access = empty($account) || $site_setting >= 0;
     $form['settings']['visibility']['send_' . $parm . '_visible'] = array(
-      '#title'         => ($parm == 'interval' ? t('Send interval') :
-                          ($parm == 'updates' ? t('On updates') : t('On comments'))),
+      '#title'         => filter_xss(($parm == 'interval' ? t('Send interval') :
+                                     ($parm == 'updates' ? t('On updates') : t('On comments')))),
       '#type'          => 'radios',
       '#options'       => $visibility_options,
       '#default_value' => 1 - _subscriptions_get_setting('send_' . $parm . '_visible', $account),
@@ -749,8 +770,9 @@ function subscriptions_user_settings_form(array $form, array &$form_state, $acco
  * @ingroup form
  */
 function _subscriptions_user_settings_form_submit(array $form, array &$form_state) {
+  $uid = subscriptions_arg(1, 'uid');
   if (isset($form_state['values']['reset']) && $form_state['values']['op'] == $form_state['values']['reset']) {
-    if (($uid = arg(1)) > 0) {
+    if ($uid > 0) {
       db_update('subscriptions_user')
         ->fields(array(
           'digest' => -1,
@@ -771,10 +793,7 @@ function _subscriptions_user_settings_form_submit(array $form, array &$form_stat
     }
   }
   elseif ($form_state['values']['op'] == $form_state['values']['save_settings']) {
-    if (arg(0) == 'user') {
-      $uid = arg(1);
-    }
-    else {
+    if (subscriptions_arg(0) != 'user') {
       $uid = -DRUPAL_AUTHENTICATED_RID;
       if (variable_get('subscriptions_hide_overview_page', 0) != $form_state['values']['hide_overview_page']) {
         variable_set('subscriptions_hide_overview_page', $form_state['values']['hide_overview_page']);
@@ -805,6 +824,71 @@ function _subscriptions_user_settings_form_submit(array $form, array &$form_stat
 }
 
 /**
+ * Provides the form definition for admin/config/system/subscriptions/userdefaults/bulk.
+ *
+ * Called by _subscriptions_menu() in subscriptions.module.
+ *
+ * @return array
+ *
+ * @ingroup form
+ *
+ * @see _subscriptions_menu()
+ */
+function subscriptions_page_user_bulk() {
+  $variables = _subscriptions_page_user_bulk_variables();
+  $output = $variables['info'] . '<br /><br />';
+  $output .= t('Proceed as follows:', $variables) . '<ol>';
+  $output .= '<li>' . t('Navigate to any of the subscription type subtabs.', $variables) . '</li>';
+  $output .= '<li>' . t('Select the subscriptions to change.', $variables) . '</li>';
+  $output .= '<li>' . t('Click [@Save] to perform the action for the selected users and return here.', $variables) . '</li>';
+  $output .= '<li>' . t('Repeat if desired.', $variables) . '</li>';
+  $output .= '<li>' . t('Click [@Done] below to clear the selected list of users and return to the user list page.', $variables) . '</li></ol><br />';
+  $form['info'] = array(
+    '#markup' => $output,
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Done'),
+  );
+  return $form;
+}
+
+/**
+ * Helper function to provide strings.
+ *
+ * @return array
+ */
+function _subscriptions_page_user_bulk_variables() {
+  $bulk_op = $_SESSION['subscriptions']['bulk_op'];
+  $uids = unserialize($_SESSION['subscriptions']['uids']);
+  $count = count($uids);
+  $variables = array(
+    '!action' => '<strong>' . ($bulk_op == 'sub' ? t('subscribing') : t('unsubscribing')) . '</strong>',
+    '!change' => '<strong>' . ($bulk_op == 'sub' ? t('add') : t('remove')) . '</strong>',
+    '@Save'   => t('Save'),
+    '@Done'   => t('Done'),
+  );
+  $variables['info'] = format_plural($count, '1 user selected for bulk !action.', '@count users selected for bulk !action.', $variables);
+  return $variables;
+}
+
+/**
+ * Bulk operation form submit handler.
+ *
+ * @param $form
+ * @param $form_state
+ *
+ * @ingroup form
+ */
+function subscriptions_page_user_bulk_submit($form, &$form_state) {
+  $back_url = $_SESSION['subscriptions']['back_url'];
+  unset($_SESSION['subscriptions']['bulk_op']);
+  unset($_SESSION['subscriptions']['uids']);
+  unset($_SESSION['subscriptions']['back_url']);
+  drupal_goto($back_url);
+}
+
+/**
  * Provide the form definition for admin/settings/subscriptions/intervals.
  *
  * Called by _subscriptions_menu() in subscriptions.module.
@@ -823,7 +907,7 @@ function subscriptions_intervals(array $form, array &$form_state) {
     $default .= "$interval|$text\n";
   }
   $form['info'] = array(
-    '#value' => t('Define the selection of %Send_interval options available through the user interface. Adding additional ones is easy, but removing one that is already in use is not recommended.', array('%Send_interval' => t('Send interval'))),
+    '#markup' => t('Define the selection of %Send_interval options available through the user interface. Adding additional ones is easy, but removing one that is already in use is not recommended.', array('%Send_interval' => t('Send interval'))),
   );
   $form['intervals'] = array(
     '#type' => 'textarea',
@@ -920,6 +1004,9 @@ function subscriptions_add_form(array $form, array &$form_state, $stype, $sid, $
  */
 function subscriptions_add_form_submit(array $form, array &$form_state) {
   if ($a = module_invoke_all('subscriptions', 'stype', $form_state['values']['stype'], $form_state['values']['sid'], (isset($form_state['values']['author_uid']) ? $form_state['values']['author_uid'] : -1))) {
+    // Allow other modules to alter the data.
+    drupal_alter('subscriptions_stype', $a);
+
     list($module, $field, $value, $author_uid) = $a;
     $uid = $form_state['values']['uid'];
     subscriptions_write_subscription($module, $field, $value, $author_uid, $uid, $form_state['values']['send_interval'], $form_state['values']['updates'], $form_state['values']['comments']);
@@ -956,6 +1043,9 @@ function subscriptions_del_form(array $form, array &$form_state, $stype, $sid, $
   global $user;
 
   if ($a = module_invoke_all('subscriptions', 'stype', $stype, $sid, (isset($author_uid) ? $author_uid : -1))) {
+    // Allow other modules to alter the data.
+    drupal_alter('subscriptions_stype', $a);
+
     list($module, $field, $value, $author_uid) = $a;
     return subscriptions_delete_form($form, $form_state, $module, $field, $value, $author_uid, $user->uid);
   }
@@ -1052,9 +1142,10 @@ function subscriptions_form_helper(array &$form, array &$defaults, $author_uid, 
  * @ingroup form
  */
 function subscriptions_form_column_filter(array &$form_table, $uid) {
+  $bulk_unsub = (isset($_SESSION['subscriptions']['bulk_op']) && $_SESSION['subscriptions']['bulk_op'] == 'unsub');
   foreach (array('send_interval', 'send_comments', 'send_updates', 'author') as $key) {
     if (isset($form_table[$key])) {
-      $form_table[$key]['#access'] = ($uid <= 0 || $key == 'author' || _subscriptions_get_setting($key . '_visible', $uid) > 0);
+      $form_table[$key]['#access'] = !$bulk_unsub && ($uid <= 0 || $key == 'author' || _subscriptions_get_setting($key . '_visible', $uid) > 0);
     }
   }
 }

@@ -148,6 +148,11 @@ function _media_flickr_photoset_image_url($uri, $width = 0, $height = 0, $refres
   return media_flickr_image_url($photo_id, $width, $height, $refresh);
 }
 
+function _media_flickr_original_url($uri, $refresh = FALSE) {
+  $wrapper = file_stream_wrapper_get_instance_by_uri($uri);
+  return $wrapper->interpolateUrl();
+}
+
 function _media_flickr_photo_exists($photo_id) {
   $info = _media_flickr_sets_request('flickr.photos.getInfo', array('photo_id' => $photo_id));
 

@@ -19,6 +19,12 @@ function subscriptions_mail_install() {
  * Adds a column to the {mail_edit} table.
  */
 function _subscriptions_mail_extend_mail_edit() {
+  if (!function_exists('subscriptions_mail_schema_alter')) {
+    $t = get_t();
+    throw new DrupalUpdateException($t('@Subscriptions_Mail must be enabled before it can be updated', array(
+      '@Subscriptions_Mail' => 'Subscriptions Mail',
+    )) . ' - ');
+  }
   $new_schema = array();
   subscriptions_mail_schema_alter($new_schema);
   foreach ($new_schema['mail_edit']['fields'] as $name => $spec) {
@@ -49,19 +55,20 @@ function subscriptions_mail_uninstall() {
 function subscriptions_mail_requirements($phase) {
   $requirements = array();
   if ($phase == 'update') {
+    $t = get_t();
     if (!module_exists('mail_edit')) {
       $requirements[] = array(
-        'title' => t('Mail Editor'),
-        'value' => t('Missing'),
-        'description' => t('@Subscriptions_Mail requires the !Mail_Editor module to be installed.', array('@Subscriptions_Mail' => 'Subscriptions Mail', '!Mail_Editor' => l('Mail Editor', 'http://drupal.org/project/mail_edit', array('external' => TRUE)))),
+        'title' => $t('Mail Editor'),
+        'value' => $t('Missing'),
+        'description' => $t('@Subscriptions_Mail requires the !Mail_Editor module to be installed.', array('@Subscriptions_Mail' => 'Subscriptions Mail', '!Mail_Editor' => l('Mail Editor', 'http://drupal.org/project/mail_edit', array('external' => TRUE)))),
         'severity' => REQUIREMENT_ERROR,
       );
     }
     if (!module_exists('token')) {
       $requirements[] = array(
-        'title' => t('Token'),
-        'value' => t('Missing'),
-        'description' => t('@Subscriptions_Mail requires the !Token module to be installed.', array('@Subscriptions_Mail' => 'Subscriptions Mail', '!Token' => l('Token', 'http://drupal.org/project/token', array('external' => TRUE)))),
+        'title' => $t('Token'),
+        'value' => $t('Missing'),
+        'description' => $t('@Subscriptions_Mail requires the !Token module to be installed.', array('@Subscriptions_Mail' => 'Subscriptions Mail', '!Token' => l('Token', 'http://drupal.org/project/token', array('external' => TRUE)))),
         'severity' => REQUIREMENT_ERROR,
       );
     }

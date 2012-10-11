@@ -42,16 +42,16 @@ function subscriptions_blog_ui_subscriptions($op, $arg0 = NULL, $arg1 = NULL, $a
  * @see subscriptions_types()
  */
 function _subscriptions_blog_ui_types() {
-  $tr = 't';
   $types['blog'] = array(
-    'title' => $tr('Blogs'),
-    'access' => 'subscribe to blogs',
+    'title'      => 'Blogs',
+    'page'       => 'subscriptions_blog_ui_page_blog',
+    'fields'     => array('node', 'type', 'blog'),
+    'weight'     => -3,
+    'access'     => 'subscribe to blogs',
     'permission' => array(
-      'title' => t('Subscribe to blogs'),
+      'title'       => t('Subscribe to blogs'),
+      'description' => t('Use the dedicated @Blog_Subscriptions UI elements.', array('@Blog_Subscriptions' => 'Blog Subscriptions'))
     ),
-    'page' => 'subscriptions_blog_ui_page_blog',
-    'fields' => array('node', 'type'),
-    'weight' => -3,
   );
   return $types;
   t('subscribe to blogs');
@@ -125,14 +125,21 @@ function subscriptions_blog_ui_page_blog(array $form, $uid) {
  */
 function _subscriptions_blog_ui_blog_form(array $blogs, array $form, $uid) {
   $subscriptions = array();
-  $result = db_query("
-    SELECT s.value, s.send_interval, s.author_uid, s.send_comments, s.send_updates, u.name
-    FROM {subscriptions} s
-    INNER JOIN {users} u ON s.author_uid = u.uid
-    WHERE s.module = 'node' AND s.field = 'type' AND s.value = 'blog' AND s.recipient_uid = :recipient_uid
-    ORDER BY u.name", array(':recipient_uid' => $uid), array('fetch' => PDO::FETCH_ASSOC));
-  foreach ($result as $s) {
-    $subscriptions[$s['author_uid']] = $s;
+  $bulk_op = (empty($_SESSION['subscriptions']['bulk_op']) ? '' : $_SESSION['subscriptions']['bulk_op']);
+  if ($bulk_op) {
+    // No initialization for bulk subscription.
+    $uid = -DRUPAL_AUTHENTICATED_RID;
+  }
+  else {
+    $result = db_query("
+      SELECT s.value, s.send_interval, s.author_uid, s.send_comments, s.send_updates, u.name
+      FROM {subscriptions} s
+      INNER JOIN {users} u ON s.author_uid = u.uid
+      WHERE s.module = 'node' AND s.field = 'type' AND s.value = 'blog' AND s.recipient_uid = :recipient_uid
+      ORDER BY u.name", array(':recipient_uid' => $uid), array('fetch' => PDO::FETCH_ASSOC));
+    foreach ($result as $s) {
+      $subscriptions[$s['author_uid']] = $s;
+    }
   }
   $form[0] = array(
     '#type' => 'item',
@@ -177,7 +184,7 @@ function _subscriptions_blog_ui_blog_form(array $blogs, array $form, $uid) {
  * @ingroup hooks
  */
 function subscriptions_blog_ui_count_user_subscriptions(array $counts, $uid) {
-  $counts['blog']['author_uid'] = db_query("SELECT count(*) FROM {subscriptions} WHERE module = 'node' AND field = 'type' AND value = 'blog' AND recipient_uid = :recipient_uid", array(':recipient_uid' => $uid))->fetchField();
+  $counts['node']['blog'] = db_query("SELECT count(*) FROM {subscriptions} WHERE module = 'node' AND field = 'type' AND value = 'blog' AND author_uid <> -1 AND recipient_uid = :recipient_uid", array(':recipient_uid' => $uid))->fetchField();
   return $counts;
 }
 

@@ -60,3 +60,8 @@ function media_flickr_update_7005() {
 function media_flickr_update_7006() {
 }
 
+/**
+ * Register new permissions.
+ */
+function media_flickr_update_7007() {
+}
