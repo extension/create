@@ -171,7 +171,7 @@
 	-----------------------------------------------------------------------------*/
 	if ( isset($content["field_to_what_extent_has_extensi"]) || isset($content["field_to_what_extent_does_extens"]) ){
 	?>
-		<div class="field-label custom-label">Transrormation: </div>
+		<div class="field-label custom-label">Transformation: </div>
 		<?php
 		if(isset($content["field_to_what_extent_has_extensi"])){
 			hide($content["field_to_what_extent_has_extensi"]);
