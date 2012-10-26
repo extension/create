@@ -137,11 +137,14 @@
 	
 	/* Grants and contracts
 	-----------------------------------------------------------------------------*/
-	if (isset($content["field_grants_contracts_supportin"])){
-		unset($content["field_grants_contracts_supportin"]["#suffix"]);
-	}
+	
 	if(count($content["field_grants_contracts_supportin"]["#items"]) == 0 ){
 		hide($content["field_grants_contracts_supportin"]);
+	}else{
+		unset($content["field_grants_contracts_supportin"]["#suffix"]);
+		foreach ($content["field_grants_contracts_supportin"]["#items"] AS $k=>$v){
+			hide($content["field_grants_contracts_supportin"][$k]["links"]);
+		}
 	}
 	
 	/* Assessment and evaluation reports
