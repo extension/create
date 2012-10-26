@@ -17,9 +17,7 @@
     </footer>
   <?php endif; ?>
   <div<?php print $content_attributes; ?>>
-    <?php
-	dpm($content);
-		
+    <?php		
 		
 	/* Contacts
 	-----------------------------------------------------------------------------*/
