@@ -1358,6 +1358,25 @@ article .comment > footer{
 }
 
 
+/* CoP annual report
+-----------------------------------------------------------------------------*/
+
+.custom-label, 
+article .field-name-field-grants-contracts-supportin > .field-label, 
+.field-name-field-partnershiips > .field-label,
+.node-cop-annual-report .field-name-group-audience > .field-label{
+	font-size: 18px;
+	background-color: #E1E2DC;
+	border: 1px solid #BEBFB9;
+	padding: 5px;
+	margin-bottom: 10px;
+	font-weight: normal;
+}
+
+.field-type-text-with-summary p{
+	margin-right: 20px;
+}
+
 /* Footers
 -----------------------------------------------------------------------------*/
 #footers{
