@@ -19,7 +19,7 @@
   <div<?php print $content_attributes; ?>>
     <?php	
 	
-	dsm($content);	
+	//dsm($content);	
 		
 	/* Contacts
 	-----------------------------------------------------------------------------*/
