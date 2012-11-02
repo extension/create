@@ -17,7 +17,9 @@
     </footer>
   <?php endif; ?>
   <div<?php print $content_attributes; ?>>
-    <?php		
+    <?php	
+	
+	dsm($content);	
 		
 	/* Contacts
 	-----------------------------------------------------------------------------*/
@@ -112,6 +114,16 @@
 			print render($content["field_number_of_stories_created"]);
 		}
 	}
+	
+	if ( isset($content["field_other_social_media_efforts"] )){
+	?>
+		<div class="field-label custom-label">Other social media efforts: </div>
+		<?php
+		hide($content["field_other_social_media_efforts"]);
+		print render($content["field_other_social_media_efforts"]);
+	}
+	
+	
 	
 	/* Webinars
 	-----------------------------------------------------------------------------*/
