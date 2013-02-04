@@ -1,6 +1,51 @@
 <?php
 
 /**
+ * Implements hook_entity_info_alter().
+ *
+ * Alter file entity type for adding small and large image file styles
+ *
+ * @see http://drupal.org/node/1026790#8
+ */
+ 
+function exmedia_entity_info_alter(&$entity_info) {
+  $entity_info['file']['view modes']['media_small'] = array(
+    'label' => t('Small'),
+    'custom settings' => TRUE,
+  );
+  $entity_info['file']['view modes']['media_large'] = array(
+    'label' => t('Large'),
+    'custom settings' => TRUE,
+  );
+}
+
+
+/**
+ * Implements hook_entity_info_alter().
+ *
+ * Since media does not advertise your new view mode for you, you can do it by yourself with hook_field_formatter_info_alter()
+ *
+ * @see http://drupal.org/node/1026790#8
+ */
+
+
+function exmedia_field_formatter_info_alter(&$info) {
+  $info['media_small'] = array(
+    'label' => t('Small'),
+    'settings' => array(),
+    'field types' => array('media'),
+    'module' => 'media',
+  );
+  $info['media_large'] = array(
+    'label' => t('Large'),
+    'settings' => array(),
+    'field types' => array('media'),
+    'module' => 'media',
+  );
+}
+
+
+/**
  * Implements hook_filter_info_alter().
  *
  * Alter media filter callback in order it to be handled by this module
@@ -41,7 +86,7 @@ function exmedia_token_to_markup($match, $wysiwyg = FALSE) {
   $match = str_replace("[[", "", $match);
   $match = str_replace("]]", "", $match);
   $tag = $match[0];
-
+	
   try {
     if (!is_string($tag)) {
       throw new Exception('Unable to find matching tag');
@@ -101,11 +146,7 @@ function exmedia_token_to_markup($match, $wysiwyg = FALSE) {
     $element = media_get_file_without_label($file, $tag_info['view_mode'], $settings);
   }else{
     // Display the field elements.
-    $element = array();
-	
-	
-
-	
+    $element = array();	
 	
    // $div = '<div class="media-container"';
    // if(isset($settings['attributes']['width'])){
@@ -122,13 +163,12 @@ function exmedia_token_to_markup($match, $wysiwyg = FALSE) {
   }
   $file = media_get_file_without_label($file, $tag_info['view_mode'], $settings);
   $output = drupal_render( $file );
-  
- 
-  
-  if(isset($element['content']['field_image__caption'])){
+  dsm($element);
+  //print( 'some media update stuff');
+  if($element['content']['file']['#file']->field_image__caption['und'][0]['value'] != '' ){
 	  
 	   	$pass = array('element' => $output, 
-						'caption' => $element['content']['field_image__caption']['#items'][0]['value'],
+						'caption' => $element['content']['file']['#file']->field_image__caption['und'][0]['value'],
 						'width' => $element['content']['file']['#attributes']['width'] );
   
   
@@ -144,9 +184,6 @@ function exmedia_token_to_markup($match, $wysiwyg = FALSE) {
 	  	//dsm($tag_info);
 	 	 return theme('exmedia_bordercaption', $pass);
   }
-  
-  
-  //dsm($element);
   
   return $output;
 }
