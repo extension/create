@@ -110,7 +110,7 @@ function _subscriptions_taxonomy_node_options($account, $node) {
                     'link' => 'taxa/' . $tid,
                   );
                   $options['tid'][] = array(
-                    'name' => t('To content in %term by %name', array('%term' => $term->name, '%name' => ($node->uid ? check_plain($node->name) : variable_get('anonymous', '???')))),
+                    'name' => t('To content in %term by %name', array('%term' => $term->name, '%name' => format_username(user_load($node->uid)))),
                     'params' => array('module' => 'node', 'field' => 'tid', 'value' => $tid, 'author_uid' => $node->uid),
                     'link' => 'taxa/' . $tid . '/' . $node->uid,
                   );
@@ -241,11 +241,7 @@ function subscriptions_taxonomy_taxonomy($op, $type, $array) {
         ->condition('field', 'tid')
         ->condition('value', $tid)
         ->execute();
-      db_delete('subscriptions')
-        ->condition('module', 'node')
-        ->condition('field', 'tid')
-        ->condition('value', $tid)
-        ->execute();
+      subscriptions_delete_for_all_users('node', 'tid', $tid);
       break;
     case 'taxonomy_vocabulary':
       $vid = $array['vid'];

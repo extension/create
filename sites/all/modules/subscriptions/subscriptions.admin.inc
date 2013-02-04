@@ -218,13 +218,7 @@ function subscriptions_page_form_submit(array $form, array &$form_state) {
                       isset($defaults['checkboxes'][$value][$author_uid]))) {
               // It was bulk-unsubscribed, or it was enabled but now it is not. Delete.
               foreach ($rids as $rid) {
-                db_delete('subscriptions')
-                  ->condition('module', $module)
-                  ->condition('field', $field)
-                  ->condition('value', $value)
-                  ->condition('author_uid', $author_uid)
-                  ->condition('recipient_uid', -$rid)
-                  ->execute();
+                subscriptions_delete(-$rid, $module, $field, $value, ($bulk_op == 'unsub' ? NULL : $author_uid));
               }
               $changed = TRUE;
             }
@@ -365,7 +359,7 @@ function subscriptions_page_form($form, &$form_state, $account, $stype) {
   //  'title' => t('!name Subscriptions', array('!name' => $user->name)),
   //  'href' => url('subscriptions/feed'),
   //));
-  drupal_set_title(check_plain(empty($account->name) ? t('Subscriptions') : $account->name));
+  drupal_set_title(empty($account->name) ? t('Subscriptions') : format_username($account));
   return $form;
 }
 
@@ -391,8 +385,8 @@ function subscriptions_page_user_overview(array $form, array &$form_state, $acco
       $counts[$subs->module][$subs->field] = $subs->number;
     }
   }
-  // give other modules a chance to add their count(s)
-  $counts = module_invoke_all('count_user_subscriptions', $counts, $uid);
+  // Give other modules a chance to add their count(s).
+  drupal_alter('subscriptions_counts', $counts, $uid);
 
   $tr = 't';
   $header = array(array('data' => $tr('Type'), 'width' => '20%'), t('Number'));
@@ -427,7 +421,7 @@ function subscriptions_page_user_overview(array $form, array &$form_state, $acco
     subscriptions_user_suspend_form($form, $form_state, $account);
   }
   $form = subscriptions_user_settings_form($form, $form_state, $account);
-  drupal_set_title($uid < 0 ? t('Subscriptions') : $account->name);
+  drupal_set_title($uid < 0 ? t('Subscriptions') : format_username($account));
   return $form;
 }
 
@@ -642,7 +636,7 @@ function subscriptions_user_settings_form(array $form, array &$form_state, $acco
     '#title'         => t('Auto-subscribe to comments'),
     '#default_value' => _subscriptions_get_setting('autosub_on_comment', $account),
     '#description'   => t('Automatically subscribes you to items that you comment on (or where you update a comment, if you have that permission).'),
-    '#access'        => module_exists('comment') && (empty($account) || user_access('post comments', $account) || user_access('post comments without approval', $account)),
+    '#access'        => module_exists('comment') && ((empty($account) || user_access('post comments', $account) || user_access('post comments without approval', $account))),
   );
   $form['settings']['sendself'] = array(
     '#type'          => 'checkbox',
@@ -729,8 +723,9 @@ function subscriptions_user_settings_form(array $form, array &$form_state, $acco
   }
   foreach (array('interval', 'updates', 'comments') as $parm ) {
     $site_setting = _subscriptions_get_setting('send_' . $parm . '_visible', 0);
-    $pref_access = empty($account) || $site_setting >= -1;
-    $control_access = empty($account) || $site_setting >= 0;
+    $suppress_comment_controls = ($parm == 'comments' && !module_exists('comment'));
+    $pref_access = (empty($account) || $site_setting >= -1) && !$suppress_comment_controls;
+    $control_access = (empty($account) || $site_setting >= 0) && !$suppress_comment_controls;
     $form['settings']['visibility']['send_' . $parm . '_visible'] = array(
       '#title'         => filter_xss(($parm == 'interval' ? t('Send interval') :
                                      ($parm == 'updates' ? t('On updates') : t('On comments')))),
@@ -1099,10 +1094,10 @@ function subscriptions_form_helper(array &$form, array &$defaults, $author_uid, 
     $defaults['send_updates'][$key][$author_uid] = 1;
   }
   if (isset($subscription['author_uid']) && $subscription['author_uid'] > 0) {
-    $author_value = check_plain(db_query('SELECT name FROM {users} WHERE uid = :uid', array(':uid' => $subscription['author_uid']))->fetchField());
+    $author_value = format_username(user_load($subscription['author_uid']));
   }
   elseif ($author_uid == 0) {
-    $author_value = variable_get('anonymous', '???');
+    $author_value = format_username(NULL);
   }
   else {
     $author_value = '';
@@ -1112,7 +1107,7 @@ function subscriptions_form_helper(array &$form, array &$defaults, $author_uid, 
     '#markup' => $title,
   );
   $form['author'][$key][$author_uid] = array(
-    '#markup' => $author_value,
+    '#markup' => check_plain($author_value),
   );
   $form['send_interval'][$key][$author_uid] = array(
     '#type' => 'select',

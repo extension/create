@@ -108,6 +108,7 @@ function subscriptions_mail_mailkeys() {
     }
   }
   $mailkeys['digest'] = t('Digest subscriptions notifications');
+  $mailkeys['.DEFAULT'] = t('Default !Subscriptions template', array('!Subscriptions' => 'Subscriptions'));
   return $mailkeys;
 }
 

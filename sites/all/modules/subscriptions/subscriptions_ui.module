@@ -28,7 +28,7 @@ function subscriptions_ui_node_view($node, $view_mode, $langcode) {
     if (!variable_get('subscriptions_form_in_block', 0) &&
         (!variable_get('subscriptions_form_link_only', 0) && (empty($arg2) || $arg2 == 'view') ||
           variable_get('subscriptions_form_link_only', 0) && $arg2 == 'subscribe' )) {
-      if ($form = drupal_get_form('subscriptions_ui_node_form', $node)) {
+      if ($form = drupal_get_form('subscriptions_ui_node_form', $node, $arg2 == 'subscribe')) {
         $node->content['subscriptions_ui'] = array(
           'subscriptions_ui_form' => $form,
           '#weight' => 100,
@@ -114,19 +114,18 @@ function subscriptions_ui_can_subscribe() {
  * @param $form_state
  * @param $node
  *   Must be a valid node object.
- * @param $account
- *   If not given, will be populated with current user (either anonymous).
+ * @param $expand
+ *   Force the fieldset to expand if TRUE.
  *
  * @return array|null
  *
  * @ingroup form
  * @ingroup hooks
  */
-function subscriptions_ui_node_form($form, &$form_state, $node, $account = NULL) {
+function subscriptions_ui_node_form($form, &$form_state, $node, $expand = NULL) {
   global $user;
-  if (!isset($account)) {
-    $account = $user;
-  }
+  $account = $user;
+  $expand = ($expand === TRUE || variable_get('subscriptions_form_expanded', 0));
 
   if (subscriptions_node_is_blocked($node->nid)) {
     return NULL;
@@ -217,7 +216,7 @@ function subscriptions_ui_node_form($form, &$form_state, $node, $account = NULL)
     '#type' => 'fieldset',
     '#title' => filter_xss(t('Subscribe') . (!empty($is_blocked) ? '&nbsp;' . SUBSCRIPTIONS_UNAVAILABLE : ''), array('span')),
     '#collapsible' => TRUE,
-    '#collapsed' => !variable_get('subscriptions_form_expanded', 0),
+    '#collapsed' => !$expand,
     '#theme' => 'subscriptions_ui_table',
     '#attributes' => array('id' => 'subscribe'),
   );
@@ -328,13 +327,7 @@ function subscriptions_ui_node_form_submit(array $form, array &$form_state) {
       call_user_func_array('subscriptions_write_subscription', $args);
     }
     else {
-      db_delete('subscriptions')
-        ->condition('module', $args['0'])
-        ->condition('field', $args['1'])
-        ->condition('value', $args['2'])
-        ->condition('author_uid', $args['3'])
-        ->condition('recipient_uid', $args['4'])
-        ->execute();
+      subscriptions_delete($args['4'], $args['0'], $args['1'], $args['2'], $args['3']);
     }
   }
   $form_state['redirect'] = str_replace('/subscribe', '', current_path());

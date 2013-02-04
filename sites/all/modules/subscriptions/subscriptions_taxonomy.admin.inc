@@ -131,8 +131,9 @@ function _subscriptions_taxonomy_taxa_form(array $form, $uid, array $vocabularie
           $term = (object) $term;
         }
         $depth = (empty($term->depth) ? 0 : $term->depth);
+        $term_name = function_exists('i18n_string') ? i18n_string('taxonomy:term:' . $term->tid . ':name', $term->name, array('langcode' => $GLOBALS['language']->language)) : $term->name;
         $title = '<span class="indenter">' . str_repeat('--&nbsp;', $depth) . '</span>' .
-          l($term->name, 'taxonomy/term/' . $term->tid, array('attributes' => array('class' => 'depth-' . $depth)));
+          l($term_name, 'taxonomy/term/' . $term->tid, array('attributes' => array('class' => 'depth-' . $depth)));
         if (!isset($subscriptions_vid[$term->tid][-1])) {
           // author-less item is missing -- add it here:
           $subscriptions_vid[$term->tid][-1] = array(

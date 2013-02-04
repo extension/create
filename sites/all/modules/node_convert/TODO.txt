@@ -1,4 +1,3 @@
-// $Id: TODO.txt,v 1.1.4.2 2011/01/11 04:14:25 placinta Exp $
 - Make node_convert independent of CCK
 - Implement support for types: poll, blog, og, etc.
 - Write more complex SimpleTest tests (that use different cck fields and base types like blog, poll)

@@ -5,9 +5,29 @@ CHANGELOG for Subscriptions 1.x for Drupal 7
 subscriptions 7.x-1.x-dev:
 
 
+subscriptions 7.x-1.1 (2012-11-01):
+  Enhancements:
+    - Implement [subs:has-distinct-summary] token and improve the default template.
+    - #1821292: Implement an editable default template.
+    - Make the user/%/subscriptions pages use the admin theme, just like the user/%/edit page.
+    - #1779950: Add API for deleting subscriptions.
+    - #1683186 by joel_osc: Add support for translating the terms on the taxa subscriptions page into the user's language.
+    - Revised the README.txt file.
+  Bugs fixed:
+    - #1801344 by jerry, salvis: Fix all-zero Overview counts, replace broken hook_count_user_subscriptions() with hook_subscriptions_counts_alter().
+    - Some more template tuning while we're at it.
+    - Fix a line-wrap error in the mail template (sorry, translators!).
+    - #1781870: Use format_name() to display user names.
+    - #1710600 by Dmitriy.trt: Fix the missing pager on the Threads/Pages list.
+    - Hide comment settings if comment.module is not enabled.
+    - #1744576: Restore the node UI that was broken by the prior patch.
+    - #1744576: Make s/del/... work again.
+    - Always expand the node UI fieldset on the node/%/subscribe pages.
+    - #399628-19: Document the subscriptions_write() function (no functional change).
+
+
 subscriptions 7.x-1.0 (2012-06-22):
   - Added some information about upgrading to the README.txt file.
-
 
 subscriptions 7.x-1.0-rc1 (2012-06-12):
   - Tune some strings and remove an obsolete comment (no functional changes).

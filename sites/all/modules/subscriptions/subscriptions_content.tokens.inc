@@ -51,6 +51,9 @@ function subscriptions_content_tokens($type, array $tokens, array $data = array(
         case 'is-published':
           $replacements[$original] = (int) ($comment->status == COMMENT_PUBLISHED);
           break;
+        case 'has-distinct-summary':
+          $replacements[$original] = 0;
+          break;
       }
     }
 
@@ -77,6 +80,10 @@ function subscriptions_content_tokens($type, array $tokens, array $data = array(
           break;
         case 'is-published':
           $replacements[$original] = $node->status;
+          break;
+        case 'has-distinct-summary':
+          $repls = token_generate('node', array('summary' => '[node:summary]', 'body' => '[node:body]'), $data, $options);
+          $replacements[$original] = (int) (!empty($repls['[node:summary]']) && $repls['[node:summary]'] != $repls['[node:body]']);
           break;
       }
     }

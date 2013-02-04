@@ -151,7 +151,7 @@ function _subscriptions_content_node_options($account, $node) {
       );
       // Content type and author
       $options['type'][] = array(
-        'name' => t('To %type content by %name', array('%type' => $type_name, '%name' => ($node->uid ? check_plain($node->name) : variable_get('anonymous', '???')))) . $unlisted_tag,
+        'name' => t('To %type content by %name', array('%type' => $type_name, '%name' => format_username(user_load($node->uid)))) . $unlisted_tag,
         'params' => array('module' => 'node', 'field' => 'type', 'value' => $node->type, 'author_uid' => $node->uid),
         'link' => 'type/' . $node->type . '/' . $node->uid,
       );
@@ -319,11 +319,7 @@ function subscriptions_content_node_insert($node, $inserted = TRUE) {
  * @param object $node
  */
 function subscriptions_content_node_delete($node) {
-  db_delete('subscriptions')
-    ->condition('module', 'node')
-    ->condition('field', 'nid')
-    ->condition('value', $node->nid)
-    ->execute();
+  subscriptions_delete_for_all_users('node', 'nid', $node->nid);
 }
 
 /**
@@ -766,11 +762,7 @@ function subscriptions_content_node_type_delete($info) {
     ->condition('field', 'type')
     ->condition('value', $type)
     ->execute();
-  db_delete('subscriptions')
-    ->condition('module', 'node')
-    ->condition('field', 'type')
-    ->condition('value', $type)
-    ->execute();
+  subscriptions_delete_for_all_users('node', 'type', $type);
   foreach (array('blocked', 'unlisted') as $key) {
     $array = variable_get('subscriptions_' . $key . '_content_types', array());
     unset($array[$type]);
@@ -813,5 +805,26 @@ function subscriptions_content_disable() {
   db_delete('subscriptions_queue')
     ->condition('load_function', 'subscriptions_content_%', 'LIKE')
     ->execute();
+}
+/**
+ * Implements hook_views_api()
+ */
+function subscriptions_content_views_api() {
+  return array('api' => 3);
+}
+
+/**
+ * Implements hook_views_data_alter() to add items to the node table that are
+ * relevant to subscriptions_content.
+ */
+function subscriptions_content_views_data_alter(&$data) {
+  // new comments
+  $data['node']['subscriptions_content_links'] = array(
+    'title' => t('Subscribe link'),
+    'help' => t('Display a link to subscribe to the node.'),
+    'field' => array(
+      'handler' => 'subscriptions_content_views_handler_field_node_link',
+    ),
+  );
 }
 

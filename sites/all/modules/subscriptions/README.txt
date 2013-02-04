@@ -8,6 +8,30 @@ README.txt for Subscriptions 7.x-1.x
 
 
 
+Overview
+--------
+
+Subscriptions enables users to subscribe to be notified of changes to nodes
+or taxonomies, such as new comments in specific forums, or additions to some
+category of blog. Once enabled, all nodes will have an additional link that
+allows the user to change their subscriptions. Users have tab on their user
+screen to manage their own subscriptions. Users can also set an auto-subscribe
+function which notifies the user if anyone comments on posts they have made.
+Admins can turn this on by default.
+
+
+
+
+Requirements
+------------
+
+For sending mail using Subscriptions Mail the following modules are needed:
+  - Mail Editor     http://drupal.org/project/mail_editor
+  - Token           http://drupal.org/project/token
+
+
+
+
 Acknowledgements
 ----------------
 
@@ -42,12 +66,11 @@ For standard Subscriptions functionality you need to enable the following module
  * Content Subscriptions
  * Taxonomy Subscriptions (e.g. forums!)
 
-Mail Editor (http://drupal.org/project/mail_edit) and
-Token (http://drupal.org/project/token) are required for sending email
-notification messages using Subscriptions Mail.
-
 SMTP Authentication (http://drupal.org/project/smtp) may be useful for sending
 out emails, if your provider imposes limits on what you can do with PHP mail.
+
+HTML Mail (http://drupal.org/project/htmlmail) provides a way to send themed
+HTML mails.
 
 
 
@@ -280,3 +303,23 @@ page to remind you that this kill-switch has been enabled from the code.
 
 Also see the MailLog module for site-wide control that allows blocking of all
 email messages.
+
+
+
+
+Support/Customizations
+----------------------
+
+Support by volunteers is available on
+
+   http://drupal.org/project/issues/subscriptions?status=All&version=7.x
+
+Please consider helping others as a way to give something back to the community
+that provides Drupal and the contributed modules to you free of charge.
+
+
+For paid support and customizations of this module or other Drupal work
+contact the maintainer through his contact form:
+
+   http://drupal.org/user/82964
+

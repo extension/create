@@ -57,6 +57,10 @@ function subscriptions_token_info() {
           'name' => t('Is published'),
           'description' => t('Whether the item is published.'),
         ),
+        'has-distinct-summary' => array(
+          'name' => t('Has distinct summary'),
+          'description' => t('Whether the item has a non-empty summary that is distinct from the body.'),
+        ),
         'forum' => array(
           'name' => t('Forum'),
           'description' => t('The forum (taxonomy term), if the item is in a forum.'),

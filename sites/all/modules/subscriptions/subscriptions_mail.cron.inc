@@ -73,7 +73,8 @@ function _subscriptions_mail_cron() {
           $allow = !empty($access) && array_search(FALSE, $access) === FALSE;
           $loaded_objects[$user->uid][$load_function][$load_args] = $allow ? $object : FALSE;
         }
-        if ($object = $loaded_objects[$user->uid][$load_function][$load_args]) {
+        if (isset($loaded_objects[$user->uid][$load_function][$load_args]) &&
+            ($object = $loaded_objects[$user->uid][$load_function][$load_args])) {
           $module = $queue_item['module'];
           $ori_field = $field = $queue_item['field'];
           $ori_value = $value = $queue_item['value'];

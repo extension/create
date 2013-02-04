@@ -193,6 +193,19 @@ function subscriptions_menu() {
 }
 
 /**
+ * Implements hook_admin_paths().
+ *
+ * @return array
+ */
+function subscriptions_admin_paths() {
+  $paths = array(
+    'user/*/subscriptions' => TRUE,
+    'user/*/subscriptions/*' => TRUE,
+  );
+  return $paths;
+}
+
+/**
  * Verifies remote access without password.
  *
  * @param $a2
@@ -334,26 +347,82 @@ function subscriptions_user_delete($account) {
   db_delete('subscriptions_user')
     ->condition('uid', $account->uid)
     ->execute();
-  db_delete('subscriptions')
-    ->condition('recipient_uid', $account->uid)
-    ->execute();
+  subscriptions_delete($account->uid);
   db_delete('subscriptions_last_sent')
     ->condition('uid', $account->uid)
     ->execute();
 }
 
 /**
+ * Delete one or more subscriptions for a specific user.
+ *
+ * @param int $recipient_uid
+ *   The UID of the user whose subscription(s) to delete.
+ *   If this is the only argument, all subscriptions of that user are deleted.
+ * @param string|null $module
+ *   The module,...
+ * @param string|null $field
+ *   the field, and
+ * @param mixed|null $value
+ *   the value of the subscription(s) to delete.
+ * @param int|null $author_uid
+ *   The UID of the content author for by-author subscriptions.
+ *
+ * @return int|null|\DatabaseStatementInterface
+ *   The number of deleted rows or a database connection-dependent value.
+ */
+function subscriptions_delete($recipient_uid, $module = NULL, $field = NULL, $value = NULL, $author_uid = NULL) {
+  $query = db_delete('subscriptions');
+  foreach (array('module', 'field', 'value', 'author_uid', 'recipient_uid') as $column) {
+    if (!empty($$column)) {
+      $query->condition($column, $$column);
+    }
+  }
+  return $query->execute();
+}
+
+/**
+ * Delete one or more subscriptions for all users.
+ *
+ * @param string|null $module
+ *   The module,...
+ * @param string|null $field
+ *   the field, and
+ * @param mixed|null $value
+ *   the value of the subscription(s) to delete.
+ * @param int|null $author_uid
+ *   The UID of the content author, to delete by-author subscriptions.
+ *
+ * @return int|null|\DatabaseStatementInterface
+ *   The number of deleted rows or a database connection-dependent value.
+ */
+function subscriptions_delete_for_all_users($module = NULL, $field = NULL, $value = NULL, $author_uid = NULL) {
+  return subscriptions_delete(NULL, $module, $field, $value, $author_uid);
+}
+
+/**
  * Helper function to do access checking and create a subscription.
  *
  * @param string $access_key
+ *   The key for checking access to the subscription item.
  * @param string $module
+ *   Module that implements the subscription.
  * @param string $field
+ *   Field that's being checked for the subscription.
  * @param mixed $value
+ *   Value that must be in the field in order to trigger the subscription.
  * @param int $author_uid
+ *   Optional ID of the author if the subscription is restricted to nodes by
+ *   on specific author.
  * @param object|null $recipient
+ *   Optional user object of the recipient.
  * @param int $send_interval
+ *   Optional send interval, must be >0.
  * @param int $send_updates
+ *   Optional flag (0 or 1) to indicate whether to trigger on node updates.
  * @param int $send_comments
+ *   Optional flag (0 or 1) to indicate whether to trigger on comment additions
+ *   or changes.
  */
 function subscriptions_write($access_key, $module, $field, $value, $author_uid = -1, $recipient = NULL, $send_interval = 1, $send_updates = 0, $send_comments = 0) {
   global $user;
@@ -566,13 +635,8 @@ function subscriptions_delete_form(array $form, array &$form_state, $module, $fi
  * @param array $form_state
  */
 function subscriptions_delete_form_submit(array $form, array &$form_state) {
-  db_delete('subscriptions')
-    ->condition('module', $form_state['values']['data']['0'])
-    ->condition('field', $form_state['values']['data']['1'])
-    ->condition('value', $form_state['values']['data']['2'])
-    ->condition('author_uid', $form_state['values']['data']['3'])
-    ->condition('recipient_uid', $form_state['values']['data']['4'])
-    ->execute();
+  $data = $form_state['values']['data'];
+  subscriptions_delete($data['4'], $data['0'], $data['1'], $data['2'], $data['3']);
   drupal_set_message(t('Your subscription was deactivated.'));
   $form_state['redirect'] = '<front>';
 }
@@ -926,10 +990,15 @@ function _subscriptions_bulk_operation(array $uids, $bulk_op) {
  * @return mixed
  */
 function subscriptions_arg($index, $member_name = FALSE) {
-  $mgi = menu_get_item();
+  if (($mgi = menu_get_item()) && isset($mgi['map'][$index])) {
+    $path_exploded = $mgi['map'];
+  }
+  else {
+    $path_exploded = explode('/', current_path());
+  }
   $arg = NULL;
-  if (isset($mgi['map'][$index])) {
-    $arg = $mgi['map'][$index];
+  if (!empty($path_exploded[$index])) {
+    $arg = $path_exploded[$index];
     if ($member_name) {
       if (is_object($arg) && isset($arg->$member_name)) {
         $arg = $arg->$member_name;

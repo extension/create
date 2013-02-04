@@ -1,4 +1,3 @@
-// $Id: README.txt,v 1.1.4.2 2011/01/11 04:14:24 placinta Exp $
 Welcome to Node Convert.
 
 This module allows to convert one or many nodes between different node types.

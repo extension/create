@@ -1,5 +1,4 @@
 <?php
-// $Id: node_convert.module,v 1.4.2.1 2011/01/11 04:12:43 placinta Exp $
 
 /**
  * @file
@@ -785,8 +784,7 @@ function node_convert_convert_action_submit($form, &$form_state) {
  *   A boolean containing if there are source fields that have to be converted.
  * @param $hook_options
  *   An array containing values used by the hook_node_convert_change functions.
- * @return
- *   Returns the $nid.
+ * @return bool Returns the $nid.
  */
 function node_convert_node_convert($nid, $dest_node_type, $source_fields, $dest_fields, $no_fields_flag, $hook_options = NULL) {
   $node = node_load($nid);
@@ -834,6 +832,7 @@ function node_convert_node_convert($nid, $dest_node_type, $source_fields, $dest_
   }*/
   cache_clear_all('field:node:' . $node->nid, 'cache_field');
   $converted_node = node_load($nid, NULL, TRUE);
+  $converted_node->type = $dest_node_type;
   try {
     node_save($converted_node);
   }
@@ -919,7 +918,17 @@ function node_convert_field_convert(&$node, $source_field, $dest_field) {
   // We add $source_values into the node object, and invoke field_storage write
   $field_ids = array($field_info_dest['id'] => $field_info_dest['id']);
   $langcode = field_language('node', $node, $source_field);
-  $node->{$dest_field}[$langcode] = $source_values;
+
+  // Make sure that we actually have values in the source field
+  if($source_values !== FALSE) {
+    $node->{$dest_field}[$langcode] = $source_values;
+  } else {
+    $node->{$dest_field} = array();
+  }
+
+  // Give possibility to fields to pre-process their data
+  // (e.g. Link module transforms attribute array into a serialized array before insertion)
+  field_attach_presave('node', $node);
   try {
     module_invoke($db_info_dest['module'], 'field_storage_write', 'node', $node, FIELD_STORAGE_INSERT, $field_ids);
   } catch (Exception $e) {
@@ -1125,10 +1134,10 @@ function node_convert_get_field_value($node, $field) {
   if ($field['type'] == "image") {
     $value = $field_values[0]['title'] . " ; " . $field_values[0]['uri'];
   }
-  /*elseif ($field['type'] == "link") {
+  elseif ($field['type'] == "link_field") {
     $value = $field_values[0]['url'] . " ; " . $field_values[0]['title'];
   }
-  elseif ($field['type'] == "email") {
+  /*elseif ($field['type'] == "email") {
     $value = $field_values[0]['email'];
   }
   elseif ($field['type'] == "file_audio" || $field['type'] == "file_video") {
@@ -1147,7 +1156,11 @@ function node_convert_get_field_value($node, $field) {
     $value = "uid: " . $field_values[0]['uid'];
   }*/
   else {
-    $value = $field_values[0]['value'];
+    if (!isset($field_values[0]['value'])) {
+      $value = t("Unknown field format, can't display field value.");
+    } else {
+      $value = $field_values[0]['value'];
+    }
   }
   if (empty($value)) {
     $value = 'NULL';

@@ -20,16 +20,24 @@
 function _subscriptions_mail_mail_edit_text($mailkey, $language) {
   $langcode = $language->language;
   _subscriptions_mail_module_load_include('templates.inc');
-  $return = array();
-  // TODO: Implement a hook to allow other modules to provide their default templates.
-  if (substr($mailkey, 0, 5) == 'node-') {
-    $return['subject'] = subscriptions_mail_template('SUBJ', $langcode);
-    $return['body'] = subscriptions_mail_template('BODY', $langcode);
-    $return['subscriptions_comment_body'] = subscriptions_mail_template('CITEM', $langcode);
-  }
-  else {
-    $return['subject'] = subscriptions_mail_template('DSUBJ', $langcode);
-    $return['body'] = subscriptions_mail_template('DBODY', $langcode);
+  switch ($mailkey) {
+    case '.DEFAULT':
+      $return = array(
+        'subject'                    => subscriptions_mail_template('SUBJ', $langcode),
+        'body'                       => subscriptions_mail_template('BODY', $langcode),
+        'subscriptions_comment_body' => subscriptions_mail_template('CITEM', $langcode),
+      );
+      break;
+    case 'digest':
+      $return = array(
+        'subject' => subscriptions_mail_template('DSUBJ', $langcode),
+        'body'    => subscriptions_mail_template('DBODY', $langcode),
+      );
+      break;
+    default:
+      $return = _mail_edit_load('subscriptions_mail_.DEFAULT', $langcode, TRUE);
+      unset($return['default'], $return['language'], $return['type']);
+      // TODO: Implement a hook to allow other modules to provide their default templates.
   }
   $return['always'] = TRUE;
   return $return;
@@ -96,11 +104,21 @@ function _subscriptions_mail_mail_edit_form_extra(array &$form, array &$form_sta
     ));
   }
   else {
-    $form['mail']['body']['#description'] = t('The mail body contains one node of the named type. Recommended tokens: <ul><li>@t1, except for @t2,</li> <li>@t3, @t4, and @t5,</li> <li>!t6, if comments should be included.</li></ul>', array(
+    if ($mailkey == '.DEFAULT') {
+      $form['explain_default'] = array(
+        '#markup' => t('This template serves a double purpose for all other !Subscriptions templates (except for the %digest template):<ul><li>it is used as default template where no customized template exists, and</li><li>it serves as starting point for adding new templates.</li></ul>', array('!Subscriptions' => 'Subscriptions', '%digest' => 'digest')),
+        '#weight' => -7,
+      );
+      $description = t('The mail body contains one node of unknown type.');
+    }
+    else {
+      $description = t('The mail body contains one node of the named type.');
+    }
+    $form['mail']['body']['#description'] = $description . ' ' . t('Recommended tokens: <ul><li>@t1, except for @t2,</li> <li>@t3, @t4, and @t5,</li> <li>!t6, if comments should be included.</li></ul>', array(
       '@t1' => '[subs:*]',
       '@t2' => '[subs:items]',
       '@t3' => '[node:*]',
-      '@t4' => '[user:*]',
+      '@t4' => '[node:author:*]',
       '@t5' => '[current-user:*]',
       '!t6' => '<code>{{[subs:comments:count]#...[subs:comments:value:#0]...}}</code>',
     ));
@@ -212,7 +230,7 @@ function _subscriptions_mail_preview_form(array $values) {
     $queue_item = array(
       'sqid'          => 0,
       'uid'           => $user->uid,
-      'name'          => $user->name,
+      'name'          => check_plain(format_username($user)),
       'language'      => $user->language,
       'module'        => 'node',
       'field'         => 'nid',
