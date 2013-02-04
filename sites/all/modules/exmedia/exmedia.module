@@ -163,7 +163,7 @@ function exmedia_token_to_markup($match, $wysiwyg = FALSE) {
   }
   $file = media_get_file_without_label($file, $tag_info['view_mode'], $settings);
   $output = drupal_render( $file );
-  if($element['content']['file']['#file']->field_image__caption['und'][0]['value'] != '' ){
+  if(isset($element['content']['file']['#file']->field_image__caption['und']) ){
 	  
 	   	$pass = array('element' => $output, 
 						'caption' => $element['content']['file']['#file']->field_image__caption['und'][0]['value'],
