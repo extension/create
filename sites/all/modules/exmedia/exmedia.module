@@ -163,8 +163,6 @@ function exmedia_token_to_markup($match, $wysiwyg = FALSE) {
   }
   $file = media_get_file_without_label($file, $tag_info['view_mode'], $settings);
   $output = drupal_render( $file );
-  dsm($element);
-  //print( 'some media update stuff');
   if($element['content']['file']['#file']->field_image__caption['und'][0]['value'] != '' ){
 	  
 	   	$pass = array('element' => $output, 
@@ -179,10 +177,7 @@ function exmedia_token_to_markup($match, $wysiwyg = FALSE) {
 		}else{
 			$pass['allignment'] = '';
 		}
-	  
-	  
-	  	//dsm($tag_info);
-	 	 return theme('exmedia_bordercaption', $pass);
+	 	return theme('exmedia_bordercaption', $pass);
   }
   
   return $output;
