@@ -20,7 +20,7 @@ Drupex addition is the #extensionNav div
     </li>
     <li class="group last"><span>Collaboration and Content Tools</span>
       <ul>
-        <li><a href="http://aae.extension.org" title="Ask an Expert">AaE</a></li>
+        <li><a href="https://ask.extension.org" title="Ask an Expert">AaE</a></li>
         <li><a href="http://collaborate.extension.org/wiki/" title="A wiki for professionals from the land-grant universities to collaborate on topics of interest.">Collaborate</a></li>
         <li><a href="http://create.extension.org/" title="A collaborative development of resources about the eXtension initiative: news, governance, and projects.">Create</a></li>
         <li><a href="http://cop.extension.org/events" title="Events">Events</a></li>
