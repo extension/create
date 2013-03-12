@@ -1,25 +1,4 @@
-<div id="pageBanners">
-  <ul id="extensionNav" class="clearfix">
-    <li class="group"><span>Public sites</span>
-      <ul>
-        <li><a href="http://about.extension.org/" title="A starting place for all things eXtension">About eXtension</a></li>
-        <li><a href="http://campus.extension.org/ " title="Moodle courses developed by eXtension Communities of Practice, as well as Extension professionals throughout the Cooperative Extension System, for use by the general public">Campus</a></li>
-        <li><a href="http://www.extension.org" title="extension.org">eXtension.org</a></li>
-        <li><a href="http://learn.extension.org/" title="Upcoming Professional Development Sessions and Archived PD Recordings">Learn</a></li>
-        <li><a href="http://search.extension.org" title="One search for hundereds of Cooperative Extension Sites">Search</a></li>
-      </ul>
-    </li>
-    <li class="group last"><span>Collaboration and Content Tools</span>
-      <ul>
-        <li><a href="https://ask.extension.org" title="Ask an Expert">AaE</a></li>
-        <li><a href="http://collaborate.extension.org/wiki/" title="A wiki for professionals from the land-grant universities to collaborate on topics of interest.">Collaborate</a></li>
-        <li><a href="http://create.extension.org/" title="A collaborative development of resources about the eXtension initiative: news, governance, and projects.">Create</a></li>
-        <li><a href="http://cop.extension.org/events" title="Events">Events</a></li>
-        <li><a href="http://people.extension.org/" title="Manage your eXtension profile, find colleagues, create and join communities.">People</a></li>
-      </ul>
-    </li>
-  </ul>
-</div>
+<script src="https://www.extension.org/javascripts/global_nav_internal.js" type="text/javascript"></script>
 
 <div id="page-wrapper">
 
