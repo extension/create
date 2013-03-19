@@ -3,7 +3,6 @@ set :default_stage, "demo"
 require 'capistrano/ext/multistage'
 
 require 'capatross'
-require "delayed/recipes"
  
 set :application, "drupal"
 set :repository,  "git@github.com:extension/drupal.git"
