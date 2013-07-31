@@ -17,6 +17,7 @@ function exeditor_wysiwyg_editor_settings_alter(&$settings, &$context) {
 	  //$settings['removePlugins'] = 'contextmenu';
 	  $settings['apply_source_formatting'] = 1;
       //$settings['uiColor'] = '#9AB8F3';
+	  $settings['allowedContent'] = TRUE;
    }
 }
   
