@@ -18,7 +18,7 @@ function exeditor_wysiwyg_editor_settings_alter(&$settings, &$context) {
 	  $settings['apply_source_formatting'] = 1;
       //$settings['uiColor'] = '#9AB8F3';
 	  $settings['allowedContent'] = TRUE;
-	  $settings['width'] = '640';
+	  //$settings['width'] = '640';
 	  $settings['hight'] = '640';
    }
 }
