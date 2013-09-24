@@ -10,20 +10,11 @@
  * Implements hook_uninstall().
  */
 function og_ui_uninstall() {
-  $vars = array(
-    'og_ui_admin_people_view',
-    'og_ui_deny_subscribe_without_approval',
-  );
-  foreach ($vars as $var) {
-    variable_del($var);
-  }
+  variable_del('og_ui_global_roles');
 }
 
 /**
- * Enable VBO module.
+ * Removed -- Upgrade from Organic groups 6 to 7, moved to og-migrate.
  */
-function og_ui_update_7200(&$sandbox) {
-  if (!module_enable(array('views_bulk_operations'))) {
-    throw new DrupalUpdateException('This version of OG UI requires Views bulk operation (VBO), but it could not be enabled.');
-  }
+function og_ui_update_7000(&$sandbox) {
 }
