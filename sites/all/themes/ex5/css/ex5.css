@@ -269,11 +269,11 @@ header.menu-bar #block-system-main-menu ul.menu li a.active{
 /* Content frame
 -----------------------------------------------------------------------------*/
 #main-wrapper{
-	width: 960px;
+	width: 1001px;
 	margin: 0 auto;
 }	
 #main-content{
-	width: 640px;
+	width: 721px;
 	margin: 0 15px;
 	float: left;
 }
@@ -365,7 +365,7 @@ ul.primary li a:hover{
 #right-column{
 	width: 221px;
 	float: left;
-	margin: 0 0 0 40px;
+	margin: 0 0 0 20px;
 }
 #right-column > h1{
 	margin: 0;
@@ -829,6 +829,11 @@ article .comment > footer{
 .panel-flexible .panels-flexible-row-4-1{
 	margin-top: 45px;
 }
+
+.panels-flexible-region-4-top_left{
+	width: 318px;
+}
+
 /* right column of manage community in group dashboards */
 .panels-flexible-column-4-9{
 	width: 375px;
