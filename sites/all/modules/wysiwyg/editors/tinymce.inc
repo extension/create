@@ -13,8 +13,8 @@
 function wysiwyg_tinymce_editor() {
   $editor['tinymce'] = array(
     'title' => 'TinyMCE',
-    'vendor url' => 'http://tinymce.moxiecode.com',
-    'download url' => 'http://tinymce.moxiecode.com/download.php',
+    'vendor url' => 'http://www.tinymce.com',
+    'download url' => 'http://www.tinymce.com/download/download.php',
     'library path' => wysiwyg_get_path('tinymce') . '/jscripts/tiny_mce',
     'libraries' => array(
       '' => array(

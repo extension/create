@@ -55,7 +55,9 @@ function wysiwyg_ckeditor_editor() {
  * Return an install note.
  */
 function wysiwyg_ckeditor_install_note() {
-  return '<p class="warning">' . t('Do NOT download the "CKEditor for Drupal" edition.') . '</p>';
+  $output = '<p class="warning">' . t('Do NOT download the "CKEditor for Drupal" edition.') . '</br>';
+  $output .= t('Make sure you install the full package as not all plugins work with the standard package.') . '</p>';
+  return $output;
 }
 
 /**
@@ -78,7 +80,8 @@ function wysiwyg_ckeditor_version($editor) {
     // version:'CKEditor 3.0 SVN',revision:'3665'
     // version:'3.0 RC',revision:'3753'
     // version:'3.0.1',revision:'4391'
-    if (preg_match('@version:\'(?:CKEditor )?([\d\.]+)(?:.+revision:\'([\d]+))?@', $line, $version)) {
+    // version:"4.0",revision:"769d96134b"
+    if (preg_match('@version:[\'"](?:CKEditor )?([\d\.]+)(?:.+revision:[\'"]([[:xdigit:]]+))?@', $line, $version)) {
       fclose($library);
       // Version numbers need to have three parts since 3.0.1.
       $version[1] = preg_replace('/^(\d+)\.(\d+)$/', '${1}.${2}.0', $version[1]);
@@ -132,6 +135,18 @@ function wysiwyg_ckeditor_themes($editor, $profile) {
  * @see http://docs.cksource.com/ckeditor_api/symbols/CKEDITOR.config.html#.stylesSet
  */
 function wysiwyg_ckeditor_settings_form(&$form, &$form_state) {
+  $form['output']['paste_auto_cleanup_on_paste']['#title'] = t('Force paste as plain text');
+  $form['output']['paste_auto_cleanup_on_paste']['#description'] = t('If enabled, all pasting operations insert plain text into the editor, loosing any formatting information possibly available in the source text. Note: Paste from Word is not affected by this setting.');
+
+  if (version_compare($form_state['wysiwyg']['editor']['installed version'], '3.6.0', '>=')) {
+    $form['appearance']['default_toolbar_grouping'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Use default toolbar button grouping'),
+      '#default_value' => !empty($form_state['wysiwyg_profile']->settings['default_toolbar_grouping']),
+      '#return_value' => 1,
+      '#description' => t('This option gives you the ability to enable/disable the usage of default groupings for toolbar buttons. If enabled, toolbar buttons will be placed into predetermined groups instead of all in a single group.'),
+    );
+  }
   if (version_compare($form_state['wysiwyg']['editor']['installed version'], '3.2.1', '>=')) {
     // Replace CSS classes element description to explain the advanced syntax.
     $form['css']['css_classes']['#description'] = t('Optionally define CSS classes for the "Font style" dropdown list.<br />Enter one class on each line in the format: !format. Example: !example<br />If left blank, CSS classes are automatically imported from loaded stylesheet(s).', array(
@@ -199,14 +214,17 @@ EOL;
  *   Drupal.settings.wysiwyg.configs.{editor}
  */
 function wysiwyg_ckeditor_settings($editor, $config, $theme) {
+  $default_skin = (version_compare($editor['installed version'], '4.0.0', '<') ? 'kama' : 'mono');
   $settings = array(
+    // Needed to make relative paths work in the editor.
+    'baseHref' => $GLOBALS['base_url'] . '/',
     'width' => 'auto',
     // For better compatibility with smaller textareas.
     'resize_minWidth' => 450,
     'height' => 420,
     // @todo Do not use skins as themes and add separate skin handling.
     'theme' => 'default',
-    'skin' => !empty($theme) ? $theme : 'kama',
+    'skin' => !empty($theme) ? $theme : $default_skin,
     // By default, CKEditor converts most characters into HTML entities. Since
     // it does not support a custom definition, but Drupal supports Unicode, we
     // disable at least the additional character sets. CKEditor always converts
@@ -236,7 +254,8 @@ function wysiwyg_ckeditor_settings($editor, $config, $theme) {
     // Versions below 3.0.1 could only handle one stylesheet.
     if (version_compare($editor['installed version'], '3.0.1.4391', '<')) {
       if ($config['css_setting'] == 'theme') {
-        $settings['contentsCss'] = reset(wysiwyg_get_css());
+        $css = wysiwyg_get_css();
+        $settings['contentsCss'] = reset($css);
       }
       elseif ($config['css_setting'] == 'self' && isset($config['css_path'])) {
         $settings['contentsCss'] = strtr($config['css_path'], array('%b' => base_path(), '%t' => drupal_get_path('theme', variable_get('theme_default', NULL))));
@@ -271,8 +290,13 @@ function wysiwyg_ckeditor_settings($editor, $config, $theme) {
   if (isset($config['toolbar_loc'])) {
     $settings['toolbarLocation'] = $config['toolbar_loc'];
   }
+  if (isset($config['paste_auto_cleanup_on_paste'])) {
+    $settings['forcePasteAsPlainText'] = $config['paste_auto_cleanup_on_paste'];
+  }
 
   $settings['toolbar'] = array();
+  $supports_groups = version_compare($editor['installed version'], '3.6.0', '>=');
+  $use_default_groups = $supports_groups && !empty($config['default_toolbar_grouping']);
   if (!empty($config['buttons'])) {
     $extra_plugins = array();
     $plugins = wysiwyg_get_plugins($editor['name']);
@@ -286,7 +310,13 @@ function wysiwyg_ckeditor_settings($editor, $config, $theme) {
           }
           // Add buttons.
           if ($type == 'buttons') {
-            $settings['toolbar'][] = $button;
+            if ($use_default_groups) {
+              $settings['toolbar'][_wysiwyg_ckeditor_group($button)][] = $button;
+            }
+            else {
+              // Use one button row for backwards compatibility.
+              $settings['toolbar'][] = $button;
+            }
           }
           // Add external Drupal plugins to the list of extensions.
           if ($type == 'buttons' && !empty($plugins[$plugin]['proxy'])) {
@@ -315,8 +345,23 @@ function wysiwyg_ckeditor_settings($editor, $config, $theme) {
       $settings['extraPlugins'] = implode(',', $extra_plugins);
     }
   }
-  // For now, all buttons are placed into one row.
-  $settings['toolbar'] = array($settings['toolbar']);
+
+  if ($use_default_groups) {
+    // Organize groups to use lables to improves accessibility.
+    // http://docs.ckeditor.com/#!/guide/dev_toolbar-section-3.
+    $groups_toolbar = array();
+    foreach ($settings['toolbar'] as $group => $items) {
+      $groups_toolbar[] = array(
+        'name' => $group,
+        'items' => $items,
+      );
+      $settings['toolbar'] = $groups_toolbar;
+    }
+  }
+  else {
+    // For now, all buttons are placed into one row.
+    $settings['toolbar'] = array($settings['toolbar']);
+  }
 
   return $settings;
 }
@@ -444,6 +489,7 @@ function wysiwyg_ckeditor_plugins($editor) {
         'Maximize' => t('Maximize'),
         'SpellChecker' => t('Check spelling'), 'Scayt' => t('Check spelling as you type'),
         'About' => t('About'),
+        'Templates' => t('Templates'),
       ),
       'internal' => TRUE,
     ),
@@ -462,3 +508,95 @@ function wysiwyg_ckeditor_plugins($editor) {
   return $plugins;
 }
 
+/**
+ * Define grouping for ckEditor buttons.
+ */
+function _wysiwyg_ckeditor_group($button) {
+  switch ($button) {
+    case 'Source':
+      $group = 'document';
+      break;
+
+    case 'Cut':
+    case 'Copy':
+    case 'Paste':
+    case 'PasteText':
+    case 'PasteFromWord':
+    case 'Undo':
+    case 'Redo':
+      $group = 'clipboard';
+      break;
+
+    case 'Find':
+    case 'Replace':
+    case 'SelectAll':
+    case 'SpellChecker':
+    case 'Scayt':
+      $group = 'editing';
+      break;
+
+    case 'Bold':
+    case 'Italic':
+    case 'Underline':
+    case 'Strike':
+    case 'Subscript':
+    case 'Superscript':
+    case 'RemoveFormat':
+      $group = 'basicstyles';
+      break;
+
+    case 'NumberedList':
+    case 'BulletedList':
+    case 'Outdent':
+    case 'Indent':
+    case 'Blockquote':
+    case 'CreateDiv':
+    case 'JustifyLeft':
+    case 'JustifyCenter':
+    case 'JustifyRight':
+    case 'JustifyBlock':
+    case 'BidiLtr':
+    case 'BidiRtl':
+      $group = 'paragraph';
+      break;
+
+    case 'Link':
+    case 'Unlink':
+    case 'Anchor':
+      $group = 'links';
+      break;
+
+    case 'Image':
+    case 'Flash':
+    case 'Table':
+    case 'HorizontalRule':
+    case 'Smiley':
+    case 'SpecialChar':
+    case 'Iframe':
+    case 'Templates':
+      $group = 'insert';
+      break;
+
+    case 'Styles':
+    case 'Format':
+    case 'Font':
+    case 'FontSize':
+      $group = 'styles';
+      break;
+
+    case 'TextColor':
+    case 'BGColor':
+      $group = 'colors';
+      break;
+
+    case 'Maximize':
+    case 'ShowBlocks':
+    case 'About':
+      $group = 'tools';
+      break;
+
+    default:
+      $group = 'other';
+  }
+  return $group;
+}
