@@ -1502,7 +1502,7 @@ em {font-style:italic;}
 
 /* Resest all styles for articles imported from the wiki
 -----------------------------------------------------------------------------*/
-#content_css_reset {margin:0;padding:0;width:653px;}
+#content_css_reset {margin:0;padding:0;width:721px;}
 #content_css_reset h1 {font-size: 22px; color:#333;}
 #content_css_reset h2 {font-size: 20px; color:#333;}
 #content_css_reset h3 {font-size: 18px; color:#333;}
