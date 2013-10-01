@@ -21,6 +21,10 @@ function exmedia_entity_info_alter(&$entity_info) {
     'label' => t('Feature'),
     'custom settings' => TRUE,
   );
+  $entity_info['file']['view modes']['media_bio'] = array(
+    'label' => t('Bio'),
+    'custom settings' => TRUE,
+  );
 }
 
 
@@ -48,6 +52,12 @@ function exmedia_field_formatter_info_alter(&$info) {
   );
   $info['media_feature'] = array(
     'label' => t('Feature'),
+    'settings' => array(),
+    'field types' => array('media'),
+    'module' => 'media',
+  );
+  $info['media_bio'] = array(
+    'label' => t('Bio'),
     'settings' => array(),
     'field types' => array('media'),
     'module' => 'media',
