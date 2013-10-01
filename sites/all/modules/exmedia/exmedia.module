@@ -17,6 +17,10 @@ function exmedia_entity_info_alter(&$entity_info) {
     'label' => t('Large'),
     'custom settings' => TRUE,
   );
+  $entity_info['file']['view modes']['media_feature'] = array(
+    'label' => t('Feature'),
+    'custom settings' => TRUE,
+  );
 }
 
 
@@ -38,6 +42,12 @@ function exmedia_field_formatter_info_alter(&$info) {
   );
   $info['media_large'] = array(
     'label' => t('Large'),
+    'settings' => array(),
+    'field types' => array('media'),
+    'module' => 'media',
+  );
+  $info['media_feature'] = array(
+    'label' => t('Feature'),
     'settings' => array(),
     'field types' => array('media'),
     'module' => 'media',
@@ -170,9 +180,9 @@ function exmedia_token_to_markup($match, $wysiwyg = FALSE) {
 						'width' => $element['content']['file']['#attributes']['width'] );
   
   
-		if(preg_match('/media-image-left/', $tag_info['attributes']['class'])){
+		if(preg_match('/float: left/', $tag_info['attributes']['style'])){
 			$pass['allignment'] = ' left';
-		}elseif(preg_match('/media-image-right/', $tag_info['attributes']['class'])){
+		}elseif(preg_match('/float: right/', $tag_info['attributes']['style'])){
 			$pass['allignment'] = ' right';
 		}else{
 			$pass['allignment'] = '';
