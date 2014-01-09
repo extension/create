@@ -52,10 +52,41 @@
 	
 	/* Youtube
 	-----------------------------------------------------------------------------*/
-	if ( isset($content["field_number_of_likes"]) || isset($content["field_number_of_views"]) ){
+	if ( isset($content["field_number_of_likes"]) 
+						|| isset($content["field_name_of_youtube_account"])
+						|| isset($content["field_number_of_videos_posted_to"])
+						|| isset($content["field_number_of_videos_posted_th"])
+						|| isset($content["field_number_of_views"]) 
+					){
 	?>
 		<div class="field-label custom-label">Youtube: </div>
 		<?php
+		
+		if(isset($content["field_name_of_youtube_account"])){
+			hide($content["field_name_of_youtube_account"]);
+			print render($content["field_name_of_youtube_account"]);
+		}
+		
+		if(isset($content["field_number_of_videos_posted_to"])){
+			hide($content["field_number_of_videos_posted_to"]);
+			print render($content["field_number_of_videos_posted_to"]);
+		}
+		
+		if(isset($content["field_number_of_videos_posted_th"])){
+			hide($content["field_number_of_videos_posted_th"]);
+			print render($content["field_number_of_videos_posted_th"]);
+		}
+		
+		
+		if(isset($content["field_number_of_views_total"])){
+			hide($content["field_number_of_views_total"]);
+			print render($content["field_number_of_views_total"]);
+		}
+		
+		if(isset($content["field_number_of_youtube_subscrib"])){
+			hide($content["field_number_of_youtube_subscrib"]);
+			print render($content["field_number_of_youtube_subscrib"]);
+		}
 		if(isset($content["field_number_of_views"])){
 			hide($content["field_number_of_views"]);
 			print render($content["field_number_of_views"]);
@@ -72,6 +103,17 @@
 	?>
 		<div class="field-label custom-label">Twitter: </div>
 		<?php
+		
+		
+		
+		if(isset($content["field_name_of_twitter_account"])){
+			hide($content["field_name_of_twitter_account"]);
+			print render($content["field_name_of_twitter_account"]);
+		}
+		if(isset($content["field_if_you_use_a_specific_hash"])){
+			hide($content["field_if_you_use_a_specific_hash"]);
+			print render($content["field_if_you_use_a_specific_hash"]);
+		}		
 		if(isset($content["field_number_of_twitter_follower"])){
 			hide($content["field_number_of_twitter_follower"]);
 			print render($content["field_number_of_twitter_follower"]);
@@ -89,10 +131,16 @@
 								|| isset($content["field_talking_about_this"]) 
 								|| isset($content["field_total_reach"]) 
 								|| isset($content["field_engaged_users"])
+								|| isset($content["field_name_of_facebook_account"])								
 								|| isset($content["field_number_of_stories_created"]) ){
 	?>
 		<div class="field-label custom-label">Facebook: </div>
 		<?php
+		
+		if(isset($content["field_name_of_facebook_account"])){
+			hide($content["field_name_of_facebook_account"]);
+			print render($content["field_name_of_facebook_account"]);
+		}
 		if(isset($content["field_number_of_facebook_likes"])){
 			hide($content["field_number_of_facebook_likes"]);
 			print render($content["field_number_of_facebook_likes"]);
@@ -114,6 +162,36 @@
 			print render($content["field_number_of_stories_created"]);
 		}
 	}
+	
+	
+	/* Pinterest
+	-----------------------------------------------------------------------------*/
+	if ( isset($content["field_name_of_pinterest_account"]) || isset($content["field_number_of_pins"]) ){
+	?>
+		<div class="field-label custom-label">Pintersest: </div>
+		<?php
+		
+		
+		
+		if(isset($content["field_name_of_pinterest_account"])){
+			hide($content["field_name_of_pinterest_account"]);
+			print render($content["field_name_of_pinterest_account"]);
+		}
+		if(isset($content["field_number_of_pins"])){
+			hide($content["field_number_of_pins"]);
+			print render($content["field_number_of_pins"]);
+		}		
+		if(isset($content["field_number_of_repins_for_the_y"])){
+			hide($content["field_number_of_repins_for_the_y"]);
+			print render($content["field_number_of_repins_for_the_y"]);
+		}
+		if(isset($content["field_number_of_pint_followers"])){
+			hide($content["field_number_of_pint_followers"]);
+			print render($content["field_number_of_pint_followers"]);
+		}
+	
+	}
+	
 	
 	if ( isset($content["field_other_social_media_efforts"] )){
 	?>
@@ -147,6 +225,22 @@
 		}
 	}
 	
+	
+	
+	/* PUblications
+	-----------------------------------------------------------------------------*/
+	if ( isset($content["field_publications_citations"]) 
+								){
+	?>
+		<div class="field-label custom-label">Publications: </div>
+		<?php
+		if(isset($content["field_publications_citations"])){
+			hide($content["field_publications_citations"]);
+			print render($content["field_publications_citations"]);
+		}
+	}
+	
+	
 	/* Grants and contracts
 	-----------------------------------------------------------------------------*/
 	
@@ -171,12 +265,22 @@
 	
 	/* Marketing plans and results
 	-----------------------------------------------------------------------------*/
-	if ( isset($content["field_enter_reports_and_or_provi"]) ){
+	if ( isset($content["field_enter_reports_and_or_provi"]) || isset($content["field_marketing_efforts_people"])){
 	?>
 		<div class="field-label custom-label">Marketing plans and results: </div>
 		<?php
-		hide($content["field_enter_reports_and_or_provi"]);
-		print render($content["field_enter_reports_and_or_provi"]);
+		
+		if(isset($content["field_enter_reports_and_or_provi"])){
+			hide($content["field_enter_reports_and_or_provi"]);
+			print render($content["field_enter_reports_and_or_provi"]);
+		}
+		if(isset($content["field_marketing_efforts_people"])){
+			hide($content["field_marketing_efforts_people"]);
+			print render($content["field_marketing_efforts_people"]);
+		}
+		
+		
+		
 	}
 	
 	/* Transrormation
@@ -222,6 +326,10 @@
 			hide($content["field_partnershiips"][$k]["links"]);
 		}
 	}
+	
+	
+	
+	
 		
       hide($content['comments']);
       hide($content['links']);
