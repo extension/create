@@ -23,3 +23,10 @@ function media_vimeo_uninstall() {
   }
   return array(array('success' => TRUE, 'query' => "Deleted all variables in the Media: Vimeo namespace."));
 }
+
+/**
+ * Empty update function.
+ */
+function media_vimeo_update_7200() {
+  // Code removed in response to http://drupal.org/node/1911970.
+}
