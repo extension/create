@@ -189,13 +189,14 @@ function exmedia_token_to_markup($match, $wysiwyg = FALSE) {
 						'caption' => $element['content']['file']['#file']->field_image__caption['und'][0]['value'],
 						'width' => $element['content']['file']['#attributes']['width'] );
   
-  
-		if(preg_match('/float: left/', $tag_info['attributes']['style'])){
-			$pass['allignment'] = ' left';
-		}elseif(preg_match('/float: right/', $tag_info['attributes']['style'])){
-			$pass['allignment'] = ' right';
-		}else{
-			$pass['allignment'] = '';
+  		if(isset($tag_info['attributes']['style'])){
+			if(preg_match('/float: left/', $tag_info['attributes']['style'])){
+				$pass['allignment'] = ' left';
+			}elseif(preg_match('/float: right/', $tag_info['attributes']['style'])){
+				$pass['allignment'] = ' right';
+			}else{
+				$pass['allignment'] = '';
+			}
 		}
 	 	return theme('exmedia_bordercaption', $pass);
   }
