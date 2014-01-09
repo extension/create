@@ -197,6 +197,8 @@ function exmedia_token_to_markup($match, $wysiwyg = FALSE) {
 			}else{
 				$pass['allignment'] = '';
 			}
+		}else{
+			$pass['allignment'] = '';
 		}
 	 	return theme('exmedia_bordercaption', $pass);
   }
