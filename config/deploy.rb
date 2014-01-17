@@ -1,4 +1,4 @@
-set :stages, %w(prod dev)
+set :stages, %w(prod dev bootcamp)
 set :default_stage, "dev"
 require 'capistrano/ext/multistage'
 
@@ -29,7 +29,7 @@ namespace :deploy do
     rm #{release_path}/robots.txt &&
     ln -nfs /services/config/#{application}/robots.txt #{release_path}/robots.txt &&
     ln -nfs /services/config/#{application}/settings.php #{release_path}/sites/default/settings.php &&
-    ln -nfs /services/nfs/drupalfiles/files #{release_path}/sites/default/files
+    ln -nfs #{shared_path}/files #{release_path}/sites/default/files
     CMD
   end
 
