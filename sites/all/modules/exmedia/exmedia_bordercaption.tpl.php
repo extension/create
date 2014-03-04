@@ -1,4 +1,4 @@
-<div class="singleimage<?php print $allignment; ?>"><div class="thumb t<?php print $allignment; ?>"><div class="thumbinner" style="width:<?php print $width; ?>px;">
+<div class="singleimage<?php print $allignment; ?>"><div class="thumb t<?php print substr($allignment, 1); ?>"><div class="thumbinner" style="width:<?php print $width; ?>px;">
 <?php
 print $element;
 ?>
