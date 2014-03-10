@@ -49,7 +49,7 @@ Drupal.wysiwyg.editor.attach.ckeditor = function(context, params, settings) {
       var tags = CKEDITOR.tools.extend({}, dtd.$block, dtd.$listItem, dtd.$tableContent);
       // Set source formatting rules for each listed tag except <pre>.
       // Linebreaks can be inserted before or after opening and closing tags.
-      if (settings.apply_source_formatting) {
+      if (settings.simple_source_formatting) {
         // Mimic FCKeditor output, by breaking lines between tags.
         for (var tag in tags) {
           if (tag == 'pre') {
