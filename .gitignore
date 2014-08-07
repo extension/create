@@ -11,3 +11,4 @@ sites/*/private
 /import
 /capatross_logs
 
+.DS_Store

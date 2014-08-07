@@ -20,11 +20,17 @@ function exeditor_wysiwyg_editor_settings_alter(&$settings, &$context) {
 	  $settings['allowedContent'] = TRUE;
 	  //$settings['width'] = '640';
 	  $settings['hight'] = '640';
+	  
+	  
    }
 }
-  
-  
-  
+/*
+function exeditor_wysiwyg_editor_settings_alter(&$settings, $context) {
+  if ($context['profile']->editor === 'ckeditor') {
+    $settings['customConfig'] = base_path() . drupal_get_path('module', 'exeditor') . '/exeditor_config.js';
+  }
+}
+  */  
   
 /* 
 * Implementation of hook_views_api() 
