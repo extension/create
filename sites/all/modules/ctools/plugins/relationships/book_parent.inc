@@ -42,9 +42,7 @@ function ctools_book_parent_context($context, $conf) {
       // Load the node.
       $node = node_load($nid);
       // Generate the context.
-      if (node_access('view', $node)) {
-        return ctools_context_create('node', $node);
-      }
+      return ctools_context_create('node', $node);
     }
   }
   else {

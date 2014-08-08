@@ -37,7 +37,7 @@ function ctools_requirements($phase) {
 }
 
 /**
- * Implements hook_schema().
+ * Implements hook_schemea
  */
 function ctools_schema() {
   return ctools_schema_2();

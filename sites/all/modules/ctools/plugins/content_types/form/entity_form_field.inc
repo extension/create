@@ -30,11 +30,6 @@ function ctools_entity_form_field_content_type_content_type($subtype) {
  */
 function ctools_entity_form_field_content_type_content_types() {
   // This will hold all the individual field content types.
-  $types = &drupal_static(__FUNCTION__);
-  if (isset($types)) {
-    return $types;
-  }
-
   $types = array();
   $content_types = array();
   $entities = entity_get_info();
@@ -109,12 +104,7 @@ function ctools_entity_form_field_content_type_render($subtype, $conf, $panel_ar
 function ctools_entity_form_field_content_type_admin_title($subtype, $conf, $context) {
   list($entity_type, $field_name) = explode(':', $subtype, 2);
 
-  if (!empty($context->restrictions)) {
-    $field = field_info_instance($entity_type, $field_name, $context->restrictions['type'][0]);
-  }
-  else {
-    $field = array('label' => $subtype);
-  }
+  $field = field_info_instance($entity_type, $field_name, $context->restrictions['type'][0]);
 
   return t('"@s" @field form', array('@s' => $context->identifier, '@field' => $field['label']));
 }

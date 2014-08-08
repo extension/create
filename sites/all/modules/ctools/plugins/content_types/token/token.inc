@@ -33,26 +33,19 @@ function ctools_token_content_type_content_type($subtype) {
  */
 function ctools_token_content_type_content_types() {
   // This will hold all the properties.
-  $types = &drupal_static(__FUNCTION__);
-  if (isset($types)) {
-    return $types;
-  }
-
   $types = array();
   $info = token_info();
 
   foreach ($info['tokens'] as $entity_type => $tokens) {
-    $category = t('@entity (tokens)', array('@entity' => ucfirst($entity_type)));
-    $context = new ctools_context_required(t(ucfirst($entity_type)), $entity_type);
     foreach ($tokens as $name => $token) {
       if (!empty($token['name'])) {
         $token += array('description' => '');
         $types[$entity_type . ':' . $name] = array(
-          'category' => $category,
+          'category' => t('@entity (tokens)', array('@entity' => ucfirst($entity_type))),
           'icon' => 'icon_token.png',
           'title' => $token['name'],
           'description' => $token['description'],
-          'required context' => $context,
+          'required context' => new ctools_context_required(t(ucfirst($entity_type)), $entity_type),
         );
       }
     }
