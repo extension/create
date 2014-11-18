@@ -14,10 +14,12 @@ ssh_options[:forward_agent] = true
 set :port, 24
 #ssh_options[:verbose] = :debug
 
+before "deploy", "deploy:web:disable"
 after "deploy:update_code", "deploy:link_and_copy_configs"
 after "deploy:update_code", "deploy:cleanup"
 after 'deploy',             'deploy:cacheclear'
 after 'deploy',             'deploy:restart'
+after 'deploy',             'deploy:web:enable'
 
 
 namespace :deploy do
@@ -31,7 +33,7 @@ namespace :deploy do
    # clear cache
    desc "Drush Cache Clear"
    task :cacheclear, :roles => :app do
-     execute "cd #{release_path} && /usr/bin/drush cache-clear all"
+     invoke_command "cd #{release_path} && /usr/bin/drush cache-clear all"
    end
 
   # Link up various configs (valid after an update code invocation)
