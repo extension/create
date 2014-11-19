@@ -42,9 +42,9 @@ namespace :deploy do
     rm -rf #{release_path}/sites/default/settings.php &&
     rm -rf #{release_path}/sites/default/files &&
     rm #{release_path}/robots.txt &&
-    ln -nfs /services/#{application}/shared/config/robots.txt #{release_path}/robots.txt &&
-    ln -nfs /services/#{application}/shared/config/settings.php #{release_path}/sites/default/settings.php &&
-    ln -nfs /services/nfs/drupalfiles/files #{release_path}/sites/default/files
+    ln -nfs #{shared_path}/config/robots.txt #{release_path}/robots.txt &&
+    ln -nfs #{shared_path}/config/settings.php #{release_path}/sites/default/settings.php &&
+    ln -nfs #{shared_path}/drupalfiles #{release_path}/sites/default/files
     CMD
   end
 
