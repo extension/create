@@ -5,7 +5,7 @@ require 'capistrano/ext/multistage'
 require 'capatross'
 
 set :application, "create"
-set :repository,  "git@github.com:extension/drupal.git"
+set :repository,  "git@github.com:extension/create.git"
 set :scm, "git"
 set :user, "pacecar"
 set :use_sudo, false
