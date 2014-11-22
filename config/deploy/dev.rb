@@ -1,7 +1,8 @@
-set :deploy_to, '/services/apache/vhosts/dev.create.extension.org/docroot/'
-server 'dev.create.extension.org', :app, :web, :db, :primary => true
+set :deploy_to, "/services/create/"
 if(branch = ENV['BRANCH'])
   set :branch, branch
 else
-  set :branch, 'develop'
+  set :branch, 'master'
 end
+set :vhost, 'dev-create.extension.org'
+server vhost, :app, :web, :db, :primary => true

@@ -1,3 +1,4 @@
-set :deploy_to, '/services/apache/vhosts/create.extension.org/docroot/'
+set :deploy_to, "/services/create/"
 set :branch, 'master'
-server 'create.extension.org', :app, :web, :db, :primary => true
+set :vhost, 'create.extension.org'
+server vhost, :app, :web, :db, :primary => true
