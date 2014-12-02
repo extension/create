@@ -3,7 +3,7 @@
  * @file
  * exatom - feeds for publishing content
  *
- * @package exatom 
+ * @package exatom
  * @version 0.2
  * @author Jason Adam Young <jason.young@extension.org>
  * @copyright North Carolina State University 2010-2011
@@ -68,32 +68,32 @@ function exatom_feed() {
   $published = _exatom_get_param('published', 0);
   $unpublished = _exatom_get_param('unpublished', 0);
   $node = _exatom_get_param('node', '');
-  
+
   $feed_info = array();
   $feed_info['html_url'] = url('', array('absolute' => TRUE));
   $feed_info['atom_url'] = url('exatom.xml', array('absolute' => TRUE));
-  
+
   if ($published or $unpublished) {
-    // get nodes from workflow    
+    // get nodes from workflow
     $query = db_select('node_workflow');
     $query->addField('node_workflow', 'node_id');
-    
+
     if ($published) {
       $query->addField('node_workflow', 'published_at');
       $query->addField('node_workflow', 'published_revision_id');
     }
-    
+
     if ($unpublished) {
       $query->addField('node_workflow', 'unpublished_at');
     }
-    
+
     if (!empty($updated_min)) {
       $updated_min = strtotime($updated_min);
       $or = db_or();
       if ($published) {
         $and = db_and();
         $and->condition('published_at', $updated_min, '>');
-        $and->isNull('unpublished_at');        
+        $and->isNull('unpublished_at');
         $or->condition($and);
       }
       if ($unpublished) {
@@ -104,13 +104,18 @@ function exatom_feed() {
       }
       $query->condition($or);
     }
-    
+
     // check for a specific node if asked
     if(!empty($node)) {
       $query->condition('node_id',$node,'=');
+    //}
+    } else {
+      // ignore all news from feed
+      $query->addJoin('INNER', 'node', 'node', 'node_workflow.node_id = node.nid');
+      $query->condition('node.type','news','!=');
     }
-    
-    
+
+
     $query->orderBy('node_id', 'ASC');
     $query->range($start_index, $start_index + $max_results);
     $result = $query->execute()->fetchAllAssoc('node_id');
@@ -120,17 +125,17 @@ function exatom_feed() {
     // just get nodes
     $query = db_select('node');
     $query->addField('node', 'nid');
-    
-    // check for a specific node if asked  
+
+    // check for a specific node if asked
     if(!empty($node)) {
       $query->condition('nid',$node,'=');
     }
-    
+
     if (!empty($updated_min)) {
       $updated_min = strtotime($updated_min);
       $query->condition('changed', $updated_min, '>');
     }
-    
+
     $query->orderBy('created', 'DESC');
     $query->range($start_index, $start_index + $max_results);
     $nodes = $query->execute()->fetchCol();
@@ -145,7 +150,7 @@ function _exatom_print_feed(array $nids, array $feed_info) {
 
   if (isset($feed_info['publishing'])) {
     $nodes = array();
-    
+
     // loop thru and load revisions we need
     foreach ($feed_info['publishing'] as $nid => $ndata) {
       if (property_exists($ndata, 'published_at')
@@ -163,7 +168,7 @@ function _exatom_print_feed(array $nids, array $feed_info) {
     // load current revisions for all
     $nodes = node_load_multiple($nids);
   }
-  
+
   foreach ($nodes as $node) {
     $item_text = '';
     $links = '';
@@ -180,7 +185,7 @@ function _exatom_print_feed(array $nids, array $feed_info) {
                        'attributes' => array('term' => 'delete'));
     } else {
       $item_text .= $node->body[LANGUAGE_NONE][0]['safe_value'];
-      
+
       // another possible direction:
       // the problem with this is that metadata information
       // will be rendered, like the "Groups Audience" block
@@ -188,17 +193,17 @@ function _exatom_print_feed(array $nids, array $feed_info) {
       // this may be desired, or it may not.  I don't know
       // so for now, let's just focus on the rendered body content
       // above.
-      
+
       // note, drupal_render actually will go to the cache which might be nice.
       //node_build_content($node,'rss');
       //$item_text .= drupal_render($node->content);
 
-      
+
       // add any tags to the feed as category terms
       if (!empty($node->field_tags)) {
         $field_tag_list = array_values($node->field_tags);
         $field_tags = array_pop($field_tag_list);
-        
+
         foreach ($field_tags as $tag) {
           $term = taxonomy_term_load($tag['tid']);
           if ($term) {
@@ -207,12 +212,12 @@ function _exatom_print_feed(array $nids, array $feed_info) {
           }
         }
       }
-      
+
       // add any categories to the feed as category terms
       if (!empty($node->field_article_category)) {
         $field_cat_list = array_values($node->field_article_category);
         $field_cats = array_pop($field_cat_list);
-        
+
         foreach ($field_cats as $cat) {
           $parents = taxonomy_get_parents_all($cat['tid']);
           if ($parents) {
@@ -228,7 +233,7 @@ function _exatom_print_feed(array $nids, array $feed_info) {
           } // if $parents
         }
       }
-      
+
       // add any resource area tags from the groups association
       if (!empty($node->group_audience)) {
         $gid_list = array();
@@ -236,7 +241,7 @@ function _exatom_print_feed(array $nids, array $feed_info) {
         foreach ($group_audience as $group_audience_entry) {
           $gid_list[] =  $group_audience_entry['gid'];
         }
-        
+
         $query = db_select('group_resource_tags');
         $query->addField('group_resource_tags', 'resource_tag_name');
         $and = db_and();
@@ -249,7 +254,7 @@ function _exatom_print_feed(array $nids, array $feed_info) {
                            'attributes' => array('term' => $resource_area_tag));
         }
       }
-      
+
     }
 
     // add the node type as a term so pubsite can seperate FAQs from articles
@@ -265,7 +270,7 @@ function _exatom_print_feed(array $nids, array $feed_info) {
     );
 
     $output .= theme('exatom_feed_item',
-                     array('title' => $node->title, 
+                     array('title' => $node->title,
                            'link' => $node->link,
                            'alias' => $node->alias,
                            'item' => $item,
@@ -367,4 +372,3 @@ function theme_exatom_feed_item($variables) {
   $output .= "  </entry>\n";
   return $output;
 }
-
