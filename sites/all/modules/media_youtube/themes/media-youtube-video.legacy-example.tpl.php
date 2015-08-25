@@ -1,7 +1,7 @@
-﻿<?php
+<?php
 
 /**
- * @file media_youtube/includes/themes/media-youtube-video-legacy.tpl.php
+ * @file media_youtube/themes/media-youtube-video-legacy.tpl.php
  *
  * Legacy markup template file for theme('media_youtube_video').
  *

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @file media_youtube/includes/themes/media-youtube-video.tpl.php
+ * @file media_youtube/themes/media-youtube-video.tpl.php
  *
  * Template file for theme('media_youtube_video').
  *
