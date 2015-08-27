@@ -16,10 +16,19 @@ function exauth_help($path, $arg) {
 //check to see if the user is accessing a cop-created "article" or 'faq'. these are the only pages currently classified as "protected"
 function accessing_protected_page($node_type)
 {
-  if (strpos($_SERVER['REQUEST_URI'], "exatom")=== FALSE && ($node_type == 'article' || $node_type == 'faq' || $node_type == 'news')){
+  if (strpos($_SERVER['REQUEST_URI'], "exatom")=== FALSE && ($node_type == 'article' || $node_type == 'faq' || $node_type == 'news' || $node_type == 'file')){
     return TRUE;
   }
   return FALSE;
+}
+
+// redirect to login if attempt to access protected content
+function exauth_redirect_to_openid_login(){
+  global $base_url;
+  $default_openidreturn = $base_url . '/openid/authenticate?destination=' . ltrim(request_uri(), "/");
+  $myopenid_return = variable_get('extension_openid_return',$default_openidreturn);
+  //syslog(LOG_WARNING, "openid login start");
+  openid_begin("https://people.extension.org", $myopenid_return);
 }
 
 //maintenance mode check
@@ -42,15 +51,28 @@ function maintenance_mode()
  */
 function exauth_node_view($node, $view_mode, $langcode){
   $node_type = $node->type;
-  if(!user_is_logged_in() && accessing_protected_page($node_type) && !maintenance_mode() && !drupal_is_front_page() && $view_mode != 'rss') 
+  if(!user_is_logged_in() && accessing_protected_page($node_type) && !maintenance_mode() && !drupal_is_front_page() && $view_mode != 'rss')
   {
-    global $base_url;
-    $default_openidreturn = $base_url . '/openid/authenticate?destination=' . ltrim(request_uri(), "/");
-    $myopenid_return = variable_get('extension_openid_return',$default_openidreturn);
-    //syslog(LOG_WARNING, "openid login start");
-    openid_begin("https://people.extension.org", $myopenid_return);
+    exauth_redirect_to_openid_login();
   }
 }
+
+/**
+ * implements hook_entity_view()
+ * before an entity is rendered for the user, check to make sure that the user is logged in before viewing a file info.
+ * if the user is not logged in and trying to access a file info, then force an openid login and direct them back to that page after they authenticate.
+ */
+function exauth_entity_view($entity, $type, $view_mode, $langcode) {
+  if(!user_is_logged_in() && $type == 'file' && !maintenance_mode() && !drupal_is_front_page() && $view_mode != 'rss')
+  {
+    exauth_redirect_to_openid_login();
+  }
+}
+
+
+
+
+
 
 /**
  *implements hook_form_alter()
@@ -99,6 +121,6 @@ function exauth_form_alter(&$form, &$form_state, $form_id){
         $form['mail']['#markup'] = 'Password reset intentionally disabled'; // inform user that password reset when visiting /user/password
         $form['name']['#attributes']['readonly'] = 'readonly'; // make the text field uneditable for anonymous users.
         unset($form['actions']['submit']); // remove submit button from /user/login
-        break;        
+        break;
   }
 }
