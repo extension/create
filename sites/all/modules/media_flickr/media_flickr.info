@@ -1,20 +1,18 @@
-
 name = Media: Flickr
-description = Integrates Flickr.com photos and photosets with Media.
-package = "Media"
+description = Adds Flickr as a supported media provider.
+package = Media
 core = 7.x
-dependencies[] = media
+
 dependencies[] = media_internet
-files[] = media_flickr.module
-files[] = includes/media_flickr.admin.inc
-files[] = includes/media_flickr.utilities.inc
+
 files[] = includes/MediaFlickrStreamWrapper.inc
 files[] = includes/MediaInternetFlickrHandler.inc
-files[] = includes/MediaFlickrStyles.inc
 
-; Information added by drupal.org packaging script on 2012-08-14
-version = "7.x-2.0-alpha3"
+configure = admin/config/media/media_flickr
+
+; Information added by Drupal.org packaging script on 2015-05-28
+version = "7.x-2.0-alpha3+18-dev"
 core = "7.x"
 project = "media_flickr"
-datestamp = "1344959822"
+datestamp = "1432796884"
 

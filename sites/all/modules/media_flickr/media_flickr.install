@@ -6,27 +6,23 @@
  */
 
 /**
- * Implements hook_install().
- */
-function media_flickr_install() {
-  return array();
-}
-
-/**
  * Implements hook_uninstall().
  */
 function media_flickr_uninstall() {
-  include_once('includes/media_flickr.variables.inc');
-  foreach (media_flickr_variable_default() as $name => $value) {
-    media_flickr_variable_del($name);
-  }
-  return array(array('success' => TRUE, 'query' => "Deleted all variables in the Media: Flickr namespace."));
+  // Remove variables.
+  variable_del('media_flickr_width');
+  variable_del('media_flickr_height');
+  variable_del('media_flickr_autoplay');
+  variable_del('media_flickr_preview_uri');
+  variable_del('media_flickr_api_key');
+  variable_del('media_flickr_api_secret');
 }
 
 /**
- * Register new included files.
+ * Rebuild the registry to locate class files in new location.
  */
 function media_flickr_update_7001() {
+  registry_rebuild();
 }
 
 /**
@@ -64,4 +60,25 @@ function media_flickr_update_7006() {
  * Register new permissions.
  */
 function media_flickr_update_7007() {
+}
+
+/**
+ * Rename variables, removing variable namespace.
+ */
+function media_flickr_update_7008() {
+  // Create an array of variables sans 'media_flickr' prefix.
+  $variables = array('width', 'height', 'autoplay', 'preview_uri', 'api_key', 'api_secret');
+
+  foreach ($variables as $variable) {
+    // Find the value of the old variable.
+    $value = variable_get('media_flickr__' . $variable);
+
+    // Port the value of the variable if it was set.
+    if (!is_null($value)) {
+      variable_set('media_flickr_' . $variable, $value);
+    }
+
+    // Remove the old variable.
+    variable_del('media_flickr__' . $variable);
+  }
 }

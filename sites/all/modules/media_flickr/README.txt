@@ -1,14 +1,54 @@
+CONTENTS OF THIS FILE
+---------------------
 
-Readme for Media: Flicker
+ * Introduction
+ * Requirements
+ * Installation
+ * Permissions
+ * Usage
 
-The Media: Flickr module allows editors to choose Flickr photos within the
-Media browser, both for fields and withing WYSIWYG. It requires the Media
-module, available at http://drupal.org/project/media.
+INTRODUCTION
+------------
 
-To use it, enable the Media module. You'll also need to apply for a Flickr API
-key, from http://www.flickr.com/services/api/keys, which you will paste into
-the settings page at /admin/configure/media/media_flickr.
+Current Maintainers:
 
-After that, editors will be able to paste a URL or the embed code for a Flickr
-Photo into the browser, and it will be displayed automatically at the desired
-size.
+ * Devin Carlson <http://drupal.org/user/290182>
+
+Media: Flickr adds Flickr as a supported media provider.
+
+REQUIREMENTS
+------------
+
+Media: Flickr has one dependency.
+
+Contributed modules
+ * Media Internet - A submodule of the Media module.
+
+INSTALLATION
+------------
+
+Media: Flickr can be installed via the standard Drupal installation process
+(http://drupal.org/node/895232).
+
+Once installed, you must apply for a Flickr API key
+(http://www.flickr.com/services/api/keys) and enter it into the Media: Flickr
+settings page (admin/configure/media/media-flickr).
+
+PERMISSIONS
+------------
+
+Media: Flickr provides one permission:
+
+ * Administer Media: Flickr
+    Allows a user to configure Flickr API keys.
+
+USAGE
+-----
+
+Media: Flickr integrates the Flickr photo-sharing service with the Media module
+to allow users to add and manage Flickr images as they would any other piece of
+media.
+
+Internet media can be added on the Web tab of the Add file page (file/add/web).
+With Media: Flickr enabled, users can add a Flickr image by entering its URL or
+embed code.

@@ -31,9 +31,14 @@ function _media_flickr_photo_remote_url($photo_id, $size) {
   $getsize = _media_flickr_sets_request('flickr.photos.getSizes', array('photo_id' => $photo_id));
 
   if ($getsize && ($getsize['@attributes']['stat'] != 'fail')) {
-    // For small images, there may not be the sizes 0..4 that
-    // media_flickr_guess_size assumes, so:
-    $size = min($size, count($getsize['sizes']['size'])-1);
+    // If no size was requested, or if a size was requested that doesn't exist
+    // (e.g. for small images, the sizes 0..4 that _media_flickr_guess_size
+    // assumes may not actually be there), use the largest size available,
+    // which is the original image.
+    $number_of_sizes = count($getsize['sizes']['size']);
+    if (!isset($size) || $size >= $number_of_sizes) {
+      $size = $number_of_sizes - 1;
+    }
 
     return $getsize['sizes']['size'][$size]['@attributes']['source'];
   }
@@ -43,25 +48,51 @@ function _media_flickr_photo_remote_url($photo_id, $size) {
  *  This is a wrapper for emfield_request_xml that includes flickr's api key.
  *  @param string $method
  *  @param array $args
- *  @param boolean $refresh
- *    Optional; if TRUE, then we'll force a new load of the XML. Otherwise,
- *    a cached version will be retrieved if possible.
+ *
  *  @return object
  *    A fully populated SimpleXML object.
  */
-function _media_flickr_sets_request($method, $args = array(), $refresh = FALSE) {
+function _media_flickr_sets_request($method, $args = array()) {
   // Display an error if we don't have an API key yet.
   if (!_media_flickr_error_check()) {
     return array();
   }
 
-  $args['api_key'] = trim(media_flickr_variable_get('api_key'));
-  if ($secret = trim(media_flickr_variable_get('api_secret'))) {
+  $args['api_key'] = trim(variable_get('media_flickr_api_key', ''));
+  if ($secret = trim(variable_get('media_flickr_api_secret', ''))) {
     $args['secret'] = md5($secret);
   }
   $args['method'] = $method;
 
-  $xml = media_retrieve_xml(MEDIA_FLICKR_RESTPOINT . '?' . drupal_http_build_query($args), user_access('administer site configuration'), $refresh);
+  $request = drupal_http_request(url(MEDIA_FLICKR_RESTPOINT, array('query' => $args)));
+  if (!isset($request->error)) {
+    $entry = simplexml_load_string($request->data);
+  }
+  else {
+    throw new Exception("Error Processing Request. (Error: {$request->code}, {$request->error})");
+
+    // If request wasn't successful, create object for return to avoid errors.
+    $entry = new SimpleXMLElement();
+  }
+
+  return media_flickr_unserialize_xml($entry);
+}
+
+/**
+ * Recursively converts a SimpleXMLElement object into an array.
+ *
+ * @param object $xml
+ *   The original XML object.
+ */
+function media_flickr_unserialize_xml($xml) {
+  if ($xml instanceof SimpleXMLElement) {
+    $xml = (array) $xml;
+  }
+  if (is_array($xml)) {
+    foreach ($xml as $key => $item) {
+      $xml[$key] = media_flickr_unserialize_xml($item);
+    }
+  }
   return $xml;
 }
 
@@ -72,7 +103,7 @@ function _media_flickr_sets_request($method, $args = array(), $refresh = FALSE) 
 function _media_flickr_error_check() {
   static $checked;
   if (is_null($checked)) {
-    if (media_flickr_variable_get('api_key') == '') {
+    if (variable_get('media_flickr_api_key', '') == '') {
       $error = 'You do not yet have a Flickr API key set. You will need to !apply and enter your key at the !settings before Flickr images may be displayed.';
       $arguments = array('!apply' => l(t('apply for a Flickr API key'), MEDIA_FLICKR_API_APPLICATION_URL), '!settings' => l(t('Flickr administration page'), 'admin/config/media/media_flickr'));
       if (user_access('administer site configuration')) {
@@ -103,10 +134,10 @@ function _media_flickr_guess_size($width = 0, $height = 0) {
   }
 
   // If we don't have width or height set, then get the original size.
-  return '5';
+  return NULL;
 }
 
-function _media_flickr_photo_url_from_size($photo_id, $size = 5) {
+function _media_flickr_photo_url_from_size($photo_id, $size = NULL) {
   // Check to make sure we have a valid photo code.
   if (is_numeric($photo_id)) {
     $filepath = _media_flickr_photo_remote_url($photo_id, $size);
@@ -213,6 +244,7 @@ function _media_flickr_media_parse($url, $options = array()) {
     '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/in/photostream@i',
     '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/in/set-([0-9]+)@i',
     '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/?$@i',
+    '@flickr\.com/photos/([0-9A-Za-z\@\&\$_-]+)/([0-9]+)/in/pool-([0-9A-Za-z\@\&\$_-]+)@i',
   );
   foreach ($patterns as $pattern) {
     preg_match($pattern, $url, $matches);

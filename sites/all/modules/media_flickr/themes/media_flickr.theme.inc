@@ -5,7 +5,7 @@
  */
 
 function theme_media_flickr_preview_style($variables) {
-  $variables['uri'] = media_flickr_variable_get('preview_uri');
+  $variables['uri'] = variable_get('media_flickr_preview_uri', 'flickr://u/56854677@N02/p/5247285379');
   return theme('media_flickr_embed', $variables);
 }
 
@@ -29,8 +29,8 @@ function media_flickr_preprocess_media_flickr_photoset(&$variables) {
     $variables['user_id'] = drupal_encode_path($parts['u']);
     $variables['set_id'] = drupal_encode_path($parts['s']);
   }
-  $variables['width'] = isset($variables['width']) ? $variables['width'] : media_flickr_variable_get('width');
-  $variables['height'] = isset($variables['height']) ? $variables['height'] : media_flickr_variable_get('height');
+  $variables['width'] = isset($variables['width']) ? $variables['width'] : variable_get('media_flickr_width', 560);
+  $variables['height'] = isset($variables['height']) ? $variables['height'] : variable_get('media_flickr_height', 340);
   if (isset($variables['search'])) {
     $variables['flashvars'] = "offsite=true&lang=en-us&page_show_url=%2Fsearch%2Fshow%2F%3Fq%3D{$variables['search']}&page_show_back_url=%2Fsearch%2F%3Fq%3D{$variables['search']}&method=flickr.photos.search&api_params_str=&api_text={$variables['search']}&api_tag_mode=bool&api_media=all&api_sort=relevance&jump_to=&start_index=0";
   }
