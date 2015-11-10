@@ -1,9 +1,7 @@
 	<div class="region region-footer-firstrow">
 		<nav id="block-menu-menu-publish-to-www" class="block block-menu">
-			<h2>Publish to www.extension.org</h2>
-			<div class="description">Create content to be displayed as trusted and
-credable resource to the public.
-			</div>
+			<h2>Publish to articles.extension.org</h2>
+			<div class="description">Create content published to the Articles website</div>
 		  	<div class="links">
 				<ul class="menu">
 					<li class="first leaf"><a href="" title="">Content categories</a></li>
@@ -18,7 +16,7 @@ credable resource to the public.
 		  </div>
 		</nav>
 		<nav id="block-menu-menu-manage-your-community" class="block block-menu">
-		
+
 			<h2>Manage your community</h2>
 			<div class="description">Discuss, share, organize and present your thought on
 		the topics of the resource area you are member to.
@@ -33,12 +31,12 @@ credable resource to the public.
 					<li class="leaf"><a href="/group-list" title="">My communities</a></li>
 					<li class="leaf"><a href="/group-list" title="">All communities</a></li>
 					<li class="last leaf"><a href="/forum" title="">Discussions</a></li>
-				</ul> 
+				</ul>
 		  </div>
 		</nav>
 		<nav id="block-menu-menu-about-extension" class="block block-menu">
 			  <h2>About eXtension</h2>
-			<div class="description">Documents, notes, guidelines and resources for 
+			<div class="description">Documents, notes, guidelines and resources for
 managing eXtension organization as a whole.</div>
 		<div class="links">
 			<ul class="menu">
