@@ -1,4 +1,4 @@
-<script src="https://assets.extension.org/javascripts/global_nav_internal.js" type="text/javascript"></script>
+<script src="https://assets.extension.org/javascripts/global_shortcuts_bar_internal.js" type="text/javascript"></script>
 
 <div id="page-wrapper">
 
