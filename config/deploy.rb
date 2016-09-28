@@ -11,7 +11,6 @@ set :user, "pacecar"
 set :use_sudo, false
 set :keep_releases, 3
 ssh_options[:forward_agent] = true
-set :port, 24
 #ssh_options[:verbose] = :debug
 
 before "deploy", "deploy:web:disable"
