@@ -102,7 +102,7 @@ html.js input.throbbing {
 
 caption {
 	padding: 0 0 5px 0;
-	width: 700px;	 
+	width: 700px;
 	text-align: right;
 }
 
@@ -181,7 +181,7 @@ th.specalt {
 	margin: 14px 30px 0 0;
 	padding: .2em .25em;
 	font-size:15px;
-	
+
 }
 
 /* Top menu bar, logo and breadcrumb area
@@ -271,7 +271,7 @@ header.menu-bar #block-system-main-menu ul.menu li a.active{
 #main-wrapper{
 	width: 1001px;
 	margin: 0 auto;
-}	
+}
 #main-content{
 	width: 721px;
 	margin: 0 15px;
@@ -347,7 +347,7 @@ ul.primary li a{
 ul.primary li.active a {
 	border: none;
 	border-right: 1px solid #AAB8CB;
-	
+
 }
 ul.primary li a.last{
 	border: none;
@@ -390,7 +390,7 @@ ul.primary li a:hover{
 /* Right column user menu
 -----------------------------------------------------------------------------*/
 
-.region-sidebar-second-user #block-system-user-menu, 
+.region-sidebar-second-user #block-system-user-menu,
 .region-sidebar-second-user #block-user-login{
 	padding: 9px;
 }
@@ -455,7 +455,7 @@ ul.primary li a:hover{
 	margin: 0;
 }
 .view-og-user-groups .view-footer,
-.pane-og-nodes .more-link, 
+.pane-og-nodes .more-link,
 .view-og-list .view-footer{
 	margin: 5px 10px;
 	padding: 0 0 0 10px;
@@ -533,7 +533,7 @@ article .field-name-field-image img{
 }
 
 .field-name-body h1, .field-name-body h2, .field-name-body h3, .field-name-body h4{
-	margin: .5em 0 .5em 0; 
+	margin: .5em 0 .5em 0;
 	line-height: 140%;
 }
 
@@ -742,7 +742,7 @@ article .comment > footer{
 -----------------------------------------------------------------------------*/
 .views-exposed-widgets .form-text{
 	width: 170px;
-	
+
 }
 .views-exposed-form .views-widget-filter-title{
 	width: 180px;
@@ -953,7 +953,7 @@ article .comment > footer{
 .panels-flexible-row-4-18-inside .pane-title,
 .panels-flexible-row-4-3 .pane-title{
 	color: #F15A24;
-	font-size: 14px;	
+	font-size: 14px;
 }
 
 .panels-flexible-region-4-manage_community_lists-inside .pane-views,
@@ -984,7 +984,7 @@ article .comment > footer{
 	display: none;
 }
 
-.panels-flexible-row-4-7-inside, .panels-flexible-row-4-17  .panels-flexible-region, 
+.panels-flexible-row-4-7-inside, .panels-flexible-row-4-17  .panels-flexible-region,
 .panels-flexible-region-4-content_structure-inside .pane-views{
 	margin: 0 25px;
 	width: auto;
@@ -1052,7 +1052,7 @@ article .comment > footer{
 	color: #666666;
 }
 .views-row .views-field-changed,
-.views-row .views-field-field-first-name, 
+.views-row .views-field-field-first-name,
 .views-row .views-field-field-last-name{
 	color: #6B82A5;
 }
@@ -1366,8 +1366,8 @@ article .comment > footer{
 /* CoP annual report
 -----------------------------------------------------------------------------*/
 
-.custom-label, 
-article .field-name-field-grants-contracts-supportin > .field-label, 
+.custom-label,
+article .field-name-field-grants-contracts-supportin > .field-label,
 .field-name-field-partnershiips > .field-label,
 .node-cop-annual-report .field-name-group-audience > .field-label{
 	font-size: 18px;
@@ -1517,7 +1517,7 @@ em {font-style:italic;}
 #content_css_reset table caption {font-weight:bold;line-height:1.3em;margin-bottom:1em;}
 #content_css_reset table th,
 #content_css_reset table td,
-#content_css_reset table th {color:#222;border: 1px solid #bbb;} 
+#content_css_reset table th {color:#222;border: 1px solid #bbb;}
 #content_css_reset table th {background:#ededed;}
 #content_css_reset th {white-space: normal;}
 
@@ -1555,3 +1555,5 @@ blockquote {padding:2em 2em 1em; font-size:1.1em; background:#ebf2f8;margin:1.5e
 #article.contactus {margin-top:0;}
 #article.contactus h2 {margin:1em 0 .5em;}
 #article.contactus p {margin:0 0 1.5em;}
+
+#block-menu-menu-footer ul {width: auto !important;}
