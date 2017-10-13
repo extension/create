@@ -8,10 +8,10 @@ set :application, "create"
 set :repository,  "git@github.com:extension/create.git"
 set :scm, "git"
 set :user, "pacecar"
+set :gateway, 'deploy.extension.org'
 set :use_sudo, false
 set :keep_releases, 3
 ssh_options[:forward_agent] = true
-#ssh_options[:verbose] = :debug
 
 before "deploy", "deploy:web:disable"
 after "deploy:update_code", "deploy:link_and_copy_configs"
