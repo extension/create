@@ -55,6 +55,16 @@ function exworkflow_node_view($node, $view_mode) {
         $review_count = "Review Count: 0";
         $node_status = "Status: <strong>{$workflow_list[1]}</strong>";
       }
+      elseif($node_workflow->status == 7) { // redirected, allow nothing
+        $workflow_content = '<div class="inactive">';
+        # this should not be hardcoded
+        # but yet it still remains hardcoded
+        $pageinfo_url = 'http://articles.extension.org/pageinfo/source/create/'.$node->nid;
+        $workflow_content .= "<p>This content has been marked as <a href='".$pageinfo_url."' title='More information about this published page.'>redirected</a> in Articles. No workflow actions are allowed.</p>";
+        $workflow_content .= "</div>";
+        $node->content['additional_field'] = array('#markup' => $workflow_content);
+        return;
+      }
       else {
         // check to see if the node has been set to inactive
         if($node_workflow->active == false) {
@@ -810,6 +820,7 @@ function exworkflow_get_workflow_events() {
   7 => 'made inactive',
   8 => 'activated',
   9 => 'marked ready for copy edit',
+  10 => 'redirected in articles',
   );
 }
 
@@ -823,5 +834,6 @@ function exworkflow_search_workflow_states() {
     4 => t('ready for publish'),
     5 => t('published'),
     6 => t('ready for copy edit'),
+    7 => t('redirected'),
   );
 }
